@@ -25,7 +25,7 @@ crons.interval(
 
 crons.interval(
   "judge all teams",
-  { minutes: 5 },
+  { minutes: 1 },
   internal.judging.executeAllJudgesScheduled
 );
 
