@@ -125,25 +125,44 @@ export function SpeechBubbles({ agentPositions }: SpeechBubblesProps) {
 
         if (!pos) return null;
 
+        const mapWidth = 1024;
+        const bubbleMaxWidth = 250;
+        const padding = 20;
+        
+        let leftPos = pos.x;
+        let translateX = "-50%";
+        
+        if (pos.x < bubbleMaxWidth / 2 + padding) {
+          leftPos = padding;
+          translateX = "0%";
+        } else if (pos.x > mapWidth - bubbleMaxWidth / 2 - padding) {
+          leftPos = mapWidth - padding;
+          translateX = "-100%";
+        }
+
         return (
           <div
             key={bubble.agentKey}
             className="absolute pointer-events-none"
             style={{
-              left: `${pos.x}px`,
+              left: `${leftPos}px`,
               top: `${pos.y - 40}px`,
-              transform: "translate(-50%, -100%)",
+              transform: `translate(${translateX}, -100%)`,
               animation: "speech-bubble-appear 0.3s ease-out",
               zIndex: 20,
+              maxWidth: `${bubbleMaxWidth}px`,
             }}
           >
             <div
-              className="relative bg-white backdrop-blur-sm rounded-lg py-1.5 text-xs font-mono whitespace-nowrap"
+              className="relative bg-white backdrop-blur-sm rounded-lg py-1.5 text-xs font-mono"
               style={{
                 border: "2px solid #333",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
                 paddingLeft: "12px",
                 paddingRight: "12px",
+                whiteSpace: "normal",
+                wordWrap: "break-word",
+                overflowWrap: "break-word",
               }}
             >
               <span style={{ color: "#000", fontWeight: "600" }}>{bubble.message}</span>

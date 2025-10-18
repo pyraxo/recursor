@@ -15,24 +15,24 @@ export default function WorldScreen() {
   const [activeTab, setActiveTab] = useState<TabType>("world");
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--background)]">
+    <div className="h-screen flex flex-col bg-[var(--background)]">
       <TopBar />
       <MainTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0 flex">
         {activeTab === "world" && (
-          <div className="flex h-full">
-            <div className="flex-1 overflow-auto">
+          <>
+            <div className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
               <WorldMap
                 selectedTeamId={selectedTeamId}
                 onSelectTeam={setSelectedTeamId}
               />
             </div>
 
-            <div className="w-[480px] border-l-2 border-[var(--panel-border)] bg-[var(--panel-bg)] overflow-auto">
+            <div className="w-[480px] flex-shrink-0 border-l-2 border-[var(--panel-border)] bg-[var(--panel-bg)] overflow-y-auto overflow-x-hidden">
               <SidePanel selectedTeamId={selectedTeamId} />
             </div>
-          </div>
+          </>
         )}
 
         {activeTab === "messages" && <MessagesTab />}

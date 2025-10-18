@@ -84,6 +84,7 @@ export const update = mutation({
 });
 
 // Internal: Update project idea for a stack (used by agents)
+// Creates a new project idea if one doesn't exist (upsert behavior)
 export const internalUpdate = internalMutation({
   args: {
     stack_id: v.id("agent_stacks"),
@@ -100,7 +101,16 @@ export const internalUpdate = internalMutation({
       .first();
 
     if (!projectIdea) {
-      throw new Error(`No project idea found for stack ${args.stack_id}`);
+      // Create a new project idea if it doesn't exist
+      const newIdeaId = await ctx.db.insert("project_ideas", {
+        stack_id: args.stack_id,
+        title: args.title || "Untitled Project",
+        description: args.description || "Project description pending",
+        status: args.status || "ideation",
+        created_by: "planner",
+        created_at: Date.now(),
+      });
+      return newIdeaId;
     }
 
     const updates: any = {};

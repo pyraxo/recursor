@@ -69,7 +69,7 @@ export function WorldMap({ selectedTeamId, onSelectTeam }: WorldMapProps) {
   ];
 
   return (
-    <div className="w-full min-h-full bg-[var(--background)] flex justify-center p-8">
+    <div className="min-h-full bg-[var(--background)] flex justify-center items-start p-8">
       <div
         className="relative flex-shrink-0"
         style={{
