@@ -450,9 +450,57 @@ Work on the **highest priority** todos first. For each todo:
 2. **Implement**: Write clean, tested code
 3. **Document**: Add comments and update docs
 4. **Review**: Check quality and correctness
-5. **Commit**: Make meaningful commits
+5. **Commit**: Push your changes to GitHub (see Git Workflow below)
 
 Create a working, demo-ready prototype. This is a hackathon - move fast but maintain high quality.
+
+## Git Workflow (CRITICAL - READ CAREFULLY)
+
+⚠️ **IMPORTANT**: Your work MUST be committed to git. Uncommitted changes will NOT be detected by the orchestration system and will be LOST forever!
+
+After completing EACH todo or making significant progress:
+
+1. **Stage all changes**:
+   \`\`\`bash
+   git add .
+   \`\`\`
+
+2. **Commit with semantic message**:
+   \`\`\`bash
+   git commit -m "type: brief description of changes"
+   \`\`\`
+
+   **Commit message types**:
+   - \`feat:\` - New feature or functionality
+   - \`fix:\` - Bug fix or correction
+   - \`docs:\` - Documentation updates
+   - \`refactor:\` - Code restructuring without feature changes
+   - \`test:\` - Adding or updating tests
+   - \`style:\` - UI/styling changes
+
+   **Examples**:
+   - \`git commit -m "feat: add user authentication component"\`
+   - \`git commit -m "fix: resolve button click handler bug"\`
+   - \`git commit -m "docs: add API usage examples to README"\`
+
+3. **Push to remote**:
+   \`\`\`bash
+   git push origin ${this.currentWorkspace?.branch || "agent-workspace"}
+   \`\`\`
+
+**When to commit**:
+- ✅ After completing a todo
+- ✅ After creating new files or components
+- ✅ After fixing bugs or passing tests
+- ✅ After significant refactoring
+- ✅ At natural stopping points in your work
+- ❌ Do NOT commit broken/incomplete code that won't run
+
+**Why this matters**:
+- Your commits are synced back to our database as "artifacts"
+- These artifacts are used for grading and review by other agents
+- Uncommitted work is invisible to the system and will disappear
+- Think of git commits as your autosave mechanism
 
 ### Technology Choices
 
