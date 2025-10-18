@@ -10,7 +10,7 @@ export async function executePlanner(
   console.log(`[Planner] Executing for stack ${stackId}`);
 
   // 1. Load context
-  const [stack, todos, projectIdea, agentState] =
+  const [stack, todos, projectIdea, agentState, userMessages] =
     await Promise.all([
       ctx.runQuery(internal.agentExecution.getStackForExecution, { stackId }),
       ctx.runQuery(internal.agentExecution.getTodos, { stackId }),
@@ -18,6 +18,9 @@ export async function executePlanner(
       ctx.runQuery(internal.agentExecution.getAgentState, {
         stackId,
         agentType: "planner",
+      }),
+      ctx.runQuery(internal.userMessages.internalGetUnprocessed, {
+        team_id: stackId,
       }),
     ]);
 
@@ -29,7 +32,8 @@ export async function executePlanner(
   const hasWork = checkPlannerHasWork(
     todos,
     projectIdea,
-    agentState
+    agentState,
+    userMessages
   );
   if (!hasWork.hasWork) {
     console.log(`[Planner] No work available: ${hasWork.reason}`);
@@ -76,6 +80,20 @@ export async function executePlanner(
     messages.push({
       role: "user",
       content: `Reviewer recommendations${ageInMinutes !== null ? ` (${ageInMinutes} minutes ago)` : ''}:\n${recommendations}`,
+    });
+  }
+
+  // Add user messages if any
+  if (userMessages && userMessages.length > 0) {
+    const userMessagesSummary = userMessages
+      .map((msg: any) => {
+        const timeAgo = Math.floor((Date.now() - msg.timestamp) / 60000);
+        return `- From ${msg.sender_name} (${timeAgo}m ago): ${msg.content}`;
+      })
+      .join("\n");
+    messages.push({
+      role: "user",
+      content: `User messages for the team:\n${userMessagesSummary}\n\nAnalyze these messages and decide if you need to:\n1. Create a todo for the Communicator to respond\n2. Incorporate feedback or suggestions into the project plan\n3. Adjust priorities based on user input`,
     });
   }
 
@@ -148,7 +166,8 @@ export async function executePlanner(
 function checkPlannerHasWork(
   todos: any[],
   projectIdea: any,
-  agentState: any
+  agentState: any,
+  userMessages?: any[]
 ): { hasWork: boolean; reason: string; prompt?: string } {
   // Check if we need initial planning
   if (!projectIdea) {
@@ -177,6 +196,16 @@ function checkPlannerHasWork(
       reason: "All todos completed",
       prompt:
         "All current todos are completed. Plan the next phase of development.",
+    };
+  }
+
+  // Check for unprocessed user messages
+  if (userMessages && userMessages.length > 0) {
+    return {
+      hasWork: true,
+      reason: "User messages need attention",
+      prompt:
+        "Users have sent messages to the team. Analyze them and take appropriate action (respond, adjust plan, etc.).",
     };
   }
 

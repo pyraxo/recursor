@@ -194,7 +194,8 @@ export const internalSend = internalMutation({
       messageData.to_stack_id = args.to_stack_id;
     }
 
-    await ctx.db.insert("messages", messageData);
+    const messageId = await ctx.db.insert("messages", messageData);
+    return messageId;
   },
 });
 

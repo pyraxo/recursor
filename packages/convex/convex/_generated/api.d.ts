@@ -29,6 +29,7 @@ import type * as project_ideas from "../project_ideas.js";
 import type * as testData from "../testData.js";
 import type * as todos from "../todos.js";
 import type * as traces from "../traces.js";
+import type * as userMessages from "../userMessages.js";
 
 import type {
   ApiFromModules,
@@ -66,6 +67,7 @@ declare const fullApi: ApiFromModules<{
   testData: typeof testData;
   todos: typeof todos;
   traces: typeof traces;
+  userMessages: typeof userMessages;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 
