@@ -52,14 +52,14 @@ export async function executeBuilder(
     status: "in_progress",
   });
 
-  // 4. Build conversation
+  // 4. Build conversation with structured output
   const messages: Message[] = [
     llmProvider.buildSystemPrompt("builder", {
       projectTitle: projectIdea?.title,
       phase: stack.phase,
       todoCount: todos?.length || 0,
       teamName: stack.participant_name,
-    }),
+    }, true), // Request structured output
   ];
 
   // Add project context
@@ -86,74 +86,80 @@ export async function executeBuilder(
     } to complete this task. Create a single-file HTML application with inline CSS and JavaScript.`,
   });
 
-  // 5. Call LLM
-  console.log(`[Builder] Calling LLM for todo: ${todo.content}`);
+  // 5. Call LLM with JSON mode
+  console.log(`[Builder] Calling LLM for todo: ${todo.content} with ${messages.length} messages`);
   const response = await llmProvider.chat(messages, {
     temperature: 0.7,
     max_tokens: 3000, // More tokens for code generation
+    json_mode: true, // Request JSON output
   });
 
-  // 6. Parse response and extract artifact
-  const parsed = llmProvider.parseAgentResponse(response.content, "builder");
+  // 6. Parse JSON response
+  console.log(`[Builder] LLM Response (first 500 chars):\n${response.content.substring(0, 500)}`);
 
-  // Check if artifact was created
-  let artifactCreated = false;
-  for (const action of parsed.actions) {
-    if (action.type === "create_artifact" && action.content) {
-      // Create artifact
-      await ctx.runMutation(internal.artifacts.internalCreate, {
-        stack_id: stackId,
-        content: action.content,
-        type: "html",
-        version: (artifacts?.version || 0) + 1,
-        created_by: "builder",
-      });
-      artifactCreated = true;
-      console.log(
-        `[Builder] Created artifact version ${(artifacts?.version || 0) + 1}`
-      );
+  let parsed: {
+    thinking: string;
+    results: {
+      artifact: string;
     }
-  }
-
-  // If no artifact in actions, check for HTML in response
-  if (
-    (!artifactCreated && response.content.includes("<!DOCTYPE")) ||
-    response.content.includes("<html")
-  ) {
+  };
+  try {
+    const parsedJson = JSON.parse(response.content);
+    parsed = {
+      thinking: parsedJson.thinking || "",
+      results: parsedJson.results || { artifact: "" }
+    };
+    console.log(`[Builder] Parsed JSON - thinking: ${parsed.thinking.substring(0, 100)}...`);
+    console.log(`[Builder] Artifact size: ${parsed.results.artifact.length} chars`);
+  } catch (error) {
+    console.error(`[Builder] Failed to parse JSON response:`, error);
+    console.error(`[Builder] Response:`, response.content);
+    // Fallback: try to extract HTML from response
     const htmlMatch =
       response.content.match(/```html\n?([\s\S]*?)\n?```/) ||
       response.content.match(/(<!DOCTYPE[\s\S]*<\/html>)/);
-    if (htmlMatch) {
-      await ctx.runMutation(internal.artifacts.internalCreate, {
-        stack_id: stackId,
-        content: htmlMatch[1],
-        type: "html",
-        version: (artifacts?.version || 0) + 1,
-        created_by: "builder",
-      });
-      artifactCreated = true;
-      console.log(`[Builder] Created artifact from HTML content`);
-    }
+    parsed = {
+      thinking: "Built artifact",
+      results: { artifact: htmlMatch?.[1] || "" }
+    };
   }
 
-  // 7. Mark todo as completed
+  // 7. Create artifact from results
+  let artifactCreated = false;
+  if (parsed.results.artifact && parsed.results.artifact.trim().length > 0) {
+    await ctx.runMutation(internal.artifacts.internalCreate, {
+      stack_id: stackId,
+      content: parsed.results.artifact,
+      type: "html",
+      version: (artifacts?.version || 0) + 1,
+      created_by: "builder",
+    });
+    artifactCreated = true;
+    console.log(
+      `[Builder] Created artifact version ${(artifacts?.version || 0) + 1} (${parsed.results.artifact.length} chars)`
+    );
+  } else {
+    console.warn(`[Builder] No artifact content in results`);
+  }
+
+  // 8. Mark todo as completed
   await ctx.runMutation(internal.todos.internalUpdateStatus, {
     todoId: todo._id,
     status: "completed",
   });
 
-  // 8. Update builder memory
+  // 9. Update builder memory with thinking only
   await ctx.runMutation(internal.agentExecution.updateAgentMemory, {
     stackId,
     agentType: "builder",
-    thought: response.content.substring(0, 1000), // Truncate for memory
+    thought: parsed.thinking || "Build complete",
   });
 
-  // 9. Log trace
+  // 10. Log trace with thinking only
   await ctx.runMutation(internal.traces.internalLog, {
     stack_id: stackId,
     agent_type: "builder",
-    thought: response.content.substring(0, 500), // Truncate for trace
+    thought: parsed.thinking.substring(0, 1000), // Limit thought length in trace
     action: "build",
     result: {
       todoCompleted: todo.content,
@@ -162,5 +168,5 @@ export async function executeBuilder(
     },
   });
 
-  return response.content;
+  return parsed.thinking || "Build complete";
 }

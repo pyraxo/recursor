@@ -1,17 +1,18 @@
 import { ConvexClient } from "convex/browser";
 import { api } from "@recursor/convex/_generated/api";
 import type { Id } from "@recursor/convex/_generated/dataModel";
-import { AgentStackOrchestrator } from "./orchestrator";
+import { OrchestratorFactory } from "./orchestrator-factory";
 import { LLMProviders } from "./config";
+import type { IOrchestrator } from "./types";
 
 interface RunningStack {
-  orchestrator: AgentStackOrchestrator;
+  orchestrator: IOrchestrator;
   controller: AbortController;
   status: 'running' | 'paused' | 'stopping';
 }
 
 /**
- * ExecutionController manages multiple AgentStackOrchestrators
+ * ExecutionController manages multiple orchestrators (standard and cursor)
  * and coordinates their execution based on dashboard control signals
  */
 export class ExecutionController {
@@ -101,8 +102,8 @@ export class ExecutionController {
     }
 
     try {
-      // Create new orchestrator
-      const orchestrator = new AgentStackOrchestrator(
+      // Create orchestrator using factory (automatically selects standard vs cursor)
+      const orchestrator = await OrchestratorFactory.create(
         stackId,
         this.llmProvider,
         this.convexUrl

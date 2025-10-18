@@ -309,11 +309,49 @@ Remember: the todo list is your scratchpad for working through technical details
 Talk through what you're seeing and what should happen next. Then list out any todos you want to create, update, or delete.`;
         }
       case "builder":
-        return `Your job is to write code and build things. Look at the highest priority todo, write the code to complete it, then mark it done. Keep it simple and get something working.
+        if (useStructuredOutput) {
+          return `Your job is to write code and build things. Look at the highest priority todo, write the code to complete it, then mark it done.
+
+Respond with JSON in this exact format:
+{
+  "thinking": "brief summary of what you're trying to accomplish - just a sentence or two about the approach",
+  "results": {
+    "artifact": "the complete HTML code here with inline CSS and JavaScript"
+  }
+}
+
+In your "thinking" field, just summarize what you're doing in 1-2 sentences. DO NOT include the code in thinking.
+
+In your "results.artifact" field, include the FULL working HTML file with all CSS and JavaScript inline. This is where all the code goes.`;
+        } else {
+          return `Your job is to write code and build things. Look at the highest priority todo, write the code to complete it, then mark it done. Keep it simple and get something working.
 
 When you write code, include the full HTML file with inline CSS and JavaScript. Talk through what you're building as you go - don't use markdown headers or bullet points, just explain like you're pair programming.`;
+        }
       case "communicator":
-        return `Your job is to respond to user messages and handle team communication.
+        if (useStructuredOutput) {
+          return `Your job is to respond to user messages and handle team communication.
+
+Respond with JSON in this exact format:
+{
+  "thinking": "brief summary of what you're responding to and your approach",
+  "results": {
+    "message": "the actual message to send",
+    "recipient": "the name of who you're sending to, or 'broadcast' for everyone",
+    "type": "direct" or "broadcast"
+  }
+}
+
+In your "thinking" field, just briefly explain what you're responding to (1-2 sentences).
+
+In your "results" field, put the actual message content that will be sent.
+
+IMPORTANT GUIDELINES:
+1. USER MESSAGES: Respond directly and conversationally (2-3 sentences). Use type: "direct".
+2. BROADCASTS: Only for major milestones or important announcements. Use type: "broadcast".
+3. TEAM MESSAGES: Respond naturally to other participating teams.`;
+        } else {
+          return `Your job is to respond to user messages and handle team communication.
 
 IMPORTANT GUIDELINES:
 1. USER MESSAGES: When you receive a user message, respond directly to that person. Keep it conversational, friendly, and concise (2-3 sentences). You're having a chat, not making an announcement.
@@ -323,12 +361,37 @@ IMPORTANT GUIDELINES:
 3. TEAM MESSAGES: If you receive messages from other participating teams, respond naturally and engage with them.
 
 Just write naturally like you're talking to people - no need for markdown formatting or formal structure.`;
+        }
       case "reviewer":
-        return `Your job is to review code that the builder creates and spot issues. Look for bugs, security problems, code quality issues, accessibility problems, and performance concerns.
+        if (useStructuredOutput) {
+          return `Your job is to review code that the builder creates and spot issues. Look for bugs, security problems, code quality issues, accessibility problems, and performance concerns.
+
+Respond with JSON in this exact format:
+{
+  "thinking": "brief summary of your overall assessment of the code",
+  "results": {
+    "recommendations": [
+      "Specific actionable fix 1",
+      "Specific actionable fix 2"
+    ],
+    "issues": [
+      {"severity": "critical", "description": "Description of critical issue"},
+      {"severity": "major", "description": "Description of major issue"},
+      {"severity": "minor", "description": "Description of minor issue"}
+    ]
+  }
+}
+
+In your "thinking" field, just give a high-level summary of the code review (1-2 sentences).
+
+In your "results" field, list all the specific issues found and actionable recommendations for the planner. Be thorough and constructive.`;
+        } else {
+          return `Your job is to review code that the builder creates and spot issues. Look for bugs, security problems, code quality issues, accessibility problems, and performance concerns.
 
 When you find something, explain what the issue is and how severe it is - critical, major, or minor. Then give a specific recommendation for how to fix it. Start those recommendations with "RECOMMENDATION:" so the planner can spot them.
 
 Talk through your review naturally - don't use markdown or formal formatting, just explain what you're seeing like you're doing a code review with a teammate.`;
+        }
       default:
         return "Your job is to help the team build something great.";
     }

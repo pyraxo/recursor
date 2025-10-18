@@ -44,14 +44,14 @@ export async function executeReviewer(
     `[Reviewer] Reviewing artifact version ${artifacts.version} (${artifacts.content.length} chars)`
   );
 
-  // 3. Build conversation for code review
+  // 3. Build conversation for code review with structured output
   const messages: Message[] = [
     llmProvider.buildSystemPrompt("reviewer", {
       projectTitle: projectIdea?.title,
       phase: stack.phase,
       todoCount: 0, // Not relevant for code review
       teamName: stack.participant_name,
-    }),
+    }, true), // Request structured output
   ];
 
   // Add project context
@@ -87,43 +87,41 @@ For each issue found, provide:
 Be thorough and constructive.`,
   });
 
-  // 4. Call LLM
-  console.log(`[Reviewer] Calling LLM for code review`);
+  // 4. Call LLM with JSON mode
+  console.log(`[Reviewer] Calling LLM for code review with ${messages.length} messages`);
   const response = await llmProvider.chat(messages, {
     temperature: 0.3, // Lower temperature for more focused code review
     max_tokens: 2000, // More tokens for detailed code review
+    json_mode: true, // Request JSON output
   });
 
-  // 5. Parse response and extract recommendations
-  const parsed = llmProvider.parseAgentResponse(response.content, "reviewer");
+  // 5. Parse JSON response
+  console.log(`[Reviewer] LLM Response (first 500 chars):\n${response.content.substring(0, 500)}`);
 
-  // Extract recommendations for planner (code fixes to implement)
-  const recommendations: string[] = [];
-  const issues: { severity: string; description: string }[] = [];
-
-  const lines = response.content.split("\n");
-  for (const line of lines) {
-    if (line.toUpperCase().includes("RECOMMENDATION:")) {
-      const recommendation = line.replace(/RECOMMENDATION:/i, "").trim();
-      if (recommendation) {
-        recommendations.push(recommendation);
-      }
+  let parsed: {
+    thinking: string;
+    results: {
+      recommendations: string[];
+      issues: { severity: string; description: string }[]
     }
-
-    // Track severity of issues found
-    if (line.toUpperCase().includes("CRITICAL")) {
-      issues.push({ severity: "critical", description: line });
-    } else if (line.toUpperCase().includes("MAJOR")) {
-      issues.push({ severity: "major", description: line });
-    } else if (line.toUpperCase().includes("MINOR")) {
-      issues.push({ severity: "minor", description: line });
-    }
+  };
+  try {
+    const parsedJson = JSON.parse(response.content);
+    parsed = {
+      thinking: parsedJson.thinking || "",
+      results: parsedJson.results || { recommendations: [], issues: [] }
+    };
+    console.log(`[Reviewer] Parsed JSON with ${parsed.results.issues.length} issues and ${parsed.results.recommendations.length} recommendations`);
+    console.log(`[Reviewer] Thinking: ${parsed.thinking.substring(0, 200)}...`);
+  } catch (error) {
+    console.error(`[Reviewer] Failed to parse JSON response:`, error);
+    console.error(`[Reviewer] Response:`, response.content);
+    // Fallback to empty results
+    parsed = { thinking: response.content.substring(0, 1000), results: { recommendations: [], issues: [] } };
   }
 
-  // Also include parsed recommendations
-  if (parsed.recommendations) {
-    recommendations.push(...parsed.recommendations);
-  }
+  const recommendations = parsed.results.recommendations || [];
+  const issues = parsed.results.issues || [];
 
   console.log(
     `[Reviewer] Found ${issues.length} issues (${
@@ -179,18 +177,18 @@ Be thorough and constructive.`,
     console.log(`[Reviewer] No issues found - code looks good!`);
   }
 
-  // 7. Update reviewer memory with thought
+  // 7. Update reviewer memory with thinking only
   await ctx.runMutation(internal.agentExecution.updateAgentMemory, {
     stackId,
     agentType: "reviewer",
-    thought: response.content.substring(0, 1000), // Truncate for memory
+    thought: parsed.thinking || "Code review complete",
   });
 
-  // 8. Log trace
+  // 8. Log trace with thinking only
   await ctx.runMutation(internal.traces.internalLog, {
     stack_id: stackId,
     agent_type: "reviewer",
-    thought: response.content.substring(0, 1000), // Truncate for trace
+    thought: parsed.thinking.substring(0, 1000), // Limit thought length in trace
     action: "code_review",
     result: {
       artifactVersion: artifacts.version,
@@ -202,5 +200,5 @@ Be thorough and constructive.`,
     },
   });
 
-  return response.content;
+  return parsed.thinking || "Code review complete";
 }
