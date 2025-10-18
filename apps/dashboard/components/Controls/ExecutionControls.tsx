@@ -2,12 +2,12 @@
 
 import { api } from "@recursor/convex/_generated/api";
 import { Id } from "@recursor/convex/_generated/dataModel";
+import { Badge } from "@repo/ui/components/badge";
+import { Button } from "@repo/ui/components/button";
+import { Card, CardContent } from "@repo/ui/components/card";
+import { Separator } from "@repo/ui/components/separator";
 import { useMutation, useQuery } from "convex/react";
-import { Pause, Play, Square, Activity } from "lucide-react";
-import { Button } from "@repo/ui/button";
-import { Badge } from "@repo/ui/badge";
-import { Separator } from "@repo/ui/separator";
-import { Card, CardContent } from "@repo/ui/card";
+import { Activity, Pause, Play, Square } from "lucide-react";
 import { useState } from "react";
 
 export function ExecutionControls({
@@ -84,9 +84,12 @@ export function ExecutionControls({
   };
 
   const getBadgeClassName = () => {
-    if (isRunning) return "bg-green-900/50 text-green-400 border-green-800 hover:bg-green-900/70";
-    if (isPaused) return "bg-yellow-900/50 text-yellow-400 border-yellow-800 hover:bg-yellow-900/70";
-    if (isStopped) return "bg-red-900/50 text-red-400 border-red-800 hover:bg-red-900/70";
+    if (isRunning)
+      return "bg-green-900/50 text-green-400 border-green-800 hover:bg-green-900/70";
+    if (isPaused)
+      return "bg-yellow-900/50 text-yellow-400 border-yellow-800 hover:bg-yellow-900/70";
+    if (isStopped)
+      return "bg-red-900/50 text-red-400 border-red-800 hover:bg-red-900/70";
     return "bg-gray-800 text-gray-400 border-gray-700";
   };
 
@@ -119,11 +122,7 @@ export function ExecutionControls({
                     ? "bg-yellow-600 hover:bg-yellow-700 text-white disabled:opacity-50"
                     : "bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
                 }
-                title={
-                  isRunning
-                    ? "Pause execution"
-                    : "Resume execution"
-                }
+                title={isRunning ? "Pause execution" : "Resume execution"}
               >
                 {isRunning ? (
                   <>
@@ -168,7 +167,10 @@ export function ExecutionControls({
             {/* Activity Indicator */}
             {isProcessing && (
               <>
-                <Separator orientation="vertical" className="hidden md:block h-4" />
+                <Separator
+                  orientation="vertical"
+                  className="hidden md:block h-4"
+                />
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-green-400 animate-pulse" />
                   <span className="text-muted-foreground text-xs">
@@ -181,7 +183,10 @@ export function ExecutionControls({
             {/* Time Elapsed */}
             {executionStatus?.started_at && !isStopped && (
               <>
-                <Separator orientation="vertical" className="hidden md:block h-4" />
+                <Separator
+                  orientation="vertical"
+                  className="hidden md:block h-4"
+                />
                 <div className="text-muted-foreground text-xs">
                   <span className="hidden sm:inline">Running: </span>
                   <span className="font-mono font-medium">
@@ -194,7 +199,10 @@ export function ExecutionControls({
             {/* Pause Message */}
             {isPaused && (
               <>
-                <Separator orientation="vertical" className="hidden lg:block h-4" />
+                <Separator
+                  orientation="vertical"
+                  className="hidden lg:block h-4"
+                />
                 <span className="text-muted-foreground text-xs italic hidden lg:inline">
                   Will resume from current state
                 </span>

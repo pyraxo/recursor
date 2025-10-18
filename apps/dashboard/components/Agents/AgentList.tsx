@@ -1,11 +1,11 @@
 "use client";
-import { useQuery } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
-import { Button } from "@repo/ui/button";
-import { Badge } from "@repo/ui/badge";
-import { ScrollArea } from "@repo/ui/scroll-area";
-import { Card } from "@repo/ui/card";
-import { User, ChevronRight } from "lucide-react";
+import { Badge } from "@repo/ui/components/badge";
+import { Button } from "@repo/ui/components/button";
+import { Card } from "@repo/ui/components/card";
+import { ScrollArea } from "@repo/ui/components/scroll-area";
+import { useQuery } from "convex/react";
+import { ChevronRight, User } from "lucide-react";
 
 export function AgentList({ onSelect }: { onSelect: (id: string) => void }) {
   const stacks = useQuery(api.agents.listStacks);
@@ -27,17 +27,17 @@ export function AgentList({ onSelect }: { onSelect: (id: string) => void }) {
     <ScrollArea className="h-[calc(100vh-200px)]">
       <div className="space-y-2 pr-4">
         {stacks.map((s: any) => {
-          const executionState = s.execution_state || 'idle';
+          const executionState = s.execution_state || "idle";
           const getStatusColor = () => {
             switch (executionState) {
-              case 'running':
-                return 'bg-green-900/50 text-green-400 border-green-800';
-              case 'paused':
-                return 'bg-yellow-900/50 text-yellow-400 border-yellow-800';
-              case 'stopped':
-                return 'bg-red-900/50 text-red-400 border-red-800';
+              case "running":
+                return "bg-green-900/50 text-green-400 border-green-800";
+              case "paused":
+                return "bg-yellow-900/50 text-yellow-400 border-yellow-800";
+              case "stopped":
+                return "bg-red-900/50 text-red-400 border-red-800";
               default:
-                return 'bg-gray-800 text-gray-400 border-gray-700';
+                return "bg-gray-800 text-gray-400 border-gray-700";
             }
           };
 

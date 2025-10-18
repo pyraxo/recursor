@@ -30,16 +30,25 @@ export const create = mutation({
 
     const version = latestArtifact ? latestArtifact.version + 1 : 1;
 
-    return await ctx.db.insert("artifacts", {
+    // Build artifact object with required fields
+    const artifact: any = {
       stack_id: args.stack_id,
       type: args.type,
       version,
-      content: args.content,
-      url: args.url,
-      created_by: args.created_by || "unknown",
       metadata: args.metadata,
       created_at: Date.now(),
-    });
+      created_by: args.created_by || "unknown",
+    };
+
+    // Only add optional fields if they exist
+    if (args.content !== undefined) {
+      artifact.content = args.content;
+    }
+    if (args.url !== undefined) {
+      artifact.url = args.url;
+    }
+
+    return await ctx.db.insert("artifacts", artifact);
   },
 });
 

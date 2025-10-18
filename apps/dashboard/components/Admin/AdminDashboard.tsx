@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@recursor/convex/_generated/api";
-import { Card } from "@repo/ui/card";
+import { Card } from "@repo/ui/components/card";
 import { useQuery } from "convex/react";
 import {
   CheckCircle2,

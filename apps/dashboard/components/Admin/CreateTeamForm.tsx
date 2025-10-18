@@ -1,15 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import { useMutation } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
-import { Button } from "@repo/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/card";
-import { Checkbox } from "@repo/ui/checkbox";
-import { Input } from "@repo/ui/input";
-import { Label } from "@repo/ui/label";
-import { Textarea } from "@repo/ui/textarea";
-import { Loader2, UserPlus, Lightbulb } from "lucide-react";
+import { Button } from "@repo/ui/components/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/card";
+import { Checkbox } from "@repo/ui/components/checkbox";
+import { Input } from "@repo/ui/components/input";
+import { Label } from "@repo/ui/components/label";
+import { Textarea } from "@repo/ui/components/textarea";
+import { useMutation } from "convex/react";
+import { Lightbulb, Loader2, UserPlus } from "lucide-react";
+import { useState } from "react";
 
 export function CreateTeamForm() {
   const [participantName, setParticipantName] = useState("");

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@repo/ui/button";
+import { Button } from "@repo/ui/components/button";
 import { useState } from "react";
 import { AdminDashboard } from "../components/Admin/AdminDashboard";
 import { AgentDetail } from "../components/Agents/AgentDetail";

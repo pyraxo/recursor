@@ -1,23 +1,34 @@
 "use client";
-import { useQuery } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
 import { Id } from "@recursor/convex/_generated/dataModel";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@repo/ui/card";
-import { Badge } from "@repo/ui/badge";
-import { Separator } from "@repo/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs";
-import { ScrollArea } from "@repo/ui/scroll-area";
-import { ExecutionControls } from "../Controls/ExecutionControls";
+import { Badge } from "@repo/ui/components/badge";
 import {
-  User,
-  Lightbulb,
-  CheckSquare,
-  FileCode,
-  MessageSquare,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/card";
+import { ScrollArea } from "@repo/ui/components/scroll-area";
+import { Separator } from "@repo/ui/components/separator";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@repo/ui/components/tabs";
+import { useQuery } from "convex/react";
+import {
   CheckCircle,
+  CheckSquare,
   Circle,
-  Clock
+  Clock,
+  FileCode,
+  Lightbulb,
+  MessageSquare,
+  User,
 } from "lucide-react";
+import { ExecutionControls } from "../Controls/ExecutionControls";
 
 export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
   const stack = useQuery(api.agents.getStack, { stackId });
@@ -121,7 +132,9 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
               </div>
               <Separator />
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Description</div>
+                <div className="text-sm text-muted-foreground mb-1">
+                  Description
+                </div>
                 <div className="text-sm text-foreground">
                   {idea?.description || "No description"}
                 </div>
@@ -139,10 +152,16 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
                   Todo List
                 </span>
                 <div className="flex items-center gap-2 text-xs">
-                  <Badge variant="outline" className="bg-green-900/20 text-green-400 border-green-800">
+                  <Badge
+                    variant="outline"
+                    className="bg-green-900/20 text-green-400 border-green-800"
+                  >
                     {getTodoCount("completed")} completed
                   </Badge>
-                  <Badge variant="outline" className="bg-blue-900/20 text-blue-400 border-blue-800">
+                  <Badge
+                    variant="outline"
+                    className="bg-blue-900/20 text-blue-400 border-blue-800"
+                  >
                     {getTodoCount("pending")} pending
                   </Badge>
                 </div>

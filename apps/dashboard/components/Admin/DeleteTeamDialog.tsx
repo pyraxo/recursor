@@ -10,9 +10,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@repo/ui/alert-dialog";
-import { Checkbox } from "@repo/ui/checkbox";
-import { Label } from "@repo/ui/label";
+} from "@repo/ui/components/alert-dialog";
+import { Checkbox } from "@repo/ui/components/checkbox";
+import { Label } from "@repo/ui/components/label";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 

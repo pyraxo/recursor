@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@recursor/convex/_generated/api";
-import { Button } from "@repo/ui/button";
+import { Button } from "@repo/ui/components/button";
 import { useMutation, useQuery } from "convex/react";
 import { Play, Square } from "lucide-react";
 import { useState } from "react";

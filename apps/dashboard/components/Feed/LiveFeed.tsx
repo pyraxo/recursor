@@ -1,9 +1,9 @@
 "use client";
 import { api } from "@recursor/convex/_generated/api";
-import { Badge } from "@repo/ui/badge";
-import { Card, CardContent } from "@repo/ui/card";
-import { ScrollArea } from "@repo/ui/scroll-area";
-import { Separator } from "@repo/ui/separator";
+import { Badge } from "@repo/ui/components/badge";
+import { Card, CardContent } from "@repo/ui/components/card";
+import { ScrollArea } from "@repo/ui/components/scroll-area";
+import { Separator } from "@repo/ui/components/separator";
 import { useQuery } from "convex/react";
 import { Activity, Clock, User, Zap } from "lucide-react";
 import { useEffect, useRef } from "react";

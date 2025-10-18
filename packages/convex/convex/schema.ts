@@ -101,7 +101,7 @@ export default defineSchema({
     version: v.number(), // incremental version number
     content: v.optional(v.string()), // for HTML/JS: the actual code
     url: v.optional(v.string()), // for external links or hosted artifacts
-    created_by: v.string(), // which agent created this artifact
+    created_by: v.optional(v.string()), // which agent created this artifact
     metadata: v.object({
       description: v.optional(v.string()),
       tech_stack: v.optional(v.array(v.string())),

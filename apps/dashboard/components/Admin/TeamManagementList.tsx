@@ -2,17 +2,21 @@
 
 import { api } from "@recursor/convex/_generated/api";
 import { Id } from "@recursor/convex/_generated/dataModel";
-import { Badge } from "@repo/ui/badge";
-import { Button } from "@repo/ui/button";
-import { Card } from "@repo/ui/card";
-import { ScrollArea } from "@repo/ui/scroll-area";
-import { Skeleton } from "@repo/ui/skeleton";
-import { useQuery, useMutation } from "convex/react";
-import { Activity, Calendar, Clock, Trash2, Play, Square } from "lucide-react";
+import { Badge } from "@repo/ui/components/badge";
+import { Button } from "@repo/ui/components/button";
+import { Card } from "@repo/ui/components/card";
+import { ScrollArea } from "@repo/ui/components/scroll-area";
+import { Skeleton } from "@repo/ui/components/skeleton";
+import { useMutation, useQuery } from "convex/react";
+import { Activity, Calendar, Clock, Play, Square, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { DeleteTeamDialog } from "./DeleteTeamDialog";
 
-export function TeamManagementList({ onNavigateToTeam }: { onNavigateToTeam?: (stackId: string) => void }) {
+export function TeamManagementList({
+  onNavigateToTeam,
+}: {
+  onNavigateToTeam?: (stackId: string) => void;
+}) {
   const stacks = useQuery(api.agents.listStacks);
   const startExecution = useMutation(api.agents.startExecution);
   const stopExecution = useMutation(api.agents.stopExecution);
@@ -21,16 +25,18 @@ export function TeamManagementList({ onNavigateToTeam }: { onNavigateToTeam?: (s
     id: Id<"agent_stacks">;
     name: string;
   } | null>(null);
-  const [processingStacks, setProcessingStacks] = useState<Set<Id<"agent_stacks">>>(new Set());
+  const [processingStacks, setProcessingStacks] = useState<
+    Set<Id<"agent_stacks">>
+  >(new Set());
 
   const handleStart = async (id: Id<"agent_stacks">, name: string) => {
-    setProcessingStacks(prev => new Set([...prev, id]));
+    setProcessingStacks((prev) => new Set([...prev, id]));
     try {
       await startExecution({ stackId: id });
     } catch (error) {
       console.error(`Failed to start ${name}:`, error);
     } finally {
-      setProcessingStacks(prev => {
+      setProcessingStacks((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
@@ -39,16 +45,18 @@ export function TeamManagementList({ onNavigateToTeam }: { onNavigateToTeam?: (s
   };
 
   const handleStop = async (id: Id<"agent_stacks">, name: string) => {
-    const confirmed = confirm(`Stop execution for ${name}? This action cannot be undone.`);
+    const confirmed = confirm(
+      `Stop execution for ${name}? This action cannot be undone.`
+    );
     if (!confirmed) return;
 
-    setProcessingStacks(prev => new Set([...prev, id]));
+    setProcessingStacks((prev) => new Set([...prev, id]));
     try {
       await stopExecution({ stackId: id });
     } catch (error) {
       console.error(`Failed to stop ${name}:`, error);
     } finally {
-      setProcessingStacks(prev => {
+      setProcessingStacks((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
@@ -232,11 +240,13 @@ export function TeamManagementList({ onNavigateToTeam }: { onNavigateToTeam?: (s
                       </div>
                     </div>
 
-                    <div className={`flex items-center gap-2 transition-opacity duration-200 ${
-                      processingStacks.has(stack._id)
-                        ? 'opacity-100'
-                        : 'opacity-50 group-hover:opacity-100'
-                    }`}>
+                    <div
+                      className={`flex items-center gap-2 transition-opacity duration-200 ${
+                        processingStacks.has(stack._id)
+                          ? "opacity-100"
+                          : "opacity-50 group-hover:opacity-100"
+                      }`}
+                    >
                       {/* Start/Stop Button */}
                       {executionState === "running" ? (
                         <Button
@@ -284,7 +294,11 @@ export function TeamManagementList({ onNavigateToTeam }: { onNavigateToTeam?: (s
                         }}
                         disabled={executionState === "running"}
                         className="text-red-500 hover:text-red-600 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={executionState === "running" ? "Stop execution before deleting" : "Delete team"}
+                        title={
+                          executionState === "running"
+                            ? "Stop execution before deleting"
+                            : "Delete team"
+                        }
                       >
                         <Trash2 className="h-4 w-4" />
                         <span className="sr-only">
