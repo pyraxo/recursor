@@ -97,11 +97,11 @@ export const LiveFeed = forwardRef<LiveFeedRef>((props, ref) => {
   return (
     <div className="relative">
       <ScrollArea ref={scrollAreaRef} className="h-[calc(100vh-220px)]">
-        <div className="space-y-2 pr-4">
+        <div className="space-y-1.5 pr-4">
           {traces.map((t: any) => (
             <Card key={t._id} className="hover:bg-accent/30 transition-colors">
-              <CardContent className="p-4">
-                <div className="space-y-3">
+              <CardContent className="p-2.5">
+                <div className="space-y-2">
                   {/* Header */}
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
