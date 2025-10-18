@@ -118,27 +118,27 @@ export function TeamManagementList({
     switch (executionState) {
       case "running":
         return {
-          container: "bg-green-500/10 border-green-500/20",
-          text: "text-green-500",
-          pulse: "bg-green-500",
+          container: "bg-green-50 border-green-600/30",
+          text: "text-green-700",
+          pulse: "bg-green-600",
         };
       case "paused":
         return {
-          container: "bg-yellow-500/10 border-yellow-500/20",
-          text: "text-yellow-500",
-          pulse: "bg-yellow-500",
+          container: "bg-amber-50 border-amber-600/30",
+          text: "text-amber-700",
+          pulse: "bg-amber-600",
         };
       case "stopped":
         return {
-          container: "bg-red-500/10 border-red-500/20",
-          text: "text-red-500",
-          pulse: "bg-red-500",
+          container: "bg-red-50 border-red-600/30",
+          text: "text-red-700",
+          pulse: "bg-red-600",
         };
       default:
         return {
-          container: "bg-gray-500/10 border-gray-500/20",
-          text: "text-gray-500",
-          pulse: "bg-gray-400",
+          container: "bg-gray-50 border-gray-400/30",
+          text: "text-gray-600",
+          pulse: "bg-gray-500",
         };
     }
   };
@@ -146,15 +146,15 @@ export function TeamManagementList({
   const getPhaseStyles = (phase: string) => {
     switch (phase) {
       case "ideation":
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+        return "bg-blue-50 text-blue-700 border-blue-600/30";
       case "building":
-        return "bg-purple-500/10 text-purple-500 border-purple-500/20";
+        return "bg-purple-50 text-purple-700 border-purple-600/30";
       case "demo":
-        return "bg-orange-500/10 text-orange-500 border-orange-500/20";
+        return "bg-orange-50 text-orange-700 border-orange-600/30";
       case "completed":
-        return "bg-green-500/10 text-green-500 border-green-500/20";
+        return "bg-green-50 text-green-700 border-green-600/30";
       default:
-        return "bg-gray-500/10 text-gray-500 border-gray-500/20";
+        return "bg-gray-50 text-gray-600 border-gray-400/30";
     }
   };
 
@@ -162,14 +162,14 @@ export function TeamManagementList({
     switch (teamType) {
       case "cursor":
         return {
-          container: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20",
+          container: "bg-cyan-50 text-cyan-700 border-cyan-600/30",
           icon: Code2,
           label: "Cursor",
         };
       case "standard":
       default:
         return {
-          container: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20",
+          container: "bg-indigo-50 text-indigo-700 border-indigo-600/30",
           icon: Users,
           label: "Multi-Agent",
         };

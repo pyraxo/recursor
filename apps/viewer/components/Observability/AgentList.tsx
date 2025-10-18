@@ -33,13 +33,13 @@ export function AgentList({ onSelect }: { onSelect: (id: string) => void }) {
           const getStatusColor = () => {
             switch (executionState) {
               case "running":
-                return "bg-green-900/50 text-green-400 border-green-800";
+                return "bg-green-50 text-green-700 border-green-600/30";
               case "paused":
-                return "bg-yellow-900/50 text-yellow-400 border-yellow-800";
+                return "bg-amber-50 text-amber-700 border-amber-600/30";
               case "stopped":
-                return "bg-red-900/50 text-red-400 border-red-800";
+                return "bg-red-50 text-red-700 border-red-600/30";
               default:
-                return "bg-gray-800 text-gray-400 border-gray-700";
+                return "bg-gray-50 text-gray-600 border-gray-400/30";
             }
           };
 
@@ -47,14 +47,14 @@ export function AgentList({ onSelect }: { onSelect: (id: string) => void }) {
             switch (teamType) {
               case "cursor":
                 return {
-                  container: "bg-cyan-900/50 text-cyan-400 border-cyan-800",
+                  container: "bg-cyan-50 text-cyan-700 border-cyan-600/30",
                   icon: Code2,
                   label: "Cursor",
                 };
               case "standard":
               default:
                 return {
-                  container: "bg-indigo-900/50 text-indigo-400 border-indigo-800",
+                  container: "bg-indigo-50 text-indigo-700 border-indigo-600/30",
                   icon: Users,
                   label: "Multi-Agent",
                 };

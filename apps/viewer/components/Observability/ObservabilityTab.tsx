@@ -38,17 +38,17 @@ export function ObservabilityTab() {
   };
 
   return (
-    <div className="p-6 h-full overflow-auto">
-      <div className="max-w-[1800px] mx-auto space-y-6">
-        <div className="grid grid-cols-[280px_1fr_1fr] gap-4">
+    <div className="h-full w-full overflow-auto p-6">
+      <div className="w-full space-y-6">
+        <div className="grid grid-cols-[280px_1fr_1fr] gap-4 items-start">
           {/* Column 1: Team List */}
-          <div>
+          <div className="flex flex-col">
             <h2 className="font-mono text-sm font-semibold mb-4">Teams</h2>
             <AgentList onSelect={setSelected} />
           </div>
 
           {/* Column 2: Live Feed */}
-          <div>
+          <div className="flex flex-col">
             <div className="flex items-center gap-2 mb-4">
               <h2 className="font-mono text-sm font-semibold">Live Feed</h2>
               <Button
@@ -98,7 +98,7 @@ export function ObservabilityTab() {
           </div>
 
           {/* Column 3: Team Detail */}
-          <div>
+          <div className="flex flex-col">
             <h2 className="font-mono text-sm font-semibold mb-4">Detail</h2>
             {selected ? (
               <AgentDetail stackId={selected as Id<"agent_stacks">} />

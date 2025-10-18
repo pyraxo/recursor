@@ -82,15 +82,15 @@ export const LiveFeed = forwardRef<LiveFeedRef>((props, ref) => {
   const getAgentBadgeColor = (agentType: string) => {
     switch (agentType) {
       case "planner":
-        return "bg-blue-900/50 text-blue-400 border-blue-800";
+        return "bg-blue-50 text-blue-700 border-blue-600/30";
       case "builder":
-        return "bg-purple-900/50 text-purple-400 border-purple-800";
+        return "bg-purple-50 text-purple-700 border-purple-600/30";
       case "communicator":
-        return "bg-green-900/50 text-green-400 border-green-800";
+        return "bg-green-50 text-green-700 border-green-600/30";
       case "reviewer":
-        return "bg-orange-900/50 text-orange-400 border-orange-800";
+        return "bg-orange-50 text-orange-700 border-orange-600/30";
       default:
-        return "bg-gray-800 text-gray-400 border-gray-700";
+        return "bg-gray-50 text-gray-600 border-gray-400/30";
     }
   };
 

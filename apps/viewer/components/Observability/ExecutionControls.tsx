@@ -89,12 +89,12 @@ export function ExecutionControls({
 
   const getBadgeClassName = () => {
     if (isRunning)
-      return "bg-green-900/50 text-green-400 border-green-800 hover:bg-green-900/70";
+      return "bg-green-50 text-green-700 border-green-600/30 hover:bg-green-100";
     if (isPaused)
-      return "bg-yellow-900/50 text-yellow-400 border-yellow-800 hover:bg-yellow-900/70";
+      return "bg-amber-50 text-amber-700 border-amber-600/30 hover:bg-amber-100";
     if (isStopped)
-      return "bg-red-900/50 text-red-400 border-red-800 hover:bg-red-900/70";
-    return "bg-gray-800 text-gray-400 border-gray-700";
+      return "bg-red-50 text-red-700 border-red-600/30 hover:bg-red-100";
+    return "bg-gray-50 text-gray-600 border-gray-400/30";
   };
 
   return (

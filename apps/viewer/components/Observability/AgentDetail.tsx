@@ -202,13 +202,13 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
                 <div className="flex items-center gap-2 text-xs">
                   <Badge
                     variant="outline"
-                    className="bg-green-900/20 text-green-400 border-green-800"
+                    className="bg-green-50 text-green-700 border-green-600/30"
                   >
                     {getTodoCount("completed")} completed
                   </Badge>
                   <Badge
                     variant="outline"
-                    className="bg-blue-900/20 text-blue-400 border-blue-800"
+                    className="bg-blue-50 text-blue-700 border-blue-600/30"
                   >
                     {getTodoCount("pending")} pending
                   </Badge>

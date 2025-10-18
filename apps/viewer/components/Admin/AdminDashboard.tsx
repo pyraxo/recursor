@@ -47,7 +47,7 @@ export function AdminDashboard({
   };
 
   return (
-    <div className="h-full bg-background dark overflow-auto">
+    <div className="h-full w-full bg-background overflow-auto">
       <div className="w-full p-6 md:p-8 lg:p-12">
         {/* Header */}
         <header className="mb-12">
@@ -140,36 +140,36 @@ export function AdminDashboard({
             Execution Status
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="border-green-500/30 bg-green-500/5 p-6 hover:border-green-500/50 transition-colors">
+            <Card className="border-green-600/30 bg-green-50 p-6 hover:border-green-600/50 transition-colors">
               <div className="flex items-center gap-3 mb-3">
-                <PlayCircle className="h-4 w-4 text-green-500" />
-                <span className="font-mono text-xs text-green-500">
+                <PlayCircle className="h-4 w-4 text-green-700" />
+                <span className="font-mono text-xs text-green-700">
                   Running
                 </span>
               </div>
-              <div className="font-mono text-3xl font-bold text-green-500">
+              <div className="font-mono text-3xl font-bold text-green-700">
                 {executionStatus.running}
               </div>
             </Card>
 
-            <Card className="border-yellow-500/30 bg-yellow-500/5 p-6 hover:border-yellow-500/50 transition-colors">
+            <Card className="border-amber-600/30 bg-amber-50 p-6 hover:border-amber-600/50 transition-colors">
               <div className="flex items-center gap-3 mb-3">
-                <PauseCircle className="h-4 w-4 text-yellow-500" />
-                <span className="font-mono text-xs text-yellow-500">
+                <PauseCircle className="h-4 w-4 text-amber-700" />
+                <span className="font-mono text-xs text-amber-700">
                   Paused
                 </span>
               </div>
-              <div className="font-mono text-3xl font-bold text-yellow-500">
+              <div className="font-mono text-3xl font-bold text-amber-700">
                 {executionStatus.paused}
               </div>
             </Card>
 
-            <Card className="border-red-500/30 bg-red-500/5 p-6 hover:border-red-500/50 transition-colors">
+            <Card className="border-red-600/30 bg-red-50 p-6 hover:border-red-600/50 transition-colors">
               <div className="flex items-center gap-3 mb-3">
-                <StopCircle className="h-4 w-4 text-red-500" />
-                <span className="font-mono text-xs text-red-500">Stopped</span>
+                <StopCircle className="h-4 w-4 text-red-700" />
+                <span className="font-mono text-xs text-red-700">Stopped</span>
               </div>
-              <div className="font-mono text-3xl font-bold text-red-500">
+              <div className="font-mono text-3xl font-bold text-red-700">
                 {executionStatus.stopped}
               </div>
             </Card>
