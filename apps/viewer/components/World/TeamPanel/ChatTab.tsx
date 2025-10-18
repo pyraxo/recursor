@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useQuery, useMutation } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
 import { Id } from "@recursor/convex/_generated/dataModel";
-import { PixelButton } from "../../shared/PixelButton";
+import { useMutation, useQuery } from "convex/react";
+import { useEffect, useRef, useState } from "react";
 import { AGENT_COLORS } from "../../../lib/theme";
+import { PixelButton } from "../../shared/PixelButton";
 
 interface ChatTabProps {
   stackId: Id<"agent_stacks">;
@@ -33,7 +33,7 @@ export function ChatTab({ stackId }: ChatTabProps) {
 
   const handleSend = async () => {
     if (!message.trim()) return;
-    
+
     await sendMessage({
       from_stack_id: stackId,
       to_stack_id: stackId,
@@ -41,7 +41,7 @@ export function ChatTab({ stackId }: ChatTabProps) {
       content: message,
       message_type: "visitor",
     });
-    
+
     setMessage("");
   };
 
@@ -49,19 +49,22 @@ export function ChatTab({ stackId }: ChatTabProps) {
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide space-y-2 mb-4 min-h-0 max-h-[500px]">
         {!messages && (
-          <div className="text-[var(--foreground)]/60 font-mono text-sm">Loading messages...</div>
+          <div className="text-[var(--foreground)]/60 font-mono text-sm">
+            Loading messages...
+          </div>
         )}
-        
+
         {messages && messages.length === 0 && (
           <div className="text-center py-8 text-[var(--foreground)]/60 font-mono text-sm">
             No messages yet. Start a conversation!
           </div>
         )}
-        
+
         {messages?.map((msg) => {
           const isVisitor = msg.message_type === "visitor";
           const agentColor = !isVisitor
-            ? AGENT_COLORS[msg.from_agent_type as keyof typeof AGENT_COLORS] || "var(--accent-primary)"
+            ? AGENT_COLORS[msg.from_agent_type as keyof typeof AGENT_COLORS] ||
+              "var(--accent-primary)"
             : "var(--accent-secondary)";
 
           return (
@@ -91,7 +94,7 @@ export function ChatTab({ stackId }: ChatTabProps) {
         })}
         <div ref={messagesEndRef} />
       </div>
-      
+
       <div className="border-t-2 border-[var(--panel-border)] pt-4 flex-shrink-0">
         <div className="flex gap-2">
           <input
@@ -102,7 +105,11 @@ export function ChatTab({ stackId }: ChatTabProps) {
             placeholder="Type a message..."
             className="flex-1 px-3 py-2 bg-[var(--background)] border-2 border-[var(--panel-border)] text-[var(--foreground)] font-mono text-sm focus:border-[var(--accent-primary)] focus:outline-none"
           />
-          <PixelButton onClick={handleSend} disabled={!message.trim()}>
+          <PixelButton
+            onClick={handleSend}
+            disabled={!message.trim()}
+            variant="primary"
+          >
             Send
           </PixelButton>
         </div>
@@ -110,4 +117,3 @@ export function ChatTab({ stackId }: ChatTabProps) {
     </div>
   );
 }
-

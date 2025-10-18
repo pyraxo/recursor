@@ -12,13 +12,16 @@ import {
 import { Input } from "@repo/ui/components/input";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { useMutation, useQuery } from "convex/react";
-import { Send, User as UserIcon, Bot } from "lucide-react";
+import { Bot, Send, User as UserIcon } from "lucide-react";
 import { useState } from "react";
 
 export function ChatPanel({ stackId }: { stackId: Id<"agent_stacks"> }) {
   const [senderName, setSenderName] = useState("Visitor");
   const [message, setMessage] = useState("");
-  const chatHistory = useQuery(api.userMessages.getChatHistory, { team_id: stackId, limit: 50 });
+  const chatHistory = useQuery(api.userMessages.getChatHistory, {
+    team_id: stackId,
+    limit: 50,
+  });
   const sendMessage = useMutation(api.userMessages.send);
 
   const handleSend = async () => {
@@ -51,7 +54,8 @@ export function ChatPanel({ stackId }: { stackId: Id<"agent_stacks"> }) {
           Team Chat
         </CardTitle>
         <CardDescription>
-          Send messages to the team. The Planner will analyze them and decide how to respond.
+          Send messages to the team. The Planner will analyze them and decide
+          how to respond.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -72,7 +76,9 @@ export function ChatPanel({ stackId }: { stackId: Id<"agent_stacks"> }) {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-baseline gap-2 mb-1">
-                        <span className="text-sm font-medium">{msg.sender_name}</span>
+                        <span className="text-sm font-medium">
+                          {msg.sender_name}
+                        </span>
                         <span className="text-xs text-muted-foreground">
                           {new Date(msg.timestamp).toLocaleString()}
                         </span>
@@ -91,7 +97,9 @@ export function ChatPanel({ stackId }: { stackId: Id<"agent_stacks"> }) {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-baseline gap-2 mb-1">
-                          <span className="text-sm font-medium">Team Agent</span>
+                          <span className="text-sm font-medium">
+                            Team Agent
+                          </span>
                           <span className="text-xs text-muted-foreground">
                             {new Date(msg.response.created_at).toLocaleString()}
                           </span>

@@ -16,9 +16,9 @@ export function PixelButton({
 
   const variantStyles = {
     primary:
-      "bg-[var(--accent-primary)] text-[var(--background)] border-2 border-[var(--accent-primary)] hover:bg-transparent hover:text-[var(--accent-primary)] shadow-[3px_3px_0_rgba(0,0,0,0.5)]",
+      "bg-[var(--accent-primary)] text-[var(--foreground)] border-2 border-[var(--accent-primary)] hover:bg-transparent hover:text-[var(--accent-primary)] shadow-[3px_3px_0_rgba(0,0,0,0.5)]",
     secondary:
-      "bg-transparent text-[var(--accent-secondary)] border-2 border-[var(--accent-secondary)] hover:bg-[var(--accent-secondary)] hover:text-[var(--background)] shadow-[3px_3px_0_rgba(0,0,0,0.5)]",
+      "bg-transparent text-[var(--accent-secondary)] border-2 border-[var(--accent-secondary)] hover:bg-[var(--accent-secondary)] hover:text-[var(--foreground)] shadow-[3px_3px_0_rgba(0,0,0,0.5)]",
     ghost:
       "bg-transparent text-[var(--foreground)] border-2 border-[var(--panel-border)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] shadow-[2px_2px_0_rgba(0,0,0,0.3)]",
   };

@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useQuery } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
+import { useQuery } from "convex/react";
+import { useEffect, useRef, useState } from "react";
 import { MessageCard } from "./MessageCard";
 
 export function MessagesTab() {
   const messages = useQuery(api.messages.getAllMessages);
   const [filterTeam, setFilterTeam] = useState<string | null>(null);
-  const [filterType, setFilterType] = useState<"all" | "visitor" | "agent" | "broadcast">("all");
+  const [filterType, setFilterType] = useState<
+    "all" | "visitor" | "agent" | "broadcast"
+  >("all");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom on new messages
@@ -18,10 +20,8 @@ export function MessagesTab() {
 
   if (!messages) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-muted-foreground text-sm">
-          Loading messages...
-        </div>
+      <div className="flex items-center justify-center h-full text-center">
+        <div className="text-muted-foreground text-sm">Loading messages...</div>
       </div>
     );
   }
@@ -29,9 +29,11 @@ export function MessagesTab() {
   // Apply filters
   const filteredMessages = messages.filter((msg) => {
     if (filterTeam && msg.from_team_name !== filterTeam) return false;
-    if (filterType === "visitor" && msg.message_type !== "visitor") return false;
+    if (filterType === "visitor" && msg.message_type !== "visitor")
+      return false;
     if (filterType === "agent" && msg.message_type === "visitor") return false;
-    if (filterType === "broadcast" && msg.message_type !== "broadcast") return false;
+    if (filterType === "broadcast" && msg.message_type !== "broadcast")
+      return false;
     return true;
   });
 
@@ -52,7 +54,9 @@ export function MessagesTab() {
             </label>
             <select
               value={filterTeam || "all"}
-              onChange={(e) => setFilterTeam(e.target.value === "all" ? null : e.target.value)}
+              onChange={(e) =>
+                setFilterTeam(e.target.value === "all" ? null : e.target.value)
+              }
               className="px-3 py-1 bg-background border-2 border-border text-foreground text-sm focus:border-primary focus:outline-none"
             >
               <option value="all">All Teams</option>
@@ -83,7 +87,8 @@ export function MessagesTab() {
 
           {/* Message Count */}
           <div className="ml-auto text-xs text-muted-foreground">
-            {filteredMessages.length} message{filteredMessages.length !== 1 ? "s" : ""}
+            {filteredMessages.length} message
+            {filteredMessages.length !== 1 ? "s" : ""}
           </div>
         </div>
       </div>

@@ -181,8 +181,9 @@ export class CursorTeamOrchestrator implements IOrchestrator {
    */
   async tick(): Promise<CursorOrchestrationResult> {
     this.tickCount++;
+    const tickId = `${this.stackId}-${this.tickCount}-${Date.now()}`;
     console.log(
-      `\n=== Cursor Tick ${this.tickCount} for stack ${this.stackId} ===`
+      `\n=== Cursor Tick ${this.tickCount} for stack ${this.stackId} [${tickId}] ===`
     );
 
     const result: CursorOrchestrationResult = {
@@ -254,10 +255,21 @@ export class CursorTeamOrchestrator implements IOrchestrator {
             );
 
             // Set up Cursor environment
-            await this.workspaceManager.setupEnvironmentConfig(
-              this.currentWorkspace,
-              process.env.CONVEX_URL || ""
-            );
+            try {
+              await this.workspaceManager.setupEnvironmentConfig(
+                this.currentWorkspace,
+                process.env.CONVEX_URL || ""
+              );
+            } catch (setupError) {
+              console.error(
+                `[CursorOrchestrator] Failed to set up workspace environment:`,
+                setupError
+              );
+              // Clean up the workspace since setup failed
+              await this.currentWorkspace.cleanup();
+              this.currentWorkspace = null;
+              throw setupError; // Re-throw to stop execution
+            }
 
             // Save new workspace info to Convex
             await this.updateCursorConfig({
@@ -283,10 +295,21 @@ export class CursorTeamOrchestrator implements IOrchestrator {
           );
 
           // Set up Cursor environment
-          await this.workspaceManager.setupEnvironmentConfig(
-            this.currentWorkspace,
-            process.env.CONVEX_URL || ""
-          );
+          try {
+            await this.workspaceManager.setupEnvironmentConfig(
+              this.currentWorkspace,
+              process.env.CONVEX_URL || ""
+            );
+          } catch (setupError) {
+            console.error(
+              `[CursorOrchestrator] Failed to set up workspace environment:`,
+              setupError
+            );
+            // Clean up the workspace since setup failed
+            await this.currentWorkspace.cleanup();
+            this.currentWorkspace = null;
+            throw setupError; // Re-throw to stop execution
+          }
 
           // Save workspace info to Convex for future reuse
           await this.updateCursorConfig({
@@ -327,8 +350,20 @@ export class CursorTeamOrchestrator implements IOrchestrator {
             model: "claude-4.5-sonnet",
           });
 
-          agentId = agentResponse.agent_id;
+          console.log(`[CursorOrchestrator] Agent creation response:`, JSON.stringify(agentResponse, null, 2));
+          console.log(`[CursorOrchestrator] Response ID field:`, agentResponse.id);
+          console.log(`[CursorOrchestrator] Response keys:`, Object.keys(agentResponse));
+
+          agentId = agentResponse.id;
+
+          if (!agentId) {
+            throw new Error(
+              `Agent creation succeeded but returned undefined ID. Response: ${JSON.stringify(agentResponse)}`
+            );
+          }
+
           result.agentId = agentId;
+          console.log(`[CursorOrchestrator] Successfully created agent with ID: ${agentId}`);
         } catch (error: unknown) {
           // Provide more helpful error message for GitHub authorization issues
           const errorMessage = error instanceof Error ? error.message : String(error);
@@ -387,35 +422,242 @@ export class CursorTeamOrchestrator implements IOrchestrator {
           { agentId, todosCount: pendingTodos.length }
         );
       } else {
-        // Send follow-up to existing agent
+        // Check if existing agent is still active before sending follow-up
         console.log(
-          `[CursorOrchestrator] Sending follow-up to agent ${agentId}`
+          `[CursorOrchestrator] Found existing agent ${agentId}, checking status...`
         );
 
-        await this.cursorAPI.sendFollowUp(agentId, prompt);
-        result.agentId = agentId;
+        try {
+          const agentStatus = await this.cursorAPI.getAgentStatus(agentId);
+          console.log(
+            `[CursorOrchestrator] Existing agent status: ${agentStatus.status}`
+          );
 
-        await this.updateCursorConfig({
-          last_prompt_at: Date.now(),
-          total_prompts_sent: (cursorConfig?.total_prompts_sent || 0) + 1,
-        });
+          // If agent is in a terminal state, create a new one instead
+          if (
+            agentStatus.status === "completed" ||
+            agentStatus.status === "failed" ||
+            agentStatus.status === "terminated"
+          ) {
+            console.log(
+              `[CursorOrchestrator] Agent is in terminal state (${agentStatus.status}), creating new agent`
+            );
 
-        await this.logTrace(
-          `Sent follow-up to agent ${agentId}`,
-          "cursor_agent_follow_up",
-          { agentId }
+            // Clear the old agent ID
+            await this.updateCursorConfig({
+              agent_id: undefined,
+            });
+
+            // Create new agent immediately
+            const agentResponse = await this.cursorAPI.createAgent({
+              prompt: {
+                text: prompt,
+              },
+              source: {
+                repository: this.currentWorkspace.repoUrl,
+                ref: this.currentWorkspace.branch,
+              },
+              model: "claude-4.5-sonnet",
+            });
+
+            agentId = agentResponse.id;
+
+            if (!agentId) {
+              throw new Error(
+                `Agent creation succeeded but returned undefined ID. Response: ${JSON.stringify(agentResponse)}`
+              );
+            }
+
+            result.agentId = agentId;
+            console.log(
+              `[CursorOrchestrator] Successfully created new agent with ID: ${agentId}`
+            );
+
+            // Save new agent ID
+            await this.updateCursorConfig({
+              agent_id: agentId,
+              last_prompt_at: Date.now(),
+              total_prompts_sent: 1,
+            });
+
+            await this.logTrace(
+              `Created new Cursor agent ${agentId} (previous agent was ${agentStatus.status})`,
+              "cursor_agent_created",
+              { agentId, previousStatus: agentStatus.status }
+            );
+          } else if (
+            agentStatus.status === "creating" ||
+            agentStatus.status === "running"
+          ) {
+            // Agent is still active, send follow-up
+            console.log(
+              `[CursorOrchestrator] Sending follow-up to active agent ${agentId}`
+            );
+
+            await this.cursorAPI.sendFollowUp(agentId, prompt);
+            result.agentId = agentId;
+
+            await this.updateCursorConfig({
+              last_prompt_at: Date.now(),
+              total_prompts_sent: (cursorConfig?.total_prompts_sent || 0) + 1,
+            });
+
+            await this.logTrace(
+              `Sent follow-up to agent ${agentId}`,
+              "cursor_agent_follow_up",
+              { agentId, status: agentStatus.status }
+            );
+          }
+        } catch (error) {
+          // If we can't get agent status (404, etc), create a new agent
+          console.error(
+            `[CursorOrchestrator] Failed to get agent status, creating new agent:`,
+            error instanceof Error ? error.message : String(error)
+          );
+
+          // Clear the old agent ID
+          await this.updateCursorConfig({
+            agent_id: undefined,
+          });
+
+          // Create new agent
+          const agentResponse = await this.cursorAPI.createAgent({
+            prompt: {
+              text: prompt,
+            },
+            source: {
+              repository: this.currentWorkspace.repoUrl,
+              ref: this.currentWorkspace.branch,
+            },
+            model: "claude-4.5-sonnet",
+          });
+
+          agentId = agentResponse.id;
+
+          if (!agentId) {
+            throw new Error(
+              `Agent creation succeeded but returned undefined ID. Response: ${JSON.stringify(agentResponse)}`
+            );
+          }
+
+          result.agentId = agentId;
+          console.log(
+            `[CursorOrchestrator] Successfully created new agent with ID: ${agentId}`
+          );
+
+          // Save new agent ID
+          await this.updateCursorConfig({
+            agent_id: agentId,
+            last_prompt_at: Date.now(),
+            total_prompts_sent: 1,
+          });
+
+          await this.logTrace(
+            `Created new Cursor agent ${agentId} (previous agent was inaccessible)`,
+            "cursor_agent_created",
+            { agentId }
+          );
+        }
+      }
+
+      // 5. Poll for completion with detailed progress logging
+      if (!agentId) {
+        throw new Error(
+          "Agent ID is undefined after creation/follow-up logic. This should never happen."
         );
       }
 
-      // 5. Poll for completion
       console.log(
         `[CursorOrchestrator] Polling agent ${agentId} for completion`
       );
+      console.log(
+        `[CursorOrchestrator] 💡 Watch the GitHub repo for commits: https://github.com/recursor-sandbox/${this.currentWorkspace.repoName}/commits/${this.currentWorkspace.branch}`
+      );
+
+      let lastCheckTime = Date.now();
+      let pollCount = 0;
+      let lastCommitSha: string | undefined;
 
       const finalStatus = await this.cursorAPI.pollWithProgress(
         agentId,
-        (status) => {
-          console.log(`[CursorOrchestrator] Agent status: ${status.status}`);
+        async (status) => {
+          pollCount++;
+          const elapsed = Math.floor((Date.now() - lastCheckTime) / 1000);
+          console.log(
+            `[CursorOrchestrator] ⏱️  Status: ${status.status.toUpperCase()} (${elapsed}s since last check, poll #${pollCount})`
+          );
+
+          // Log any outputs if available
+          if (status.outputs) {
+            if (status.outputs.files_changed?.length) {
+              console.log(
+                `[CursorOrchestrator] 📝 Files changed: ${status.outputs.files_changed.length}`
+              );
+              console.log(
+                `[CursorOrchestrator]    ${status.outputs.files_changed.slice(0, 5).join(", ")}${status.outputs.files_changed.length > 5 ? "..." : ""}`
+              );
+            }
+            if (status.outputs.commits?.length) {
+              console.log(
+                `[CursorOrchestrator] 📦 Commits: ${status.outputs.commits.length}`
+              );
+              console.log(
+                `[CursorOrchestrator]    Latest: ${status.outputs.commits[status.outputs.commits.length - 1]}`
+              );
+            }
+            if (status.outputs.terminal_output) {
+              const lines = status.outputs.terminal_output
+                .split("\n")
+                .filter((l) => l.trim());
+              if (lines.length > 0) {
+                console.log(
+                  `[CursorOrchestrator] 🖥️  Terminal output (last 3 lines):`
+                );
+                lines.slice(-3).forEach((line) => {
+                  console.log(`[CursorOrchestrator]    ${line}`);
+                });
+              }
+            }
+          }
+
+          // Check GitHub for new commits every 3rd poll (every 30s)
+          if (pollCount % 3 === 0) {
+            try {
+              const commits = await this.workspaceManager.getRecentCommits(
+                this.currentWorkspace!.repoName,
+                this.currentWorkspace!.branch,
+                5
+              );
+
+              if (commits.length > 0 && commits[0]) {
+                const latestCommit = commits[0];
+                if (lastCommitSha && latestCommit.sha !== lastCommitSha) {
+                  console.log(
+                    `[CursorOrchestrator] 🆕 New commit detected!`
+                  );
+                  console.log(
+                    `[CursorOrchestrator]    ${latestCommit.sha}: ${latestCommit.message}`
+                  );
+                  console.log(
+                    `[CursorOrchestrator]    View: ${latestCommit.url}`
+                  );
+                } else if (!lastCommitSha) {
+                  console.log(
+                    `[CursorOrchestrator] 📍 Latest commit: ${latestCommit.sha}: ${latestCommit.message.split("\n")[0]}`
+                  );
+                }
+                lastCommitSha = latestCommit.sha;
+              }
+            } catch (error) {
+              // Don't fail the polling if GitHub check fails
+              console.error(
+                `[CursorOrchestrator] Failed to check GitHub commits:`,
+                error instanceof Error ? error.message : String(error)
+              );
+            }
+          }
+
+          lastCheckTime = Date.now();
         },
         1800000, // 30 minutes
         10000 // poll every 10s

@@ -33,7 +33,7 @@ export function ReadmeTab({ stackId }: ReadmeTabProps) {
           <h4 className="text-[var(--accent-secondary)] font-bold mb-2">
             Project Idea
           </h4>
-          <div className="bg-[var(--background)] p-3 border-2 border-[var(--panel-border)] rounded">
+          <div className="bg-[var(--background)] p-3 border-2 border-[var(--panel-border)] rounded max-h-40 overflow-y-auto">
             <h5 className="text-[var(--accent-primary)] font-bold mb-2">
               {projectIdea.title}
             </h5>

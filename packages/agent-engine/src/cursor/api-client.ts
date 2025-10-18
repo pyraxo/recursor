@@ -83,7 +83,7 @@ export interface BackgroundAgentOutputs {
  */
 export interface BackgroundAgentResponse {
   /** Unique agent identifier */
-  agent_id: string;
+  id: string;
   /** Current agent status */
   status: "creating" | "running" | "completed" | "failed" | "terminated";
   /** ISO timestamp when agent was created */
@@ -119,7 +119,7 @@ export interface BackgroundAgentResponse {
  * });
  *
  * // Poll until complete
- * const result = await client.pollUntilComplete(agent.agent_id);
+ * const result = await client.pollUntilComplete(agent.id);
  * ```
  */
 export class CursorAPIClient {
@@ -154,6 +154,14 @@ export class CursorAPIClient {
   async createAgent(
     request: BackgroundAgentRequest
   ): Promise<BackgroundAgentResponse> {
+    // Validate repository URL format
+    if (request.source.repository.endsWith(".git")) {
+      throw new Error(
+        `Invalid repository URL: Cursor API does not accept URLs with '.git' extension. ` +
+          `Remove '.git' from: ${request.source.repository}`
+      );
+    }
+
     const response = await fetch(`${this.baseURL}/agents`, {
       method: "POST",
       headers: {
@@ -170,7 +178,10 @@ export class CursorAPIClient {
       );
     }
 
-    return await response.json();
+    const responseData = await response.json();
+    console.log(`[CursorAPI] Create agent response:`, JSON.stringify(responseData, null, 2));
+
+    return responseData;
   }
 
   /**

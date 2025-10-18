@@ -16,12 +16,12 @@
  * @module cursor/workspace-manager
  */
 
+import type { Id } from "@recursor/convex/_generated/dataModel";
+import { mkdir, readFile, writeFile } from "fs/promises";
 import { Octokit } from "octokit";
+import { join } from "path";
 import simpleGit, { SimpleGit } from "simple-git";
 import { dir as createTmpDir } from "tmp-promise";
-import { writeFile, mkdir, readFile } from "fs/promises";
-import { join } from "path";
-import type { Id } from "@recursor/convex/_generated/dataModel";
 
 /**
  * Artifact file structure
@@ -85,10 +85,7 @@ export class VirtualWorkspaceManager {
    * @param githubToken - GitHub Personal Access Token with repo permissions
    * @param githubOwner - GitHub organization or username (defaults to "recursor-sandbox")
    */
-  constructor(
-    githubToken: string,
-    githubOwner: string = "recursor-sandbox"
-  ) {
+  constructor(githubToken: string, githubOwner: string = "recursor-sandbox") {
     if (!githubToken || githubToken.trim() === "") {
       throw new Error("GitHub token is required");
     }
@@ -135,7 +132,10 @@ export class VirtualWorkspaceManager {
 
       // 4. Checkout existing branch or create new one
       const branches = await repoGit.branch();
-      if (branches.all.includes(branch) || branches.all.includes(`remotes/origin/${branch}`)) {
+      if (
+        branches.all.includes(branch) ||
+        branches.all.includes(`remotes/origin/${branch}`)
+      ) {
         console.log(`[Workspace] Checking out existing branch: ${branch}`);
         await repoGit.checkout(branch);
         await repoGit.pull("origin", branch);
@@ -162,7 +162,7 @@ export class VirtualWorkspaceManager {
 
       const workspace: VirtualWorkspace = {
         stackId,
-        repoUrl,
+        repoUrl: repoUrl.replace(/\.git$/, ""),
         repoName,
         localPath,
         branch,
@@ -207,7 +207,9 @@ export class VirtualWorkspaceManager {
 
     try {
       // 1. Check if repository already exists, create if not
-      console.log(`[Workspace] Checking for existing repo: ${this.githubOwner}/${repoName}`);
+      console.log(
+        `[Workspace] Checking for existing repo: ${this.githubOwner}/${repoName}`
+      );
 
       let repo;
       try {
@@ -217,15 +219,21 @@ export class VirtualWorkspaceManager {
           repo: repoName,
         });
 
-        console.log(`[Workspace] Repository already exists, using it: ${this.githubOwner}/${repoName}`);
-        console.log(`[Workspace] Repository is ${existingRepo.private ? 'PRIVATE' : 'PUBLIC'}`);
+        console.log(
+          `[Workspace] Repository already exists, using it: ${this.githubOwner}/${repoName}`
+        );
+        console.log(
+          `[Workspace] Repository is ${existingRepo.private ? "PRIVATE" : "PUBLIC"}`
+        );
         console.log(`[Workspace] Clone URL: ${existingRepo.clone_url}`);
         repo = existingRepo;
       } catch (error: unknown) {
         // Repository doesn't exist (404), create it
         const isNotFound = (error as { status?: number }).status === 404;
         if (isNotFound) {
-          console.log(`[Workspace] Creating new GitHub repo: ${this.githubOwner}/${repoName}`);
+          console.log(
+            `[Workspace] Creating new GitHub repo: ${this.githubOwner}/${repoName}`
+          );
           const { data: newRepo } = await this.octokit.rest.repos.createInOrg({
             org: this.githubOwner,
             name: repoName,
@@ -257,8 +265,19 @@ export class VirtualWorkspaceManager {
       await repoGit.addConfig("user.name", "Recursor Agent");
       await repoGit.addConfig("user.email", "agent@recursor.ai");
 
-      // 5. Create and checkout agent branch
-      await repoGit.checkoutLocalBranch(branch);
+      // 5. Create or checkout agent branch
+      // Check if branch exists on remote to avoid push conflicts
+      const branches = await repoGit.branch(["-r"]);
+      const remoteBranchExists = branches.all.includes(`origin/${branch}`);
+
+      if (remoteBranchExists) {
+        console.log(`[Workspace] Checking out existing branch: ${branch}`);
+        await repoGit.checkout(branch);
+        await repoGit.pull("origin", branch);
+      } else {
+        console.log(`[Workspace] Creating new branch: ${branch}`);
+        await repoGit.checkoutLocalBranch(branch);
+      }
 
       // 6. Initialize with artifacts if provided
       if (artifacts && artifacts.length > 0) {
@@ -304,7 +323,7 @@ export class VirtualWorkspaceManager {
 
       const workspace: VirtualWorkspace = {
         stackId,
-        repoUrl: repo.clone_url,
+        repoUrl: repo.clone_url.replace(/\.git$/, ""),
         repoName,
         localPath,
         branch,
@@ -328,9 +347,7 @@ export class VirtualWorkspaceManager {
    * @param workspace - Workspace to capture changes from
    * @returns Promise resolving to array of changed files
    */
-  async captureChanges(
-    workspace: VirtualWorkspace
-  ): Promise<ArtifactFile[]> {
+  async captureChanges(workspace: VirtualWorkspace): Promise<ArtifactFile[]> {
     const git: SimpleGit = simpleGit(workspace.localPath);
 
     try {
@@ -343,9 +360,7 @@ export class VirtualWorkspaceManager {
       const diff = await git.diff(["HEAD~1", "HEAD", "--name-only"]);
       const changedFiles = diff.split("\n").filter(Boolean);
 
-      console.log(
-        `[Workspace] Found ${changedFiles.length} changed file(s)`
-      );
+      console.log(`[Workspace] Found ${changedFiles.length} changed file(s)`);
 
       // Read contents of each changed file
       const artifacts: ArtifactFile[] = [];
@@ -473,11 +488,55 @@ export class ConvexTool {
         `[Workspace] Configured Cursor environment for ${workspace.repoName}`
       );
     } catch (error) {
+      console.error("[Workspace] Failed to set up environment config:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get recent commits from a repository branch
+   *
+   * Useful for monitoring agent activity in real-time.
+   *
+   * @param repoName - Repository name (without owner)
+   * @param branch - Branch to check
+   * @param limit - Maximum number of commits to return (default: 10)
+   * @returns Promise resolving to array of commit information
+   */
+  async getRecentCommits(
+    repoName: string,
+    branch: string,
+    limit: number = 10
+  ): Promise<
+    Array<{
+      sha: string;
+      message: string;
+      author: string;
+      date: string;
+      url: string;
+    }>
+  > {
+    try {
+      const { data: commits } = await this.octokit.rest.repos.listCommits({
+        owner: this.githubOwner,
+        repo: repoName,
+        sha: branch,
+        per_page: limit,
+      });
+
+      return commits.map((commit) => ({
+        sha: commit.sha.substring(0, 7),
+        message: commit.commit.message,
+        author: commit.commit.author?.name || "Unknown",
+        date: commit.commit.author?.date || "",
+        url: commit.html_url,
+      }));
+    } catch (error) {
       console.error(
-        "[Workspace] Failed to set up environment config:",
+        `[Workspace] Failed to get commits for ${repoName}:`,
         error
       );
-      throw error;
+      return [];
     }
   }
 
@@ -501,7 +560,9 @@ export class ConvexTool {
           repo: repoName,
         });
         results.push({ repo: repoName, success: true });
-        console.log(`[Workspace] Deleted repo: ${this.githubOwner}/${repoName}`);
+        console.log(
+          `[Workspace] Deleted repo: ${this.githubOwner}/${repoName}`
+        );
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         results.push({ repo: repoName, success: false, error: errorMsg });

@@ -19,7 +19,7 @@ export function LivestreamTab({ stackId }: LivestreamTabProps) {
   }
 
   return (
-    <div className="space-y-4 font-mono text-sm h-[600px] overflow-y-auto scrollbar-hide">
+    <div className="space-y-4 font-mono text-sm h-full overflow-y-auto scrollbar-hide">
       <div>
         <h3 className="text-[var(--accent-primary)] font-bold mb-2">Live Activity</h3>
         <div className="text-[var(--foreground)]/80">
