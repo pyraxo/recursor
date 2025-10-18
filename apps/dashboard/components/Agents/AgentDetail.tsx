@@ -270,9 +270,21 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
                         key={m._id}
                         className="border-l-2 border-primary pl-4 py-2 hover:bg-accent/30 transition-colors rounded-r"
                       >
-                        <Badge variant="secondary" className="text-xs mb-2">
-                          {m.message_type}
-                        </Badge>
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <Badge variant="secondary" className="text-xs">
+                            {m.message_type}
+                          </Badge>
+                          {m.from_agent_type && (
+                            <Badge variant="outline" className="text-xs capitalize">
+                              {m.from_agent_type}
+                            </Badge>
+                          )}
+                          {m.from_team_name && (
+                            <span className="text-xs text-muted-foreground">
+                              from {m.from_team_name}
+                            </span>
+                          )}
+                        </div>
                         <div className="text-sm">{m.content}</div>
                       </div>
                     ))}

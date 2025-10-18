@@ -1,11 +1,12 @@
 "use client";
 import { api } from "@recursor/convex/_generated/api";
 import { Badge } from "@repo/ui/components/badge";
+import { Button } from "@repo/ui/components/button";
 import { Card, CardContent } from "@repo/ui/components/card";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { Separator } from "@repo/ui/components/separator";
 import { useQuery } from "convex/react";
-import { Activity, Clock, User, Zap } from "lucide-react";
+import { Activity, Clock, User, Zap, ArrowUp } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 export function LiveFeed() {
@@ -66,9 +67,27 @@ export function LiveFeed() {
     }
   };
 
+  const scrollToTop = () => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = 0;
+    }
+  };
+
   return (
-    <ScrollArea className="h-[calc(100vh-220px)]">
-      <div ref={containerRef} className="space-y-2 pr-4">
+    <div className="relative">
+      <div className="absolute top-2 right-2 z-10">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={scrollToTop}
+          className="shadow-lg"
+        >
+          <ArrowUp className="w-4 h-4 mr-1" />
+          Top
+        </Button>
+      </div>
+      <ScrollArea className="h-[calc(100vh-220px)]">
+        <div ref={containerRef} className="space-y-2 pr-4">
         {traces.map((t: any) => (
           <Card key={t._id} className="hover:bg-accent/30 transition-colors">
             <CardContent className="p-4">
@@ -129,7 +148,8 @@ export function LiveFeed() {
             </CardContent>
           </Card>
         ))}
-      </div>
-    </ScrollArea>
+        </div>
+      </ScrollArea>
+    </div>
   );
 }
