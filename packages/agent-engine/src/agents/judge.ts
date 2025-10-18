@@ -19,7 +19,7 @@ export class JudgeAgent extends BaseAgent {
       });
 
       await this.logTrace(
-        `Judge executed: scored ${result.total_score}/40`,
+        `Scored ${result.total_score}/40`,
         "judge_delegated",
         { total_score: result.total_score }
       );

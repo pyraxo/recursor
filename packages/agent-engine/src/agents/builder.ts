@@ -32,7 +32,7 @@ export class BuilderAgent extends BaseAgent {
 
       // Log the execution locally for debugging
       await this.logTrace(
-        `Builder executed: ${result.substring(0, 100)}...`,
+        result.substring(0, 100) + "...",
         "builder_delegated",
         { resultLength: result.length }
       );

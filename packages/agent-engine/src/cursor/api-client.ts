@@ -32,19 +32,38 @@ export interface BackgroundAgentEnvironment {
 }
 
 /**
+ * Prompt structure for background agent requests
+ */
+export interface BackgroundAgentPrompt {
+  /** Text prompt for the agent */
+  text: string;
+  /** Optional images (base64 encoded) */
+  images?: Array<{
+    data: string;
+    dimension: { width: number; height: number };
+  }>;
+}
+
+/**
+ * Source repository configuration
+ */
+export interface BackgroundAgentSource {
+  /** Git repository URL (must be accessible) */
+  repository: string;
+  /** Git ref (branch, tag, or commit) to work on */
+  ref: string;
+}
+
+/**
  * Request parameters for creating a background agent
  */
 export interface BackgroundAgentRequest {
-  /** Git repository URL (must be accessible) */
-  repository: string;
-  /** Branch to work on */
-  branch: string;
-  /** Initial task prompt for the agent */
-  prompt: string;
+  /** Prompt structure */
+  prompt: BackgroundAgentPrompt;
+  /** Source repository configuration */
+  source: BackgroundAgentSource;
   /** AI model to use (e.g., "claude-3.5-sonnet") */
   model?: string;
-  /** Maximum runtime in minutes before auto-termination */
-  max_runtime_minutes?: number;
   /** Environment configuration */
   environment?: BackgroundAgentEnvironment;
 }
@@ -92,9 +111,13 @@ export interface BackgroundAgentResponse {
  *
  * // Create an agent
  * const agent = await client.createAgent({
- *   repository: "https://github.com/user/repo",
- *   branch: "main",
- *   prompt: "Implement user authentication"
+ *   prompt: {
+ *     text: "Implement user authentication"
+ *   },
+ *   source: {
+ *     repository: "https://github.com/user/repo",
+ *     ref: "main"
+ *   }
  * });
  *
  * // Poll until complete
@@ -112,7 +135,7 @@ export class CursorAPIClient {
    * @param baseURL - Base URL for the API (defaults to production)
    * @throws {Error} If API key is not provided
    */
-  constructor(apiKey: string, baseURL = "https://api.cursor.com/v1") {
+  constructor(apiKey: string, baseURL = "https://api.cursor.com/v0") {
     if (!apiKey || apiKey.trim() === "") {
       throw new Error("Cursor API key is required");
     }
@@ -133,7 +156,7 @@ export class CursorAPIClient {
   async createAgent(
     request: BackgroundAgentRequest
   ): Promise<BackgroundAgentResponse> {
-    const response = await fetch(`${this.baseURL}/background-agents`, {
+    const response = await fetch(`${this.baseURL}/agents`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
@@ -161,7 +184,7 @@ export class CursorAPIClient {
    */
   async getAgentStatus(agentId: string): Promise<BackgroundAgentResponse> {
     const response = await fetch(
-      `${this.baseURL}/background-agents/${agentId}`,
+      `${this.baseURL}/agents/${agentId}`,
       {
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
@@ -186,19 +209,24 @@ export class CursorAPIClient {
    * instructions after completing initial work.
    *
    * @param agentId - Unique agent identifier
-   * @param prompt - Follow-up instructions
+   * @param prompt - Follow-up instructions (can be string or prompt object)
    * @throws {Error} If the API request fails
    */
-  async sendFollowUp(agentId: string, prompt: string): Promise<void> {
+  async sendFollowUp(agentId: string, prompt: string | BackgroundAgentPrompt): Promise<void> {
+    // Convert string to prompt object if needed
+    const promptObject: BackgroundAgentPrompt = typeof prompt === 'string'
+      ? { text: prompt }
+      : prompt;
+
     const response = await fetch(
-      `${this.baseURL}/background-agents/${agentId}/prompt`,
+      `${this.baseURL}/agents/${agentId}/followup`,
       {
         method: "POST",
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt: promptObject }),
       }
     );
 
@@ -221,7 +249,7 @@ export class CursorAPIClient {
    */
   async terminateAgent(agentId: string): Promise<void> {
     const response = await fetch(
-      `${this.baseURL}/background-agents/${agentId}`,
+      `${this.baseURL}/agents/${agentId}`,
       {
         method: "DELETE",
         headers: {

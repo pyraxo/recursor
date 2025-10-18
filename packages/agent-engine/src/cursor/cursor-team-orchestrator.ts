@@ -105,9 +105,28 @@ export class CursorTeamOrchestrator implements IOrchestrator {
    * Initialize the orchestrator
    *
    * Sets up initial project idea and todos if they don't exist.
+   * Also handles cleanup when restarting after a stop.
    */
   async initialize(): Promise<void> {
     console.log(`[CursorOrchestrator] Initializing for stack ${this.stackId}`);
+
+    const stack = await this.client.query(api.agents.getStack, {
+      stackId: this.stackId,
+    });
+
+    if (!stack) {
+      throw new Error(`Stack ${this.stackId} not found`);
+    }
+
+    // If this is a restart after stop, clear the old Cursor agent ID
+    // (the agent session is over, but we keep the repository)
+    if (stack.cursor_config?.agent_id && stack.execution_state === 'running' && stack.stopped_at) {
+      console.log(`[CursorOrchestrator] Clearing old Cursor agent ID after restart`);
+      await this.updateCursorConfig({
+        agent_id: undefined,
+        // Keep repository info, just clear agent_id
+      });
+    }
 
     // Check for existing project idea
     const projectIdea = await this.client.query(api.project_ideas.get, {
@@ -187,8 +206,6 @@ export class CursorTeamOrchestrator implements IOrchestrator {
 
       // 2. Get or create workspace
       if (!this.currentWorkspace) {
-        console.log(`[CursorOrchestrator] Creating new workspace`);
-
         const stack = await this.client.query(api.agents.getStack, {
           stackId: this.stackId,
         });
@@ -197,29 +214,54 @@ export class CursorTeamOrchestrator implements IOrchestrator {
           throw new Error(`Stack ${this.stackId} not found`);
         }
 
-        // Create workspace with existing artifacts
-        this.currentWorkspace = await this.workspaceManager.createWorkspace(
-          this.stackId,
-          stack.participant_name,
-          await this.artifactSync.materializeArtifacts(this.stackId)
-        );
+        const cursorConfig = stack.cursor_config;
 
-        // Set up Cursor environment
-        await this.workspaceManager.setupEnvironmentConfig(
-          this.currentWorkspace,
-          process.env.CONVEX_URL || ""
-        );
+        // Check if team already has a persistent repository
+        if (cursorConfig?.repository_url && cursorConfig?.repository_name) {
+          // Reuse existing repository
+          console.log(
+            `[CursorOrchestrator] Cloning existing repository: ${cursorConfig.repository_name}`
+          );
 
-        // Save workspace info to Convex
-        await this.updateCursorConfig({
-          repository_url: this.currentWorkspace.repoUrl,
-          repository_name: this.currentWorkspace.repoName,
-          workspace_branch: this.currentWorkspace.branch,
-        });
+          this.currentWorkspace = await this.workspaceManager.cloneExistingWorkspace(
+            this.stackId,
+            cursorConfig.repository_url,
+            cursorConfig.repository_name,
+            cursorConfig.workspace_branch || "agent-workspace"
+          );
 
-        console.log(
-          `[CursorOrchestrator] Workspace ready: ${this.currentWorkspace.repoName}`
-        );
+          console.log(
+            `[CursorOrchestrator] Workspace ready (existing): ${this.currentWorkspace.repoName}`
+          );
+        } else {
+          // Create new repository for this team
+          console.log(
+            `[CursorOrchestrator] Creating new persistent repository for ${stack.participant_name}`
+          );
+
+          this.currentWorkspace = await this.workspaceManager.createWorkspace(
+            this.stackId,
+            stack.participant_name,
+            await this.artifactSync.materializeArtifacts(this.stackId)
+          );
+
+          // Set up Cursor environment
+          await this.workspaceManager.setupEnvironmentConfig(
+            this.currentWorkspace,
+            process.env.CONVEX_URL || ""
+          );
+
+          // Save workspace info to Convex for future reuse
+          await this.updateCursorConfig({
+            repository_url: this.currentWorkspace.repoUrl,
+            repository_name: this.currentWorkspace.repoName,
+            workspace_branch: this.currentWorkspace.branch,
+          });
+
+          console.log(
+            `[CursorOrchestrator] Workspace ready (new): ${this.currentWorkspace.repoName}`
+          );
+        }
       }
 
       // 3. Build unified prompt (consolidates all 4 agent roles)
@@ -234,11 +276,14 @@ export class CursorTeamOrchestrator implements IOrchestrator {
         console.log(`[CursorOrchestrator] Creating Cursor Background Agent`);
 
         const agentResponse = await this.cursorAPI.createAgent({
-          repository: this.currentWorkspace.repoUrl,
-          branch: this.currentWorkspace.branch,
-          prompt,
+          prompt: {
+            text: prompt,
+          },
+          source: {
+            repository: this.currentWorkspace.repoUrl,
+            ref: this.currentWorkspace.branch,
+          },
           model: "claude-3.5-sonnet",
-          max_runtime_minutes: 30,
         });
 
         agentId = agentResponse.agent_id;
@@ -536,10 +581,32 @@ After completing EACH todo or making significant progress:
   /**
    * Update cursor configuration in Convex
    */
-  private async updateCursorConfig(config: Partial<any>) {
-    // This will be implemented in the Convex mutations section
-    // For now, we'll use a placeholder
-    console.log(`[CursorOrchestrator] Updating cursor config:`, config);
+  private async updateCursorConfig(config: Partial<{
+    agent_id?: string;
+    repository_url?: string;
+    repository_name?: string;
+    workspace_branch?: string;
+    last_prompt_at?: number;
+    total_prompts_sent?: number;
+  }>) {
+    const currentConfig = await this.getCursorConfig();
+
+    // Merge with existing config
+    const updatedConfig = {
+      agent_id: config.agent_id ?? currentConfig?.agent_id,
+      repository_url: config.repository_url ?? currentConfig?.repository_url,
+      repository_name: config.repository_name ?? currentConfig?.repository_name,
+      workspace_branch: config.workspace_branch ?? currentConfig?.workspace_branch,
+      last_prompt_at: config.last_prompt_at ?? currentConfig?.last_prompt_at,
+      total_prompts_sent: config.total_prompts_sent ?? currentConfig?.total_prompts_sent ?? 0,
+    };
+
+    console.log(`[CursorOrchestrator] Updating cursor config:`, updatedConfig);
+
+    await this.client.mutation(api.agents.updateCursorConfig, {
+      stackId: this.stackId,
+      cursorConfig: updatedConfig,
+    });
   }
 
   /**
@@ -639,7 +706,23 @@ After completing EACH todo or making significant progress:
     });
 
     while (running && !this.shouldStop) {
-      await this.tick();
+      // Check execution state from Convex before each tick
+      const stack = await this.client.query(api.agents.getStack, {
+        stackId: this.stackId,
+      });
+
+      const executionState = stack?.execution_state || "idle";
+
+      // Only run tick if execution state is 'running'
+      if (executionState === "running") {
+        await this.tick();
+      } else if (executionState === "stopped") {
+        console.log(`[CursorOrchestrator] Stack is stopped, exiting loop`);
+        break;
+      } else if (executionState === "paused") {
+        console.log(`[CursorOrchestrator] Stack is paused, skipping tick`);
+        // Skip tick but continue waiting
+      }
 
       if (maxTicks && this.tickCount >= maxTicks) {
         console.log(

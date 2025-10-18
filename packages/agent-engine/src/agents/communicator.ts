@@ -32,7 +32,7 @@ export class CommunicatorAgent extends BaseAgent {
 
       // Log the execution locally for debugging
       await this.logTrace(
-        `Communicator executed: ${result.substring(0, 100)}...`,
+        result.substring(0, 100) + "...",
         "communicator_delegated",
         { resultLength: result.length }
       );

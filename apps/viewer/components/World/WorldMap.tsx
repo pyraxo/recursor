@@ -22,7 +22,7 @@ export function WorldMap({ selectedTeamId, onSelectTeam }: WorldMapProps) {
   if (!stacks) {
     return (
       <div className="w-full h-full flex items-center justify-center">
-        <div className="text-[var(--accent-primary)] font-mono">
+        <div className="text-[var(--accent-primary)] font-mono text-center">
           Loading simulation...
         </div>
       </div>

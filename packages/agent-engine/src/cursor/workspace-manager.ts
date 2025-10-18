@@ -98,6 +98,86 @@ export class VirtualWorkspaceManager {
   }
 
   /**
+   * Clone an existing workspace repository
+   *
+   * This will:
+   * 1. Clone the existing GitHub repository locally
+   * 2. Checkout or create the agent branch
+   * 3. Pull latest changes
+   *
+   * @param stackId - Agent stack identifier
+   * @param repoUrl - Full GitHub repository URL to clone
+   * @param repoName - Repository name (without owner)
+   * @param branch - Branch to work on
+   * @returns Promise resolving to workspace information
+   */
+  async cloneExistingWorkspace(
+    stackId: Id<"agent_stacks">,
+    repoUrl: string,
+    repoName: string,
+    branch: string = "agent-workspace"
+  ): Promise<VirtualWorkspace> {
+    try {
+      // 1. Create temporary local directory
+      const { path: localPath, cleanup: cleanupDir } = await createTmpDir({
+        unsafeCleanup: true,
+      });
+
+      // 2. Clone repository
+      console.log(`[Workspace] Cloning existing repo to ${localPath}`);
+      const git: SimpleGit = simpleGit();
+      await git.clone(repoUrl, localPath);
+
+      // 3. Configure git in the cloned directory
+      const repoGit: SimpleGit = simpleGit(localPath);
+      await repoGit.addConfig("user.name", "Recursor Agent");
+      await repoGit.addConfig("user.email", "agent@recursor.ai");
+
+      // 4. Checkout existing branch or create new one
+      const branches = await repoGit.branch();
+      if (branches.all.includes(branch) || branches.all.includes(`remotes/origin/${branch}`)) {
+        console.log(`[Workspace] Checking out existing branch: ${branch}`);
+        await repoGit.checkout(branch);
+        await repoGit.pull("origin", branch);
+      } else {
+        console.log(`[Workspace] Creating new branch: ${branch}`);
+        await repoGit.checkoutLocalBranch(branch);
+        await repoGit.push("origin", branch, { "--set-upstream": null });
+      }
+
+      // 5. Create cleanup function (only deletes local directory, NOT GitHub repo)
+      const cleanup = async () => {
+        try {
+          // Clean up local directory only
+          await cleanupDir();
+          console.log(`[Workspace] Cleaned up local workspace for ${repoName}`);
+        } catch (error) {
+          console.error(
+            `[Workspace] Error during cleanup for ${repoName}:`,
+            error
+          );
+          // Don't throw - best effort cleanup
+        }
+      };
+
+      const workspace: VirtualWorkspace = {
+        stackId,
+        repoUrl,
+        repoName,
+        localPath,
+        branch,
+        cleanup,
+      };
+
+      console.log(`[Workspace] Cloned existing workspace: ${repoName}`);
+      return workspace;
+    } catch (error) {
+      console.error("[Workspace] Failed to clone existing workspace:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Create a new virtual workspace (GitHub repo + local clone)
    *
    * This will:
@@ -117,26 +197,45 @@ export class VirtualWorkspaceManager {
     participantName: string,
     artifacts?: ArtifactFile[]
   ): Promise<VirtualWorkspace> {
-    // Generate unique repo name
-    const timestamp = Date.now();
+    // Generate repo name WITHOUT timestamp (persistent repo per team)
     const sanitizedName = participantName
       .toLowerCase()
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9-]/g, "");
-    const repoName = `recursor-${sanitizedName}-${timestamp}`;
+    const repoName = `recursor-${sanitizedName}`;
     const branch = `agent-workspace`;
 
     try {
-      // 1. Create GitHub repository in organization
-      console.log(`[Workspace] Creating GitHub repo: ${this.githubOwner}/${repoName}`);
-      const { data: repo } =
-        await this.octokit.rest.repos.createInOrg({
-          org: this.githubOwner,
-          name: repoName,
-          private: true,
-          auto_init: true,
-          description: `Virtual workspace for Recursor agent ${participantName}`,
+      // 1. Check if repository already exists, create if not
+      console.log(`[Workspace] Checking for existing repo: ${this.githubOwner}/${repoName}`);
+
+      let repo;
+      try {
+        // Try to get existing repository
+        const { data: existingRepo } = await this.octokit.rest.repos.get({
+          owner: this.githubOwner,
+          repo: repoName,
         });
+
+        console.log(`[Workspace] Repository already exists, using it: ${this.githubOwner}/${repoName}`);
+        repo = existingRepo;
+      } catch (error: any) {
+        // Repository doesn't exist (404), create it
+        if (error.status === 404) {
+          console.log(`[Workspace] Creating new GitHub repo: ${this.githubOwner}/${repoName}`);
+          const { data: newRepo } = await this.octokit.rest.repos.createInOrg({
+            org: this.githubOwner,
+            name: repoName,
+            private: true,
+            auto_init: true,
+            description: `Virtual workspace for Recursor agent ${participantName}`,
+          });
+          repo = newRepo;
+        } else {
+          // Some other error occurred
+          throw error;
+        }
+      }
 
       // 2. Create temporary local directory
       const { path: localPath, cleanup: cleanupDir } = await createTmpDir({
@@ -179,18 +278,16 @@ export class VirtualWorkspaceManager {
         await repoGit.push("origin", branch, { "--set-upstream": null });
       }
 
-      // 7. Create cleanup function
+      // 7. Create cleanup function (only deletes local directory, preserves GitHub repo)
       const cleanup = async () => {
         try {
-          // Clean up local directory
+          // Clean up local directory only
           await cleanupDir();
+          console.log(`[Workspace] Cleaned up local workspace for ${repoName}`);
 
-          // Delete GitHub repository
-          console.log(`[Workspace] Deleting GitHub repo: ${this.githubOwner}/${repoName}`);
-          await this.octokit.rest.repos.delete({
-            owner: this.githubOwner,
-            repo: repoName,
-          });
+          // NOTE: We do NOT delete the GitHub repository anymore.
+          // The repo is persistent per team and will be reused across restarts.
+          // To manually clean up repos, use the batchDeleteRepos() method.
         } catch (error) {
           console.error(
             `[Workspace] Error during cleanup for ${repoName}:`,

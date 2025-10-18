@@ -32,7 +32,7 @@ export class PlannerAgent extends BaseAgent {
 
       // Log the execution locally for debugging
       await this.logTrace(
-        `Planner executed: ${result.substring(0, 100)}...`,
+        result.substring(0, 100) + "...",
         "planner_delegated",
         { resultLength: result.length }
       );
