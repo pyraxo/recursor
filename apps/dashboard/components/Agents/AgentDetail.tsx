@@ -26,7 +26,7 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
       <div>
         <h3 style={{ margin: "8px 0" }}>Todos</h3>
         <ul>
-          {todos?.map((t) => (
+          {todos?.map((t: any) => (
             <li key={t._id}>
               [{t.status}] {t.content}
             </li>
@@ -36,7 +36,7 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
       <div>
         <h3 style={{ margin: "8px 0" }}>Artifacts</h3>
         <ul>
-          {artifacts?.map((a) => (
+          {artifacts?.map((a: any) => (
             <li key={a._id}>
               v{a.version} {a.type}
             </li>
@@ -46,7 +46,7 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
       <div>
         <h3 style={{ margin: "8px 0" }}>Message Timeline</h3>
         <ul>
-          {timeline?.map((m) => (
+          {timeline?.map((m: any) => (
             <li key={m._id}>
               {m.message_type}: {m.content}
             </li>

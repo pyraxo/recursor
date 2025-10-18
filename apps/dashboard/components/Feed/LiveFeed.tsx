@@ -7,7 +7,7 @@ export function LiveFeed() {
   if (!traces) return <div>Loading...</div>;
   return (
     <div style={{ display: "grid", gap: 8 }}>
-      {traces.map((t) => (
+      {traces.map((t: any) => (
         <div
           key={t._id}
           style={{ padding: 8, border: "1px solid #333", borderRadius: 6 }}

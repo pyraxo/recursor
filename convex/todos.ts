@@ -43,12 +43,12 @@ export const getPending = query({
   handler: async (ctx, args) => {
     const todos = await ctx.db
       .query("todos")
-      .withIndex("by_status", (q) =>
+      .withIndex("by_status", (q: any) =>
         q.eq("stack_id", args.stackId).eq("status", "pending")
       )
       .collect();
 
-    return todos.sort((a, b) => b.priority - a.priority);
+    return todos.sort((a: any, b: any) => b.priority - a.priority);
   },
 });
 

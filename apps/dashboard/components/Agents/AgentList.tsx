@@ -7,7 +7,7 @@ export function AgentList({ onSelect }: { onSelect: (id: string) => void }) {
   if (!stacks) return <div>Loading...</div>;
   return (
     <div style={{ display: "grid", gap: 4 }}>
-      {stacks.map((s) => (
+      {stacks.map((s: any) => (
         <button
           key={s._id}
           style={{
