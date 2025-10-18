@@ -9,7 +9,7 @@ import { Activity, Clock, User, Zap } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 export function LiveFeed() {
-  const traces = useQuery(api.traces.getRecent, { limit: 100 });
+  const traces = useQuery(api.traces.getRecentAll, { limit: 100 });
   const stacks = useQuery(api.agents.listStacks);
   const containerRef = useRef<HTMLDivElement>(null);
   const prevLengthRef = useRef(0);

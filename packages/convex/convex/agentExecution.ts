@@ -2,132 +2,25 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import {
   action,
-  internalAction,
   internalMutation,
   internalQuery,
 } from "./_generated/server";
-import { executeAgentByType, executePlanner, executeBuilder, executeCommunicator, executeReviewer } from "./lib/agents";
+import { executePlanner, executeBuilder, executeCommunicator, executeReviewer } from "./lib/agents";
 
-// This runs every 5 seconds to check for agent stacks that need execution
-export const scheduledExecutor = internalMutation({
-  args: {},
-  handler: async (ctx) => {
-    // Get all stacks that should be running
-    const stacks = await ctx.db
-      .query("agent_stacks")
-      .filter((q) => q.eq(q.field("execution_state"), "running"))
-      .collect();
-
-    for (const stack of stacks) {
-      // Check if this stack is already being processed
-      const lastExecution = await ctx.db
-        .query("agent_executions")
-        .withIndex("by_stack", (q) => q.eq("stack_id", stack._id))
-        .order("desc")
-        .first();
-
-      // If no recent execution or last one completed, schedule a new tick
-      const shouldExecute =
-        !lastExecution ||
-        lastExecution.status === "completed" ||
-        (lastExecution.status === "running" &&
-          Date.now() - lastExecution.started_at > 30000); // 30 second timeout
-
-      if (shouldExecute) {
-        // Schedule the agent tick action
-        await ctx.scheduler.runAfter(
-          0,
-          internal.agentExecution.executeAgentTick,
-          {
-            stackId: stack._id,
-          }
-        );
-
-        // Record that we're starting execution
-        await ctx.db.insert("agent_executions", {
-          stack_id: stack._id,
-          status: "running",
-          started_at: Date.now(),
-        });
-      }
-    }
-  },
-});
-
-// Internal action that actually runs the agent logic
-export const executeAgentTick = internalAction({
-  args: { stackId: v.id("agent_stacks") },
-  handler: async (ctx, args): Promise<void> => {
-    const { stackId } = args;
-
-    // Define agent order and current agent outside try block for error handling
-    const agentOrder = ["planner", "builder", "communicator", "reviewer"];
-    let currentAgent: string = "unknown";
-
-    try {
-      // Get stack details
-      const stack = await ctx.runQuery(
-        internal.agentExecution.getStackForExecution,
-        {
-          stackId,
-        }
-      );
-
-      if (!stack || stack.execution_state !== "running") {
-        return;
-      }
-
-      // Get current phase to determine which agent to run
-      const currentAgentIndex = stack.current_agent_index || 0;
-      currentAgent = agentOrder[currentAgentIndex % agentOrder.length]!;
-
-      // Update last activity to show processing
-      await ctx.runMutation(internal.agentExecution.updateStackActivity, {
-        stackId,
-      });
-
-      // Execute the agent using the new adapters
-      console.log(`Executing ${currentAgent} agent for stack ${stackId}`);
-      const thought = await executeAgentByType(ctx, currentAgent, stackId);
-
-      // Note: Agent adapters handle their own memory updates and traces
-
-      // Move to next agent
-      const nextAgentIndex = (currentAgentIndex + 1) % agentOrder.length;
-      await ctx.runMutation(internal.agentExecution.updateStackProgress, {
-        stackId,
-        currentAgentIndex: nextAgentIndex,
-        lastExecutedAt: Date.now(),
-      });
-
-      // Mark execution as completed
-      await ctx.runMutation(internal.agentExecution.markExecutionComplete, {
-        stackId,
-      });
-
-      // Note: Detailed traces are logged by agent adapters
-      console.log(`${currentAgent} agent completed for stack ${stackId}`);
-    } catch (error) {
-      // Mark execution as failed
-      await ctx.runMutation(internal.agentExecution.markExecutionFailed, {
-        stackId,
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-
-      // Log the error through the traces system
-      await ctx.runMutation(internal.traces.internalLog, {
-        stack_id: stackId,
-        agent_type: currentAgent,
-        thought: "",
-        action: "tick_failed",
-        result: {
-          success: false,
-          error: error instanceof Error ? error.message : "Unknown error",
-        },
-      });
-    }
-  },
-});
+/**
+ * LEGACY ROUND-ROBIN EXECUTION REMOVED
+ *
+ * All stacks now use intelligent graph-based orchestration exclusively.
+ * See: packages/convex/convex/orchestration.ts for the new autonomous system.
+ *
+ * Previous functions removed:
+ * - scheduledExecutor (legacy cron handler)
+ * - executeAgentTick (round-robin single agent execution)
+ *
+ * All execution now goes through:
+ * - orchestration.scheduledOrchestrator
+ * - orchestration.executeOrchestratorCycle
+ */
 
 // Internal query to get stack for execution
 export const getStackForExecution = internalQuery({
@@ -202,21 +95,6 @@ export const updateAgentMemory = internalMutation({
         updated_at: Date.now(),
       });
     }
-  },
-});
-
-// Internal mutation to update stack progress
-export const updateStackProgress = internalMutation({
-  args: {
-    stackId: v.id("agent_stacks"),
-    currentAgentIndex: v.number(),
-    lastExecutedAt: v.number(),
-  },
-  handler: async (ctx, args) => {
-    await ctx.db.patch(args.stackId, {
-      current_agent_index: args.currentAgentIndex,
-      last_executed_at: args.lastExecutedAt,
-    });
   },
 });
 
@@ -364,7 +242,7 @@ export const signalWorkAvailable = internalMutation({
   },
 });
 
-// ========= PUBLIC WRAPPERS FOR AUTONOMOUS ORCHESTRATOR =========
+// ========= PUBLIC WRAPPERS FOR GRAPH ORCHESTRATION =========
 
 import { mutation, query } from "./_generated/server";
 
@@ -432,8 +310,7 @@ export const getExecutionStates = query({
 });
 
 // Public actions for executing individual agents
-// These can be called from agent-engine or other external tools
-
+// These can be called from external tools or manually for debugging
 export const runPlanner = action({
   args: { stackId: v.id("agent_stacks") },
   handler: async (ctx, args) => {

@@ -16,23 +16,29 @@ interface BubbleState {
 
 export function SpeechBubbles({ agentPositions }: SpeechBubblesProps) {
   const stacks = useQuery(api.agents.listStacks);
+  const recentTraces = useQuery(api.traces.getRecentAll, { limit: 100 });
   const [bubbles, setBubbles] = useState<BubbleState[]>([]);
 
   const agentMessages = {
     planner: [
-      "Planning...",
-      "Strategizing...",
-      "Thinking...",
+      "Planning next steps...",
+      "Analyzing requirements...",
+      "Creating tasks...",
     ],
     builder: [
-      "Building...",
-      "Coding...",
-      "Implementing...",
+      "Building features...",
+      "Writing code...",
+      "Implementing design...",
     ],
     reviewer: [
-      "Reviewing...",
-      "Testing...",
-      "Debugging...",
+      "Reviewing progress...",
+      "Testing functionality...",
+      "Providing feedback...",
+    ],
+    communicator: [
+      "Coordinating with team...",
+      "Sharing updates...",
+      "Responding to messages...",
     ],
   };
 
@@ -42,20 +48,47 @@ export function SpeechBubbles({ agentPositions }: SpeechBubblesProps) {
     const interval = setInterval(() => {
       const allAgents: string[] = [];
       stacks.slice(0, 5).forEach((stack, teamIndex) => {
-        ["planner", "builder", "reviewer"].forEach((type) => {
-          allAgents.push(`${teamIndex}-${type}`);
+        ["planner", "builder", "reviewer", "communicator"].forEach((type) => {
+          allAgents.push(`${teamIndex}-${type}-${stack._id}`);
         });
       });
 
       if (allAgents.length === 0) return;
 
       const randomAgent = allAgents[Math.floor(Math.random() * allAgents.length)];
-      const [teamIndexStr, agentType] = randomAgent.split("-");
-      
-      const messages = agentMessages[agentType as keyof typeof agentMessages];
-      if (!messages) return;
-      
-      const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+      const [teamIndexStr, agentType, stackId] = randomAgent.split("-");
+
+      let message = "...";
+
+      if (recentTraces && recentTraces.length > 0) {
+        const stackTraces = recentTraces.filter(
+          (t) => String(t.stack_id) === stackId && t.agent_type === agentType
+        );
+
+        if (stackTraces.length > 0) {
+          const recentTrace = stackTraces[0];
+          message = recentTrace.thought?.substring(0, 60) || recentTrace.action?.substring(0, 60) || "Working...";
+          if (message.length > 57) message = message.substring(0, 57) + "...";
+        } else {
+          const stackAgentStates = stacks.find((s) => String(s._id) === stackId)?.agents?.find(
+            (a: any) => a.agent_type === agentType
+          );
+          if (stackAgentStates?.current_context?.active_task) {
+            message = stackAgentStates.current_context.active_task.substring(0, 60);
+            if (message.length > 57) message = message.substring(0, 57) + "...";
+          } else {
+            const messages = agentMessages[agentType as keyof typeof agentMessages];
+            if (messages) {
+              message = messages[Math.floor(Math.random() * messages.length)];
+            }
+          }
+        }
+      } else {
+        const messages = agentMessages[agentType as keyof typeof agentMessages];
+        if (messages) {
+          message = messages[Math.floor(Math.random() * messages.length)];
+        }
+      }
 
       setBubbles((prev) => {
         const filtered = prev.filter((b) => b.agentKey !== randomAgent);
@@ -64,7 +97,7 @@ export function SpeechBubbles({ agentPositions }: SpeechBubblesProps) {
           {
             agentKey: randomAgent,
             visible: true,
-            message: randomMessage,
+            message,
           },
         ];
       });
@@ -75,7 +108,7 @@ export function SpeechBubbles({ agentPositions }: SpeechBubblesProps) {
     }, 1500);
 
     return () => clearInterval(interval);
-  }, [stacks]);
+  }, [stacks, recentTraces]);
 
   if (!stacks) return null;
 
@@ -84,7 +117,7 @@ export function SpeechBubbles({ agentPositions }: SpeechBubblesProps) {
       {bubbles.map((bubble) => {
         const [teamIndexStr, agentType] = bubble.agentKey.split("-");
         const teamIndex = parseInt(teamIndexStr);
-        const agentTypeIndex = ["planner", "builder", "reviewer"].indexOf(agentType);
+        const agentTypeIndex = ["planner", "builder", "reviewer", "communicator"].indexOf(agentType);
         const posIndex = teamIndex * 4 + agentTypeIndex;
         const pos = agentPositions[posIndex];
 

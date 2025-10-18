@@ -312,6 +312,9 @@ importers:
         specifier: ^1.28.0
         version: 1.28.0(react@19.1.0)
     devDependencies:
+      '@convex-dev/workpool':
+        specifier: ^0.2.19
+        version: 0.2.19(convex-helpers@0.1.104(convex@1.28.0(react@19.1.0))(react@19.1.0)(typescript@5.9.2)(zod@3.25.76))(convex@1.28.0(react@19.1.0))
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
@@ -669,6 +672,12 @@ packages:
   '@bcoe/v8-coverage@1.0.2':
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
+
+  '@convex-dev/workpool@0.2.19':
+    resolution: {integrity: sha512-U2KwYnsKILyxW1baWEhDv+ZtnL5FZbYFxBT5owQ0Lw/kseiudMZraA4clH+/6gowHSahWpkq4wndhcOfpfhuOA==}
+    peerDependencies:
+      convex: '>=1.25.0 <1.35.0'
+      convex-helpers: ^0.1.94
 
   '@csstools/color-helpers@5.1.0':
     resolution: {integrity: sha512-S11EXWJyy0Mz5SYvRmY8nJYTFFd1LCNV+7cXyAgQtOOuzb4EsgfqDufL+9esx72/eLhsRdGZwaldu/h+E4t4BA==}
@@ -2584,6 +2593,28 @@ packages:
 
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
+
+  convex-helpers@0.1.104:
+    resolution: {integrity: sha512-7CYvx7T3K6n+McDTK4ZQaQNNGBzq5aWezpjzsKbOxPXx7oNcTP9wrpef3JxeXWFzkByJv5hRCjseh9B7eNJ7Ig==}
+    hasBin: true
+    peerDependencies:
+      '@standard-schema/spec': ^1.0.0
+      convex: ^1.24.0
+      hono: ^4.0.5
+      react: ^17.0.2 || ^18.0.0 || ^19.0.0
+      typescript: ^5.5
+      zod: ^3.22.4 || ^4.0.15
+    peerDependenciesMeta:
+      '@standard-schema/spec':
+        optional: true
+      hono:
+        optional: true
+      react:
+        optional: true
+      typescript:
+        optional: true
+      zod:
+        optional: true
 
   convex@1.28.0:
     resolution: {integrity: sha512-40FgeJ/LxP9TxnkDDztU/A5gcGTdq1klcTT5mM0Ak+kSlQiDktMpjNX1TfkWLxXaE3lI4qvawKH95v2RiYgFxA==}
@@ -4728,6 +4759,11 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
+  '@convex-dev/workpool@0.2.19(convex-helpers@0.1.104(convex@1.28.0(react@19.1.0))(react@19.1.0)(typescript@5.9.2)(zod@3.25.76))(convex@1.28.0(react@19.1.0))':
+    dependencies:
+      convex: 1.28.0(react@19.1.0)
+      convex-helpers: 0.1.104(convex@1.28.0(react@19.1.0))(react@19.1.0)(typescript@5.9.2)(zod@3.25.76)
+
   '@csstools/color-helpers@5.1.0': {}
 
   '@csstools/css-calc@2.1.4(@csstools/css-parser-algorithms@3.0.5(@csstools/css-tokenizer@3.0.4))(@csstools/css-tokenizer@3.0.4)':
@@ -6545,6 +6581,14 @@ snapshots:
   content-type@1.0.5: {}
 
   convert-source-map@2.0.0: {}
+
+  convex-helpers@0.1.104(convex@1.28.0(react@19.1.0))(react@19.1.0)(typescript@5.9.2)(zod@3.25.76):
+    dependencies:
+      convex: 1.28.0(react@19.1.0)
+    optionalDependencies:
+      react: 19.1.0
+      typescript: 5.9.2
+      zod: 3.25.76
 
   convex@1.28.0(react@19.1.0):
     dependencies:

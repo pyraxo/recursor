@@ -17,13 +17,16 @@ export default defineSchema({
         v.literal("stopped")
       )
     ),
-    current_agent_index: v.optional(v.number()), // Which agent in cycle (0-3)
+    current_agent_index: v.optional(v.number()), // DEPRECATED: Legacy field from round-robin executor (no longer used)
     last_executed_at: v.optional(v.number()), // Last successful execution
     last_activity_at: v.optional(v.number()),
     started_at: v.optional(v.number()),
     paused_at: v.optional(v.number()),
     stopped_at: v.optional(v.number()),
     process_id: v.optional(v.string()), // Track which service instance is running this
+
+    // Autonomous orchestration metrics
+    total_cycles: v.optional(v.number()), // Count of orchestration cycles completed
   }),
 
   // Agent State (one per sub-agent within a stack)
@@ -133,5 +136,57 @@ export default defineSchema({
     started_at: v.number(),
     completed_at: v.optional(v.number()),
     error: v.optional(v.string()),
+  }).index("by_stack", ["stack_id"]),
+
+  // Graph Orchestration Executions
+  orchestrator_executions: defineTable({
+    stack_id: v.id("agent_stacks"),
+    status: v.union(
+      v.literal("running"),
+      v.literal("completed"),
+      v.literal("paused"),
+      v.literal("failed")
+    ),
+    started_at: v.number(),
+    completed_at: v.optional(v.number()),
+    decision: v.optional(v.string()), // 'continue' or 'pause'
+    pause_duration: v.optional(v.number()), // Duration to pause if decision is 'pause'
+    error: v.optional(v.string()),
+    graph_summary: v.optional(
+      v.object({
+        agents_run: v.array(v.string()),
+        waves: v.number(),
+        parallel_executions: v.number(),
+        total_duration_ms: v.optional(v.number()),
+      })
+    ),
+  }).index("by_stack", ["stack_id"]),
+
+  // Execution Graphs (for debugging and visualization)
+  execution_graphs: defineTable({
+    stack_id: v.id("agent_stacks"),
+    orchestrator_execution_id: v.id("orchestrator_executions"),
+    graph: v.any(), // Full graph structure (nodes, edges, execution results)
+    created_at: v.number(),
+    completed_at: v.optional(v.number()),
+  }).index("by_stack", ["stack_id"]),
+
+  // Work Detection Cache (optimization)
+  work_detection_cache: defineTable({
+    stack_id: v.id("agent_stacks"),
+    planner_has_work: v.boolean(),
+    planner_priority: v.number(),
+    planner_reason: v.string(),
+    builder_has_work: v.boolean(),
+    builder_priority: v.number(),
+    builder_reason: v.string(),
+    communicator_has_work: v.boolean(),
+    communicator_priority: v.number(),
+    communicator_reason: v.string(),
+    reviewer_has_work: v.boolean(),
+    reviewer_priority: v.number(),
+    reviewer_reason: v.string(),
+    computed_at: v.number(),
+    valid_until: v.number(), // Cache expiration timestamp
   }).index("by_stack", ["stack_id"]),
 });

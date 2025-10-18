@@ -19,6 +19,7 @@ import {
 } from "@repo/ui/components/tabs";
 import { useQuery } from "convex/react";
 import {
+  Activity,
   CheckCircle,
   CheckSquare,
   Circle,
@@ -29,6 +30,7 @@ import {
   User,
 } from "lucide-react";
 import { ExecutionControls } from "../Controls/ExecutionControls";
+import { OrchestrationMonitor } from "./OrchestrationMonitor";
 
 export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
   const stack = useQuery(api.agents.getStack, { stackId });
@@ -83,7 +85,7 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
 
       {/* Tabbed Content */}
       <Tabs defaultValue="project" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="project" className="flex items-center gap-2">
             <Lightbulb className="w-4 h-4" />
             Project
@@ -114,6 +116,10 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
                 {timeline.length}
               </Badge>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="orchestration" className="flex items-center gap-2">
+            <Activity className="w-4 h-4" />
+            Orchestration
           </TabsTrigger>
         </TabsList>
 
@@ -270,6 +276,10 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="orchestration" className="space-y-4">
+          <OrchestrationMonitor stackId={stackId} />
         </TabsContent>
       </Tabs>
     </div>
