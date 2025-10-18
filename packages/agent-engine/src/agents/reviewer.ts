@@ -1,5 +1,5 @@
 import { api } from "@recursor/convex/_generated/api";
-import type { Id } from "@recursor/convex/_generated/dataModel";
+import type { Doc, Id } from "@recursor/convex/_generated/dataModel";
 import { LLMProviders } from "../config";
 import { BaseAgent } from "./base-agent";
 
@@ -24,7 +24,8 @@ You are the Reviewer Agent. Your role is to:
 
     const projectIdea = await this.getProjectIdea();
     const todos = await this.getAllTodos();
-    const completedTodos = todos?.filter((t) => t.status === "completed") || [];
+    const completedTodos =
+      todos?.filter((t: Doc<"todos">) => t.status === "completed") || [];
     const latestArtifact = await this.client.query(api.artifacts.getLatest, {
       stackId: this.stackId,
     });

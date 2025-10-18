@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
 import { Id } from "@recursor/convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
+import { ExecutionControls } from "../Controls/ExecutionControls";
 
 export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
   const stack = useQuery(api.agents.getStack, { stackId });
@@ -15,6 +16,9 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
 
   return (
     <div className="space-y-4">
+      {/* Execution Controls at the top */}
+      <ExecutionControls stackId={stackId} />
+
       <Card>
         <CardHeader>
           <CardTitle>{stack.participant_name}</CardTitle>

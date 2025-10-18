@@ -1,6 +1,6 @@
-import { ConvexClient } from "convex/browser";
 import { api } from "@recursor/convex/_generated/api";
-import type { Id } from "@recursor/convex/_generated/dataModel";
+import type { Doc, Id } from "@recursor/convex/_generated/dataModel";
+import { ConvexClient } from "convex/browser";
 import { BuilderAgent } from "./agents/builder";
 import { CommunicatorAgent } from "./agents/communicator";
 import { PlannerAgent } from "./agents/planner";
@@ -27,6 +27,9 @@ export class AgentStackOrchestrator {
   private reviewer: ReviewerAgent;
   private client: ConvexClient;
   private tickCount: number = 0;
+  private shouldStop: boolean = false;
+  private isPaused: boolean = false;
+  private currentAction: Promise<void> | null = null;
 
   constructor(
     stackId: Id<"agent_stacks">,
@@ -41,6 +44,19 @@ export class AgentStackOrchestrator {
     this.builder = new BuilderAgent(stackId, llm, convexUrl);
     this.communicator = new CommunicatorAgent(stackId, llm, convexUrl);
     this.reviewer = new ReviewerAgent(stackId, llm, convexUrl);
+  }
+
+  private async getExecutionState(): Promise<string> {
+    const status = await this.client.query(api.agents.getExecutionStatus, {
+      stackId: this.stackId,
+    });
+    return status?.execution_state || "idle";
+  }
+
+  private async updateActivityTimestamp(): Promise<void> {
+    await this.client.mutation(api.agents.updateActivityTimestamp, {
+      stackId: this.stackId,
+    });
   }
 
   async initialize() {
@@ -61,28 +77,13 @@ export class AgentStackOrchestrator {
     };
 
     try {
-      // 1. Planner thinks and plans
-      console.log("1. Planner thinking...");
-      results.planner = await this.planner.think();
+      // Update activity timestamp at the start of each tick
+      await this.updateActivityTimestamp();
 
-      // 2. Builder executes todos
-      console.log("2. Builder executing...");
-      results.builder = await this.builder.think();
-
-      // 3. Communicator processes messages
-      console.log("3. Communicator processing messages...");
-      results.communicator = await this.communicator.think();
-
-      // 4. Reviewer analyzes and advises
-      console.log("4. Reviewer analyzing...");
-      results.reviewer = await this.reviewer.think();
-
-      // 5. Pass reviewer's recommendations to planner
-      const recommendations =
-        await this.reviewer.getRecommendationsForPlanner();
-      if (recommendations.length > 0) {
-        await this.planner.receiveAdvice(recommendations.join("\n"));
-      }
+      // Execute agent cycle with pause checks
+      this.currentAction = this.runAgentCycle(results);
+      await this.currentAction;
+      this.currentAction = null;
 
       console.log("=== Tick complete ===\n");
     } catch (error) {
@@ -105,6 +106,37 @@ export class AgentStackOrchestrator {
     };
   }
 
+  private async runAgentCycle(results: any): Promise<void> {
+    // 1. Planner thinks and plans
+    console.log("1. Planner thinking...");
+    results.planner = await this.planner.think();
+
+    // Check if we should pause after this agent
+    if (this.shouldStop) return;
+
+    // 2. Builder executes todos
+    console.log("2. Builder executing...");
+    results.builder = await this.builder.think();
+
+    if (this.shouldStop) return;
+
+    // 3. Communicator processes messages
+    console.log("3. Communicator processing messages...");
+    results.communicator = await this.communicator.think();
+
+    if (this.shouldStop) return;
+
+    // 4. Reviewer analyzes and advises
+    console.log("4. Reviewer analyzing...");
+    results.reviewer = await this.reviewer.think();
+
+    // 5. Pass reviewer's recommendations to planner
+    const recommendations = await this.reviewer.getRecommendationsForPlanner();
+    if (recommendations.length > 0) {
+      await this.planner.receiveAdvice(recommendations.join("\n"));
+    }
+  }
+
   async runContinuous(intervalMs: number = 5000, maxTicks?: number) {
     console.log(
       `Starting continuous orchestration with ${intervalMs}ms interval`
@@ -116,14 +148,50 @@ export class AgentStackOrchestrator {
     process.on("SIGINT", () => {
       console.log("\nStopping orchestration...");
       running = false;
+      this.shouldStop = true;
     });
 
     while (running) {
-      await this.tick();
+      // Check execution state from Convex
+      const state = await this.getExecutionState();
 
-      if (maxTicks && this.tickCount >= maxTicks) {
-        console.log(`Reached max ticks (${maxTicks}), stopping.`);
+      if (state === "stopped") {
+        console.log("Execution stopped by dashboard.");
         break;
+      }
+
+      if (state === "paused") {
+        if (!this.isPaused) {
+          console.log("Execution paused by dashboard.");
+          this.isPaused = true;
+          // Complete current action if any
+          if (this.currentAction) {
+            await this.currentAction;
+          }
+        }
+        // Wait while paused, checking every second
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        continue;
+      }
+
+      // If we were paused and now running again
+      if (this.isPaused && state === "running") {
+        console.log("Execution resumed from dashboard.");
+        this.isPaused = false;
+      }
+
+      // Execute tick only if running
+      if (state === "running") {
+        await this.tick();
+
+        if (maxTicks && this.tickCount >= maxTicks) {
+          console.log(`Reached max ticks (${maxTicks}), stopping.`);
+          // Update state to stopped
+          await this.client.mutation(api.agents.stopExecution, {
+            stackId: this.stackId,
+          });
+          break;
+        }
       }
 
       // Wait for next tick
@@ -131,6 +199,16 @@ export class AgentStackOrchestrator {
     }
 
     console.log("Orchestration stopped.");
+  }
+
+  async gracefulPause(): Promise<void> {
+    console.log("Initiating graceful pause...");
+    this.shouldStop = true;
+    // Wait for current action to complete
+    if (this.currentAction) {
+      await this.currentAction;
+    }
+    console.log("Gracefully paused.");
   }
 
   async getStatus() {
@@ -155,8 +233,12 @@ export class AgentStackOrchestrator {
       projectIdea,
       todos: {
         total: todos?.length || 0,
-        completed: todos?.filter((t) => t.status === "completed").length || 0,
-        pending: todos?.filter((t) => t.status === "pending").length || 0,
+        completed:
+          todos?.filter((t: Doc<"todos">) => t.status === "completed").length ||
+          0,
+        pending:
+          todos?.filter((t: Doc<"todos">) => t.status === "pending").length ||
+          0,
       },
       artifacts: {
         total: artifacts?.length || 0,

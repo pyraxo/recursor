@@ -1,8 +1,29 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 
 // Log a trace
 export const log = mutation({
+  args: {
+    stack_id: v.id("agent_stacks"),
+    agent_type: v.string(),
+    thought: v.string(),
+    action: v.string(),
+    result: v.optional(v.any()),
+  },
+  handler: async (ctx: any, args: any) => {
+    await ctx.db.insert("agent_traces", {
+      stack_id: args.stack_id,
+      agent_type: args.agent_type,
+      thought: args.thought,
+      action: args.action,
+      result: args.result,
+      timestamp: Date.now(),
+    });
+  },
+});
+
+// Internal version for system use
+export const internalLog = internalMutation({
   args: {
     stack_id: v.id("agent_stacks"),
     agent_type: v.string(),

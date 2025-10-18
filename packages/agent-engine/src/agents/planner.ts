@@ -1,5 +1,5 @@
 import { api } from "@recursor/convex/_generated/api";
-import type { Id } from "@recursor/convex/_generated/dataModel";
+import type { Doc, Id } from "@recursor/convex/_generated/dataModel";
 import { LLMProviders } from "../config";
 import { BaseAgent } from "./base-agent";
 
@@ -29,7 +29,7 @@ You are the Planner Agent. Your role is to:
 Analyze the current project state and decide what to do next.
 
 Current Todos (${todos?.length || 0}):
-${todos?.map((t) => `- [${t.status}] ${t.content} (priority: ${t.priority})`).join("\n") || "No todos yet"}
+${todos?.map((t: Doc<"todos">) => `- [${t.status}] ${t.content} (priority: ${t.priority})`).join("\n") || "No todos yet"}
 
 Context:
 ${context?.focus ? `Current Focus: ${context.focus}` : ""}

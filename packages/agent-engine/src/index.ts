@@ -1,6 +1,7 @@
 // Main exports
 export { AgentStackOrchestrator } from "./orchestrator";
 export type { OrchestrationResult } from "./orchestrator";
+export { ExecutionController } from "./execution-controller";
 
 // Agent exports
 export { BaseAgent } from "./agents/base-agent";

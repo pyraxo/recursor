@@ -7,6 +7,21 @@ export default defineSchema({
     participant_name: v.string(),
     phase: v.string(), // 'ideation', 'building', 'demo', etc.
     created_at: v.number(),
+
+    // Execution control fields
+    execution_state: v.optional(v.union(
+      v.literal('idle'),
+      v.literal('running'),
+      v.literal('paused'),
+      v.literal('stopped')
+    )),
+    current_agent_index: v.optional(v.number()), // Which agent in cycle (0-3)
+    last_executed_at: v.optional(v.number()), // Last successful execution
+    last_activity_at: v.optional(v.number()),
+    started_at: v.optional(v.number()),
+    paused_at: v.optional(v.number()),
+    stopped_at: v.optional(v.number()),
+    process_id: v.optional(v.string()), // Track which service instance is running this
   }),
 
   // Agent State (one per sub-agent within a stack)
@@ -90,4 +105,17 @@ export default defineSchema({
   })
     .index("by_stack", ["stack_id"])
     .index("by_time", ["timestamp"]),
+
+  // Agent Execution Tracking
+  agent_executions: defineTable({
+    stack_id: v.id("agent_stacks"),
+    status: v.union(
+      v.literal("running"),
+      v.literal("completed"),
+      v.literal("failed")
+    ),
+    started_at: v.number(),
+    completed_at: v.optional(v.number()),
+    error: v.optional(v.string()),
+  }).index("by_stack", ["stack_id"]),
 });

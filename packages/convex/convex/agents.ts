@@ -8,7 +8,7 @@ export const createStack = mutation({
     initial_project_title: v.optional(v.string()),
     initial_project_description: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const stackId = await ctx.db.insert("agent_stacks", {
       participant_name: args.participant_name,
       phase: "ideation",
@@ -53,7 +53,7 @@ export const createStack = mutation({
 // Get all agent stacks
 export const listStacks = query({
   args: {},
-  handler: async (ctx: any) => {
+  handler: async (ctx) => {
     return await ctx.db.query("agent_stacks").collect();
   },
 });
@@ -61,13 +61,13 @@ export const listStacks = query({
 // Get a specific agent stack with all its agents
 export const getStack = query({
   args: { stackId: v.id("agent_stacks") },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const stack = await ctx.db.get(args.stackId);
     if (!stack) return null;
 
     const agents = await ctx.db
       .query("agent_states")
-      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
       .collect();
 
     return { ...stack, agents };
@@ -93,11 +93,11 @@ export const updateAgentState = mutation({
       })
     ),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const agentState = await ctx.db
       .query("agent_states")
-      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
-      .filter((q: any) => q.eq(q.field("agent_type"), args.agentType))
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+      .filter((q) => q.eq(q.field("agent_type"), args.agentType))
       .first();
 
     if (!agentState) {
@@ -118,11 +118,11 @@ export const getAgentState = query({
     stackId: v.id("agent_stacks"),
     agentType: v.string(),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     return await ctx.db
       .query("agent_states")
-      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
-      .filter((q: any) => q.eq(q.field("agent_type"), args.agentType))
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+      .filter((q) => q.eq(q.field("agent_type"), args.agentType))
       .first();
   },
 });
@@ -133,7 +133,7 @@ export const updatePhase = mutation({
     stackId: v.id("agent_stacks"),
     phase: v.string(),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await ctx.db.patch(args.stackId, {
       phase: args.phase,
     });
@@ -208,5 +208,122 @@ export const deleteStack = mutation({
 
     // Delete the stack itself
     await ctx.db.delete(args.stackId);
+  },
+});
+
+// Execution control mutations
+export const startExecution = mutation({
+  args: {
+    stackId: v.id('agent_stacks'),
+  },
+  handler: async (ctx, args) => {
+    const stack = await ctx.db.get(args.stackId);
+    if (!stack) throw new Error('Stack not found');
+
+    await ctx.db.patch(args.stackId, {
+      execution_state: 'running',
+      started_at: Date.now(),
+      last_activity_at: Date.now(),
+      paused_at: undefined,
+    });
+
+    return { success: true };
+  },
+});
+
+export const pauseExecution = mutation({
+  args: {
+    stackId: v.id('agent_stacks'),
+  },
+  handler: async (ctx, args) => {
+    const stack = await ctx.db.get(args.stackId);
+    if (!stack) throw new Error('Stack not found');
+
+    await ctx.db.patch(args.stackId, {
+      execution_state: 'paused',
+      paused_at: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+export const resumeExecution = mutation({
+  args: {
+    stackId: v.id('agent_stacks'),
+  },
+  handler: async (ctx, args) => {
+    const stack = await ctx.db.get(args.stackId);
+    if (!stack) throw new Error('Stack not found');
+
+    await ctx.db.patch(args.stackId, {
+      execution_state: 'running',
+      paused_at: undefined,
+      last_activity_at: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+export const stopExecution = mutation({
+  args: {
+    stackId: v.id('agent_stacks'),
+  },
+  handler: async (ctx, args) => {
+    const stack = await ctx.db.get(args.stackId);
+    if (!stack) throw new Error('Stack not found');
+
+    await ctx.db.patch(args.stackId, {
+      execution_state: 'stopped',
+      stopped_at: Date.now(),
+      process_id: undefined,
+    });
+
+    return { success: true };
+  },
+});
+
+export const updateActivityTimestamp = mutation({
+  args: {
+    stackId: v.id('agent_stacks'),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.stackId, {
+      last_activity_at: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+// Execution status queries
+export const getExecutionStatus = query({
+  args: {
+    stackId: v.id('agent_stacks'),
+  },
+  handler: async (ctx, args) => {
+    const stack = await ctx.db.get(args.stackId);
+    if (!stack) return null;
+
+    return {
+      execution_state: stack.execution_state || 'idle',
+      last_activity_at: stack.last_activity_at,
+      started_at: stack.started_at,
+      paused_at: stack.paused_at,
+      stopped_at: stack.stopped_at,
+      process_id: stack.process_id,
+    };
+  },
+});
+
+export const listRunningStacks = query({
+  args: {},
+  handler: async (ctx) => {
+    const stacks = await ctx.db
+      .query('agent_stacks')
+      .collect();
+
+    return stacks.filter(stack => stack.execution_state === 'running');
   },
 });

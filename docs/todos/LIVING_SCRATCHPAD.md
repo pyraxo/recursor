@@ -1,7 +1,7 @@
 # Recursor Living Scratchpad
 
 **Last Updated**: 2025-10-18  
-**Current Phase**: Foundation Complete, Moving to MVP
+**Current Phase**: Testing & Validation Ready → Frontend Development
 
 ---
 
@@ -9,11 +9,13 @@
 
 - **Backend Infrastructure**: ✅ Complete
 - **Core Agent System**: ✅ Complete
-- **Frontend/UX**: ❌ Not Started
+- **Deployment & Environment**: ✅ Complete
+- **Observability Dashboard**: ✅ Complete (needs play/pause controls)
+- **Autonomous Execution**: 🚨 CRITICAL - NOT STARTED (blocks everything else)
+- **Live Event Frontend**: ❌ Not Started
 - **Discord Integration**: ❌ Not Started
 - **Video/Media**: ❌ Not Started
 - **Judging System**: ❌ Not Started
-- **Deployment**: ⏳ Needs Setup
 
 ---
 
@@ -48,34 +50,90 @@
 - ✅ Package README
 - ✅ This scratchpad
 
+### Deployment & Environment
+
+- ✅ Convex deployment initialized (`npx convex dev`)
+- ✅ Environment variables configured (.env.local)
+- ✅ API keys set up (GROQ_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY)
+- ✅ Convex schema pushed and types generated
+- ✅ Convex package created (`packages/convex`) with all backend functions
+- ✅ Schema includes execution state management (idle, running, paused, stopped)
+
+### Observability Dashboard (`apps/dashboard`)
+
+- ✅ Admin view with team creation and management
+- ✅ Live stats dashboard (total teams, phase breakdown)
+- ✅ Real-time agent trace feed (auto-scrolling)
+- ✅ Agent list with phase indicators
+- ✅ Agent detail view (project, todos, artifacts, message timeline)
+- ✅ Team creation form (with optional project idea)
+- ✅ Team deletion with confirmation dialog
+- ✅ Convex React hooks integration for real-time updates
+- ✅ Three-column observability layout (Teams | Live Feed | Detail)
+- ✅ Runs on port 3002
+
 ---
 
-## 🚧 IN PROGRESS / BLOCKED
+## 🚧 IN PROGRESS / NEXT UP
 
-### Deployment & Setup
+### Autonomous Agent Execution System (CRITICAL)
 
-- ⏳ **BLOCKED**: Need to run `npx convex dev` to create deployment
-- ⏳ **BLOCKED**: Environment variables setup (.env.local)
-- ⏳ **BLOCKED**: API keys (GROQ_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY)
+**Key Architectural Change Needed**:
 
-### Testing & Validation
+- Currently: Agent-engine orchestrator designed for CLI usage (`pnpm cli run`)
+- Required: Agents run autonomously via Convex scheduled functions
+- When: Starts automatically when `pnpm dev` runs, continues in background
+- Control: Play/Pause/Stop via dashboard UI (updates `execution_state` in DB)
 
-- ⏳ **WAITING**: Single agent test (blocked by Convex setup)
-- ⏳ **WAITING**: 10-agent parallel test (blocked by Convex setup)
-- ⏳ **WAITING**: Cost monitoring for real workload
+**Why This Blocks Everything**: Can't properly test, demo, or scale without autonomous execution
+
+- [ ] **CRITICAL**: Create Convex scheduled function for agent orchestration
+  - [ ] Runs agent tick loops automatically (every 5-10 seconds)
+  - [ ] Respects execution_state (running, paused, stopped)
+  - [ ] Calls orchestrator logic from `agent-engine` package
+- [ ] **CRITICAL**: Build Play/Pause UI component (IN PROGRESS per user)
+  - [ ] Global play/pause for all agents
+  - [ ] Per-team play/pause controls
+  - [ ] Status indicators (running, paused, stopped)
+- [ ] **CRITICAL**: Connect agent-engine orchestrator to Convex
+  - [ ] Update orchestrator to use Convex mutations/queries
+  - [ ] Remove CLI dependency for agent execution
+  - [ ] Make it callable from Convex scheduled functions
+
+### Testing & Validation (Ready after Autonomous Execution)
+
+- [ ] Test agents run automatically on `pnpm dev`
+- [ ] Verify play/pause controls work
+- [ ] Test single agent through full tick cycle
+- [ ] Verify artifacts are generated correctly
+- [ ] Test messaging between 2+ agent stacks
+- [ ] Monitor costs during test runs
 
 ---
 
 ## 📋 TODO: MVP (Phase 1)
 
-### 1. IMMEDIATE NEXT STEPS (Unblock Testing)
+### 1. IMMEDIATE NEXT STEPS (Autonomous Execution)
 
-- [ ] Run `npx convex dev` to initialize deployment
-- [ ] Create `.env.local` with Convex URL and API keys
-- [ ] Test single agent creation via CLI
-- [ ] Run single agent through full tick cycle
-- [ ] Verify artifacts are generated correctly
-- [ ] Test messaging between 2+ agent stacks
+- [x] ~~Run `npx convex dev` to initialize deployment~~ ✅ DONE
+- [x] ~~Create `.env.local` with Convex URL and API keys~~ ✅ DONE
+- [x] ~~Build observability dashboard~~ ✅ DONE
+- [ ] **DO NOW**: Create Convex scheduled function (`orchestration.ts`)
+  - Runs every 5-10 seconds
+  - Finds all agent_stacks with `execution_state: 'running'`
+  - Executes tick for each stack using agent-engine
+  - Updates traces, artifacts, todos, messages in Convex
+- [ ] **DO NOW**: Refactor agent-engine orchestrator to work with Convex
+  - Remove dependency on CLI
+  - Export function that can be called from Convex actions
+  - Accept stackId and run one tick
+- [ ] **DO NOW**: Build Play/Pause controls in dashboard
+  - Add to Admin view
+  - Mutation to update execution_state
+  - Visual indicators for running/paused/stopped states
+- [ ] **TEST**: Create a team and start it running
+- [ ] **TEST**: Verify agents execute autonomously
+- [ ] **TEST**: Verify play/pause works
 
 ### 2. FRONTEND - Live Event Experience (High Priority)
 
@@ -114,17 +172,19 @@ Per PRD sections 5 & 6:
 - [ ] Optimistic UI updates
 - [ ] WebSocket/SSE fallback if needed
 
-### 3. OBSERVABILITY DASHBOARD (Medium Priority)
+### 3. OBSERVABILITY DASHBOARD ENHANCEMENTS (Low Priority)
 
-Per IMPLEMENTATION_SUMMARY section "Still Needed":
+Dashboard exists and works! Future enhancements:
 
-- [ ] Create `apps/observability-dashboard` (or `apps/dashboard` if exists)
-- [ ] Live agent trace feed
-- [ ] Agent detail view (4 sub-agents per stack)
-- [ ] Message timeline visualization
-- [ ] State inspector (ideas, todos, memory, context)
-- [ ] Cost tracking dashboard
+- [x] ~~Create `apps/dashboard`~~ ✅ DONE
+- [x] ~~Live agent trace feed~~ ✅ DONE
+- [x] ~~Agent detail view~~ ✅ DONE
+- [x] ~~Message timeline visualization~~ ✅ DONE
+- [x] ~~State inspector (ideas, todos, artifacts)~~ ✅ DONE
+- [ ] Cost tracking dashboard (calculate from traces)
 - [ ] Performance metrics (latency, token usage, error rates)
+- [ ] Individual sub-agent views (Planner, Builder, Communicator, Reviewer)
+- [ ] Memory/context visualization (expand current state display)
 
 ### 4. DISCORD DATA INGESTION (Medium Priority)
 
@@ -309,6 +369,57 @@ Per PRD section 5:
 - ✅ Groq as primary LLM (speed + cost)
 - ✅ Custom agents over Mastra (simplicity)
 - ✅ Single HTML files for Phase 1 builds
+- ✅ Observability dashboard built before public frontend (smart for debugging)
+- ✅ **Autonomous execution via Convex scheduled functions (NOT CLI-based)**
+- ✅ **Convex orchestration over Mastra framework** (see `/docs/analysis/ORCHESTRATION_ARCHITECTURE_DECISION.md`)
+  - Reason: Already 80% built on Convex, proven at scale, simpler architecture
+  - Convex can easily handle 100+ agents with <5s latency
+  - Bottleneck is LLM APIs (Groq), not orchestration
+  - Mastra adds complexity without solving actual constraint
+
+### Key Technical Implementation Notes
+
+**Convex Scheduled Functions for Autonomous Execution**:
+
+```typescript
+// packages/convex/convex/orchestration.ts
+export const runAgentTicks = internalMutation({
+  handler: async (ctx) => {
+    // 1. Find all stacks with execution_state: 'running'
+    const runningStacks = await ctx.db
+      .query("agent_stacks")
+      .filter((q) => q.eq(q.field("execution_state"), "running"))
+      .collect();
+
+    // 2. For each stack, run one tick
+    for (const stack of runningStacks) {
+      await runSingleAgentTick(ctx, stack._id);
+    }
+  },
+});
+
+// Schedule to run every 10 seconds
+export default {
+  runAgentTicks: {
+    schedule: "0/10 * * * * *", // Every 10 seconds
+    handler: runAgentTicks,
+  },
+};
+```
+
+**Agent-Engine Refactor**:
+
+- Move from CLI-driven to function-based
+- Export `runAgentTick(stackId, convexClient)` from orchestrator
+- Make it callable from Convex actions
+- Use Convex client to read/write state
+
+**Execution State Management**:
+
+- Dashboard sets `execution_state` via mutations
+- Scheduled function respects state
+- States: `idle`, `running`, `paused`, `stopped`
+- Track: `last_activity_at`, `started_at`, `paused_at`
 
 ### Open Questions (from PRD section 14)
 
@@ -331,10 +442,61 @@ Per PRD section 5:
 
 ## 🎬 NEXT SESSION PRIORITIES
 
-1. Run `npx convex dev` and set up environment
-2. Test single agent end-to-end
-3. Start building live event frontend (landing + feed)
-4. Create observability dashboard for monitoring agents
+### Immediate (Today/Tomorrow) - CRITICAL PATH
+
+**Goal**: Make agents run autonomously when `pnpm dev` starts
+
+1. **Create Convex Orchestration System** (HIGHEST PRIORITY)
+   - Create `packages/convex/convex/orchestration.ts`
+   - Use Convex scheduled functions (cron-like)
+   - Query for `execution_state: 'running'` stacks
+   - Execute one tick per stack per interval
+   - Update all state in Convex (traces, todos, artifacts, messages)
+
+2. **Refactor Agent-Engine for Convex Integration**
+   - Make orchestrator callable from Convex actions
+   - Remove CLI-only dependencies
+   - Export `runAgentTick(stackId)` function
+   - Ensure it works with Convex mutations/queries
+
+3. **Build Play/Pause Controls in Dashboard**
+   - Add global "Start All" / "Pause All" buttons to Admin view
+   - Add per-team play/pause/stop buttons
+   - Create Convex mutations to update `execution_state`
+   - Show visual indicators (🟢 running, ⏸️ paused, ⏹️ stopped)
+
+4. **Test End-to-End**
+   - Create team via dashboard
+   - Click "Start" to set execution_state to 'running'
+   - Watch agent traces appear in real-time
+   - Verify todos, artifacts, messages are created
+   - Test pause/resume functionality
+
+### Next (This Week)
+
+5. **Tune Agent Behavior**
+   - Monitor trace output quality
+   - Adjust prompts if needed
+   - Tune tick intervals (balance speed vs cost)
+   - Test with 5-10 agents running simultaneously
+
+6. **Start Live Event Frontend** (`apps/web`)
+   - Landing page with hero section
+   - Live activity feed (similar to dashboard)
+   - Basic agent/project cards
+   - Public-facing view (non-admin)
+
+### After Autonomous System Works
+
+7. **Scale Testing**
+   - Run 50 agents simultaneously
+   - Monitor performance and costs
+   - Load test Convex
+   - Optimize as needed
+
+8. **Discord Ingestion Tool**
+   - Import real participant data
+   - Batch create agent stacks
 
 ---
 

@@ -1,5 +1,5 @@
 *.js
-!_generated/**
+convex/_generated/**
 *.js.map
 *.d.ts.map
 .env.local

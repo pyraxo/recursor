@@ -9,7 +9,7 @@ export const create = mutation({
     assigned_by: v.string(),
     priority: v.number(),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     return await ctx.db.insert("todos", {
       stack_id: args.stack_id,
       content: args.content,
@@ -26,10 +26,10 @@ export const list = query({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     return await ctx.db
       .query("todos")
-      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
       .order("desc")
       .collect();
   },
@@ -40,15 +40,15 @@ export const getPending = query({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const todos = await ctx.db
       .query("todos")
-      .withIndex("by_status", (q: any) =>
+      .withIndex("by_status", (q) =>
         q.eq("stack_id", args.stackId).eq("status", "pending")
       )
       .collect();
 
-    return todos.sort((a: any, b: any) => b.priority - a.priority);
+    return todos.sort((a, b) => b.priority - a.priority);
   },
 });
 
@@ -58,8 +58,8 @@ export const updateStatus = mutation({
     todoId: v.id("todos"),
     status: v.string(),
   },
-  handler: async (ctx: any, args: any) => {
-    const updates: any = {
+  handler: async (ctx, args) => {
+    const updates: Record<string, any> = {
       status: args.status,
     };
 
@@ -76,7 +76,7 @@ export const remove = mutation({
   args: {
     todoId: v.id("todos"),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await ctx.db.delete(args.todoId);
   },
 });
