@@ -10,7 +10,7 @@ export const log = mutation({
     action: v.string(),
     result: v.optional(v.any()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     await ctx.db.insert("agent_traces", {
       stack_id: args.stack_id,
       agent_type: args.agent_type,
@@ -28,10 +28,10 @@ export const list = query({
     stackId: v.id("agent_stacks"),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const query = ctx.db
       .query("agent_traces")
-      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
       .order("desc");
 
     if (args.limit) {
@@ -47,7 +47,7 @@ export const getRecent = query({
   args: {
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const query = ctx.db
       .query("agent_traces")
       .withIndex("by_time")
@@ -68,14 +68,14 @@ export const getByAgentType = query({
     agentType: v.string(),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const traces = await ctx.db
       .query("agent_traces")
-      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
       .order("desc")
       .collect();
 
-    const filtered = traces.filter((t) => t.agent_type === args.agentType);
+    const filtered = traces.filter((t: any) => t.agent_type === args.agentType);
 
     if (args.limit) {
       return filtered.slice(0, args.limit);

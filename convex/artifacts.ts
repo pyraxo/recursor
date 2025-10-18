@@ -14,11 +14,11 @@ export const create = mutation({
       build_time_ms: v.optional(v.number()),
     }),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     // Get the latest version for this stack
     const latestArtifact = await ctx.db
       .query("artifacts")
-      .withIndex("by_stack", (q) => q.eq("stack_id", args.stack_id))
+      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stack_id))
       .order("desc")
       .first();
 
@@ -41,10 +41,10 @@ export const getLatest = query({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     return await ctx.db
       .query("artifacts")
-      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
       .order("desc")
       .first();
   },
@@ -55,10 +55,10 @@ export const list = query({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     return await ctx.db
       .query("artifacts")
-      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
       .order("desc")
       .collect();
   },
@@ -70,12 +70,12 @@ export const getByVersion = query({
     stackId: v.id("agent_stacks"),
     version: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const artifacts = await ctx.db
       .query("artifacts")
-      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
       .collect();
 
-    return artifacts.find((a) => a.version === args.version);
+    return artifacts.find((a: any) => a.version === args.version);
   },
 });

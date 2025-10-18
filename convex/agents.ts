@@ -6,7 +6,7 @@ export const createStack = mutation({
   args: {
     participant_name: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const stackId = await ctx.db.insert("agent_stacks", {
       participant_name: args.participant_name,
       phase: "ideation",
@@ -39,7 +39,7 @@ export const createStack = mutation({
 // Get all agent stacks
 export const listStacks = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx: any) => {
     return await ctx.db.query("agent_stacks").collect();
   },
 });
@@ -47,13 +47,13 @@ export const listStacks = query({
 // Get a specific agent stack with all its agents
 export const getStack = query({
   args: { stackId: v.id("agent_stacks") },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const stack = await ctx.db.get(args.stackId);
     if (!stack) return null;
 
     const agents = await ctx.db
       .query("agent_states")
-      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
       .collect();
 
     return { ...stack, agents };
@@ -79,11 +79,11 @@ export const updateAgentState = mutation({
       })
     ),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const agentState = await ctx.db
       .query("agent_states")
-      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
-      .filter((q) => q.eq(q.field("agent_type"), args.agentType))
+      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
+      .filter((q: any) => q.eq(q.field("agent_type"), args.agentType))
       .first();
 
     if (!agentState) {
@@ -104,11 +104,11 @@ export const getAgentState = query({
     stackId: v.id("agent_stacks"),
     agentType: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     return await ctx.db
       .query("agent_states")
-      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
-      .filter((q) => q.eq(q.field("agent_type"), args.agentType))
+      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
+      .filter((q: any) => q.eq(q.field("agent_type"), args.agentType))
       .first();
   },
 });
@@ -119,7 +119,7 @@ export const updatePhase = mutation({
     stackId: v.id("agent_stacks"),
     phase: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     await ctx.db.patch(args.stackId, {
       phase: args.phase,
     });

@@ -9,7 +9,7 @@ export const create = mutation({
     description: v.string(),
     created_by: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     return await ctx.db.insert("project_ideas", {
       stack_id: args.stack_id,
       title: args.title,
@@ -26,10 +26,10 @@ export const get = query({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     return await ctx.db
       .query("project_ideas")
-      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
       .order("desc")
       .first();
   },
@@ -40,10 +40,10 @@ export const list = query({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     return await ctx.db
       .query("project_ideas")
-      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
       .order("desc")
       .collect();
   },
@@ -55,7 +55,7 @@ export const updateStatus = mutation({
     ideaId: v.id("project_ideas"),
     status: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     await ctx.db.patch(args.ideaId, {
       status: args.status,
     });
@@ -70,7 +70,7 @@ export const update = mutation({
     description: v.optional(v.string()),
     status: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const updates: any = {};
     if (args.title) updates.title = args.title;
     if (args.description) updates.description = args.description;

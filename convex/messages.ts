@@ -10,7 +10,7 @@ export const send = mutation({
     content: v.string(),
     message_type: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     await ctx.db.insert("messages", {
       from_stack_id: args.from_stack_id,
       to_stack_id: args.to_stack_id,
@@ -28,13 +28,13 @@ export const getBroadcasts = query({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const messages = await ctx.db
       .query("messages")
-      .withIndex("broadcasts", (q) => q.eq("message_type", "broadcast"))
+      .withIndex("broadcasts", (q: any) => q.eq("message_type", "broadcast"))
       .collect();
 
-    return messages.filter((msg) => !msg.read_by.includes(args.stackId));
+    return messages.filter((msg: any) => !msg.read_by.includes(args.stackId));
   },
 });
 
@@ -43,13 +43,13 @@ export const getDirectMessages = query({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const messages = await ctx.db
       .query("messages")
-      .withIndex("by_recipient", (q) => q.eq("to_stack_id", args.stackId))
+      .withIndex("by_recipient", (q: any) => q.eq("to_stack_id", args.stackId))
       .collect();
 
-    return messages.filter((msg) => !msg.read_by.includes(args.stackId));
+    return messages.filter((msg: any) => !msg.read_by.includes(args.stackId));
   },
 });
 
@@ -59,7 +59,7 @@ export const markAsRead = mutation({
     messageId: v.id("messages"),
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const message = await ctx.db.get(args.messageId);
     if (!message) return;
 
@@ -76,25 +76,25 @@ export const getTimeline = query({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const sent = await ctx.db
       .query("messages")
-      .withIndex("by_sender", (q) => q.eq("from_stack_id", args.stackId))
+      .withIndex("by_sender", (q: any) => q.eq("from_stack_id", args.stackId))
       .collect();
 
     const received = await ctx.db
       .query("messages")
-      .withIndex("by_recipient", (q) => q.eq("to_stack_id", args.stackId))
+      .withIndex("by_recipient", (q: any) => q.eq("to_stack_id", args.stackId))
       .collect();
 
     const broadcasts = await ctx.db
       .query("messages")
-      .withIndex("broadcasts", (q) => q.eq("message_type", "broadcast"))
+      .withIndex("broadcasts", (q: any) => q.eq("message_type", "broadcast"))
       .collect();
 
     const all = [...sent, ...received, ...broadcasts];
-    const unique = Array.from(new Map(all.map((m) => [m._id, m])).values());
+    const unique = Array.from(new Map(all.map((m: any) => [m._id, m])).values());
 
-    return unique.sort((a, b) => a.created_at - b.created_at);
+    return unique.sort((a: any, b: any) => a.created_at - b.created_at);
   },
 });
