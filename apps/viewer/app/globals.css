@@ -3,14 +3,14 @@
 :root {
   --background: #0f0f23;
   --foreground: #e0e0e0;
-  --accent-primary: #00ff41;
-  --accent-secondary: #00d4ff;
-  --accent-tertiary: #ff6b6b;
+  --accent-primary: #68F268;
+  --accent-secondary: #68f2f2;
+  --accent-tertiary: #f26868;
   --accent-quaternary: #ffd700;
   
-  --planner-color: #00d4ff;
-  --builder-color: #00ff41;
-  --reviewer-color: #ff6b6b;
+  --planner-color: #68f2f2;
+  --builder-color: #68F268;
+  --reviewer-color: #f26868;
   --communicator-color: #ffd700;
   
   --gold: #ffd700;
