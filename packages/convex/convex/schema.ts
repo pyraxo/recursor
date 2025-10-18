@@ -223,4 +223,26 @@ export default defineSchema({
     computed_at: v.number(),
     valid_until: v.number(), // Cache expiration timestamp
   }).index("by_stack", ["stack_id"]),
+
+  // Judgments (for hackathon scoring)
+  judgments: defineTable({
+    stack_id: v.id("agent_stacks"),
+    technical_merit: v.number(),
+    polish: v.number(),
+    execution: v.number(),
+    wow_factor: v.number(),
+    total_score: v.number(),
+    feedback: v.object({
+      technical_merit_notes: v.string(),
+      polish_notes: v.string(),
+      execution_notes: v.string(),
+      wow_factor_notes: v.string(),
+      overall_assessment: v.string(),
+    }),
+    artifact_version_judged: v.number(),
+    judged_at: v.number(),
+  })
+    .index("by_stack", ["stack_id"])
+    .index("by_score", ["total_score"])
+    .index("by_time", ["judged_at"]),
 });

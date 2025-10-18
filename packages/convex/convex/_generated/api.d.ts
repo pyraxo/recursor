@@ -12,6 +12,7 @@ import type * as agentExecution from "../agentExecution.js";
 import type * as agents from "../agents.js";
 import type * as artifacts from "../artifacts.js";
 import type * as crons from "../crons.js";
+import type * as judging from "../judging.js";
 import type * as lib_agents_builder from "../lib/agents/builder.js";
 import type * as lib_agents_communicator from "../lib/agents/communicator.js";
 import type * as lib_agents_index from "../lib/agents/index.js";
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   agents: typeof agents;
   artifacts: typeof artifacts;
   crons: typeof crons;
+  judging: typeof judging;
   "lib/agents/builder": typeof lib_agents_builder;
   "lib/agents/communicator": typeof lib_agents_communicator;
   "lib/agents/index": typeof lib_agents_index;

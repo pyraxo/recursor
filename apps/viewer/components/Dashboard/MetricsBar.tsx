@@ -20,8 +20,6 @@ export function MetricsBar() {
   };
 
   const activeAgents = stacks ? stacks.length * 4 : 0;
-  
-  const mockIterations = stacks ? stacks.length * Math.floor(Math.random() * 50 + 20) : 0;
 
   return (
     <div className="grid grid-cols-3 gap-4 mb-6">
@@ -39,7 +37,7 @@ export function MetricsBar() {
           Total Iterations
         </div>
         <div className="text-3xl font-mono font-bold text-[var(--accent-secondary)] tabular-nums">
-          {mockIterations}
+          0
         </div>
       </div>
       

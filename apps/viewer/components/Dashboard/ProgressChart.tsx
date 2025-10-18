@@ -12,14 +12,13 @@ interface DataPoint {
 
 export function ProgressChart() {
   const stacks = useQuery(api.agents.listStacks);
+  const hasJudgingAPI = api && 'judging' in api;
+  const leaderboard = hasJudgingAPI ? useQuery(api.judging.getLeaderboard) : null;
 
   const chartData = useMemo(() => {
     if (!stacks || stacks.length === 0) {
       return { data: [], colors: [] };
     }
-
-    const timePoints = 10;
-    const data: DataPoint[] = [];
 
     const colors = [
       ACCENT_COLORS.primary,
@@ -32,24 +31,53 @@ export function ProgressChart() {
       "#7fff00",
     ];
 
+    if (!leaderboard || leaderboard.length === 0) {
+      const timePoints = 10;
+      const data: DataPoint[] = [];
+
+      for (let i = 0; i <= timePoints; i++) {
+        const point: DataPoint = {
+          time: `T+${i}h`,
+          scores: {},
+        };
+
+        stacks.forEach((stack) => {
+          point.scores[stack.participant_name] = 0;
+        });
+
+        data.push(point);
+      }
+
+      return { data, colors };
+    }
+
+    const now = Date.now();
+    const oneHour = 60 * 60 * 1000;
+    const timePoints = 10;
+    const data: DataPoint[] = [];
+
     for (let i = 0; i <= timePoints; i++) {
       const point: DataPoint = {
         time: `T+${i}h`,
         scores: {},
       };
 
-      stacks.forEach((stack, index) => {
-        const baseScore = 40 + Math.random() * 20;
-        const growth = (i / timePoints) * (30 + Math.random() * 30);
-        const noise = (Math.random() - 0.5) * 10;
-        point.scores[stack.participant_name] = Math.min(100, Math.max(0, baseScore + growth + noise));
+      stacks.forEach((stack) => {
+        const teamJudgment = leaderboard.find((j: any) => j.name === stack.participant_name);
+        if (teamJudgment) {
+          const score = Math.floor(teamJudgment.total_score / 4 * 10);
+          const simulatedProgress = (i / timePoints) * score;
+          point.scores[stack.participant_name] = Math.min(100, simulatedProgress);
+        } else {
+          point.scores[stack.participant_name] = 0;
+        }
       });
 
       data.push(point);
     }
 
     return { data, colors };
-  }, [stacks]);
+  }, [stacks, leaderboard]);
 
   if (!stacks || stacks.length === 0) {
     return (
