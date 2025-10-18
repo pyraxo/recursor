@@ -10,8 +10,8 @@ docs/
 ├── plans/             Implementation plans and PRDs
 ├── guides/            How-to guides and setup instructions
 ├── todos/             Active todos and work-in-progress
-│   └── done/          Completed todos (archived)
-└── *.md               Root-level summaries and key documents
+│   └── done/          Completed todos and implementation summaries
+└── *.md               Root-level permanent reference documentation
 ```
 
 ---
@@ -94,27 +94,46 @@ docs/
 - Quick scratchpad for ideas
 - Testing checklists
 
-**Archiving**: Move completed todos to `/docs/todos/done/` when finished
+**Important**: When work is complete:
+- Move active todos to `/docs/todos/done/`
+- Create implementation summaries in `/docs/todos/done/` (e.g., `FEATURE_NAME_COMPLETE.md`)
+- Keep completed work archived for future reference
+
+### `/docs/todos/done/`
+**Purpose**: Archive for completed work, implementation summaries, and finished todos.
+
+**Examples**:
+- `VIEWER_INTEGRATION_COMPLETE.md` - Summary of completed viewer integration
+- `AUTONOMOUS_IMPLEMENTATION_SUMMARY.md` - Summary of autonomous agent implementation
+- `USER_CHAT_IMPLEMENTATION_COMPLETE.md` - Summary of user chat feature
+
+**Naming Convention**: `SCREAMING_SNAKE_CASE.md` for summaries
+
+**When to use**:
+- Archiving completed todos from `/docs/todos/`
+- Creating implementation summaries after feature completion
+- Documenting what was accomplished and lessons learned
+- Preserving historical context for future reference
 
 ---
 
 ### Root-Level `/docs/*.md`
-**Purpose**: Major summaries, integration reports, and key documentation.
+**Purpose**: Permanent reference documentation and entry-point guides.
 
 **Examples**:
-- Integration summaries (e.g., `VIEWER_INTEGRATION_COMPLETE.md`)
-- Implementation summaries (e.g., `AUTONOMOUS_IMPLEMENTATION_SUMMARY.md`)
 - Getting started guides
 - Testing documentation
-- High-level overviews
+- High-level project overviews
+- Permanent reference material
 
-**Naming Convention**: `SCREAMING_SNAKE_CASE.md` for summaries, `Title_Case.md` for guides
+**Naming Convention**: `SCREAMING_SNAKE_CASE.md` or `kebab-case.md`
 
 **When to use**:
-- Documenting major integrations
-- Summarizing completed work
 - Creating entry-point documentation
 - High-level project overviews
+- Permanent reference guides
+
+**Note**: Implementation summaries and completion reports should go in `/docs/todos/done/`, not at root level.
 
 ---
 
@@ -126,7 +145,8 @@ docs/
 2. **Is it planning future work?** → `/docs/plans/`
 3. **Is it explaining how to do something?** → `/docs/guides/`
 4. **Is it active work-in-progress?** → `/docs/todos/`
-5. **Is it a major summary or key document?** → `/docs/*.md` (root level)
+5. **Is it a completed implementation summary?** → `/docs/todos/done/`
+6. **Is it permanent reference documentation?** → `/docs/*.md` (root level)
 
 ---
 
@@ -181,9 +201,10 @@ bad:  plan.md
 
 ### 4. Completion
 **Actions**:
-- Move todos to `/docs/todos/done/`
-- Create summary in `/docs/*.md` (root level)
+- Move active todos to `/docs/todos/done/`
+- Create implementation summary in `/docs/todos/done/` (e.g., `FEATURE_NAME_COMPLETE.md`)
 - Update guides in `/docs/guides/` if needed
+- Update permanent reference docs in `/docs/*.md` if needed
 
 ---
 
@@ -220,16 +241,17 @@ docs/todos/MCP_TOOLS_IMPLEMENTATION.md
 docs/todos/TEST_DASHBOARD.md
 ```
 
-### Completed Work (Archived)
+### Completed Work & Implementation Summaries
 ```
-docs/todos/done/[completed-tasks].md
+docs/todos/done/VIEWER_INTEGRATION_COMPLETE.md
+docs/todos/done/AUTONOMOUS_IMPLEMENTATION_SUMMARY.md
+docs/todos/done/DASHBOARD_INTEGRATION_SUMMARY.md
+docs/todos/done/USER_CHAT_IMPLEMENTATION_COMPLETE.md
 ```
 
-### Root-Level Summaries
+### Root-Level Reference Documentation
 ```
-docs/VIEWER_INTEGRATION_COMPLETE.md
-docs/AUTONOMOUS_IMPLEMENTATION_SUMMARY.md
-docs/DASHBOARD_INTEGRATION_SUMMARY.md
+docs/CLAUDE.md
 docs/GETTING_STARTED.md
 docs/TESTING.md
 ```
@@ -260,8 +282,11 @@ touch docs/guides/my-setup-guide.md
 # Active work
 touch docs/todos/MY_ACTIVE_WORK.md
 
-# Summary (root level)
-touch docs/MY_INTEGRATION_SUMMARY.md
+# Implementation summary (when completed)
+touch docs/todos/done/MY_FEATURE_COMPLETE.md
+
+# Permanent reference documentation (root level)
+touch docs/MY_REFERENCE_GUIDE.md
 ```
 
 ### Step 4: Add Standard Header
@@ -309,10 +334,11 @@ When working with Claude Code on this repository:
 1. **Reference this guide**: Ask Claude to organize new docs according to this structure
 2. **Be specific**: Tell Claude which folder to place new documentation in
 3. **Maintain consistency**: Follow the naming conventions and structure
-4. **Update summaries**: After major integrations, create a root-level summary
-5. **Archive completed work**: Move finished todos to the done folder
+4. **Create implementation summaries**: After completing major features, create a summary in `/docs/todos/done/`
+5. **Archive completed work**: Move finished todos from `/docs/todos/` to `/docs/todos/done/`
+6. **Keep root level clean**: Only permanent reference documentation belongs in `/docs/*.md`
 
 ---
 
-**Last Updated**: 2025-10-18
+**Last Updated**: 2025-10-19
 **Maintained By**: Repository contributors
