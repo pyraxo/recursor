@@ -10,54 +10,46 @@ export async function executeReviewer(
   console.log(`[Reviewer] Executing for stack ${stackId}`);
 
   // 1. Load context
-  const [stack, todos, projectIdea, agentState, artifacts, recentTraces] =
-    await Promise.all([
-      ctx.runQuery(internal.agentExecution.getStackForExecution, { stackId }),
-      ctx.runQuery(internal.agentExecution.getTodos, { stackId }),
-      ctx.runQuery(internal.agentExecution.getProjectIdea, { stackId }),
-      ctx.runQuery(internal.agentExecution.getAgentState, {
-        stackId,
-        agentType: "reviewer",
-      }),
-      ctx.runQuery(internal.artifacts.internalGetLatest, { stackId }),
-      ctx.runQuery(internal.traces.getRecentForStack, { stackId, limit: 20 }),
-    ]);
+  const [stack, projectIdea, agentState, artifacts] = await Promise.all([
+    ctx.runQuery(internal.agentExecution.getStackForExecution, { stackId }),
+    ctx.runQuery(internal.agentExecution.getProjectIdea, { stackId }),
+    ctx.runQuery(internal.agentExecution.getAgentState, {
+      stackId,
+      agentType: "reviewer",
+    }),
+    ctx.runQuery(internal.artifacts.internalGetLatest, { stackId }),
+  ]);
 
   if (!stack) {
     throw new Error(`Stack ${stackId} not found`);
   }
 
-  // 2. Determine if review is needed
+  // 2. Determine if code review is needed
   const lastReviewTime = agentState?.memory?.last_review_time || 0;
-  const timeSinceLastReview = Date.now() - lastReviewTime;
+  const lastReviewedVersion = agentState?.memory?.last_reviewed_version || 0;
 
-  // Count completed todos since last review
-  const completedTodos =
-    todos?.filter(
-      (t: any) =>
-        t.status === "completed" && (t.completed_at || 0) > lastReviewTime
-    ) || [];
+  // Check if there's a new artifact to review
+  const hasNewArtifact =
+    artifacts &&
+    artifacts.created_at > lastReviewTime &&
+    artifacts.version > lastReviewedVersion;
 
-  // Check for new artifacts
-  const hasNewArtifact = artifacts && artifacts.created_at > lastReviewTime;
-
-  // Determine if review is needed
-  const needsReview =
-    completedTodos.length >= 2 ||
-    hasNewArtifact ||
-    timeSinceLastReview > 180000; // 3 minutes
-
-  if (!needsReview) {
-    console.log(`[Reviewer] No review needed yet`);
-    return "Reviewer idle: Waiting for more progress before review";
+  // Only review if there's a new artifact
+  if (!hasNewArtifact || !artifacts) {
+    console.log(`[Reviewer] No new artifact to review`);
+    return "Reviewer idle: Waiting for new artifact from builder";
   }
 
-  // 3. Build conversation
+  console.log(
+    `[Reviewer] Reviewing artifact version ${artifacts.version} (${artifacts.content.length} chars)`
+  );
+
+  // 3. Build conversation for code review
   const messages: Message[] = [
     llmProvider.buildSystemPrompt("reviewer", {
       projectTitle: projectIdea?.title,
       phase: stack.phase,
-      todoCount: todos?.length || 0,
+      todoCount: 0, // Not relevant for code review
       teamName: stack.participant_name,
     }),
   ];
@@ -70,65 +62,45 @@ export async function executeReviewer(
     });
   }
 
-  // Add progress summary
-  const completedCount =
-    todos?.filter((t) => t.status === "completed").length || 0;
-  const pendingCount = todos?.filter((t) => t.status === "pending").length || 0;
-  const totalCount = todos?.length || 0;
-
+  // Add the artifact code for review
   messages.push({
     role: "user",
-    content: `Progress Summary:
-- Total todos: ${totalCount}
-- Completed: ${completedCount}
-- Pending: ${pendingCount}
-- Recent completions: ${completedTodos.map((t) => t.content).join(", ")}`,
-  });
+    content: `Please review this code artifact (version ${artifacts.version}):
 
-  // Add artifact info if available
-  if (artifacts) {
-    messages.push({
-      role: "user",
-      content: `Latest artifact: Version ${artifacts.version}, created ${
-        hasNewArtifact ? "recently" : "earlier"
-      }`,
-    });
-  }
+\`\`\`html
+${artifacts.content}
+\`\`\`
 
-  // Add recent activity summary
-  if (recentTraces && recentTraces.length > 0) {
-    const activitySummary = recentTraces
-      .slice(0, 5)
-      .map((t: any) => `${t.agent_type}: ${t.action}`)
-      .join("\n");
-    messages.push({
-      role: "user",
-      content: `Recent activity:\n${activitySummary}`,
-    });
-  }
+Review this code for:
+1. Bugs and logic errors
+2. Security vulnerabilities
+3. Code quality and best practices
+4. Accessibility issues
+5. Performance problems
+6. Maintainability concerns
 
-  // Request review
-  messages.push({
-    role: "user",
-    content: `Please review the team's progress and provide:
-1. Assessment of current progress
-2. What's working well
-3. Areas for improvement
-4. Specific recommendations for the planner (prefix with "RECOMMENDATION:")`,
+For each issue found, provide:
+- Clear description of the problem
+- Severity: CRITICAL, MAJOR, or MINOR
+- RECOMMENDATION: Specific actionable fix for the planner
+
+Be thorough and constructive.`,
   });
 
   // 4. Call LLM
-  console.log(`[Reviewer] Calling LLM for review`);
+  console.log(`[Reviewer] Calling LLM for code review`);
   const response = await llmProvider.chat(messages, {
-    temperature: 0.7,
-    max_tokens: 1500,
+    temperature: 0.3, // Lower temperature for more focused code review
+    max_tokens: 2000, // More tokens for detailed code review
   });
 
   // 5. Parse response and extract recommendations
   const parsed = llmProvider.parseAgentResponse(response.content, "reviewer");
 
-  // Extract recommendations for planner
+  // Extract recommendations for planner (code fixes to implement)
   const recommendations: string[] = [];
+  const issues: { severity: string; description: string }[] = [];
+
   const lines = response.content.split("\n");
   for (const line of lines) {
     if (line.toUpperCase().includes("RECOMMENDATION:")) {
@@ -137,6 +109,15 @@ export async function executeReviewer(
         recommendations.push(recommendation);
       }
     }
+
+    // Track severity of issues found
+    if (line.toUpperCase().includes("CRITICAL")) {
+      issues.push({ severity: "critical", description: line });
+    } else if (line.toUpperCase().includes("MAJOR")) {
+      issues.push({ severity: "major", description: line });
+    } else if (line.toUpperCase().includes("MINOR")) {
+      issues.push({ severity: "minor", description: line });
+    }
   }
 
   // Also include parsed recommendations
@@ -144,22 +125,32 @@ export async function executeReviewer(
     recommendations.push(...parsed.recommendations);
   }
 
-  // 6. Store recommendations for planner
+  console.log(
+    `[Reviewer] Found ${issues.length} issues (${
+      issues.filter((i) => i.severity === "critical").length
+    } critical, ${
+      issues.filter((i) => i.severity === "major").length
+    } major, ${issues.filter((i) => i.severity === "minor").length} minor)`
+  );
+
+  // 6. Store code review results and recommendations for planner
+  const updatedMemory = {
+    ...(agentState?.memory || {}),
+    last_review_time: Date.now(),
+    last_reviewed_version: artifacts.version,
+    last_review_issues_count: issues.length,
+    recommendations: recommendations.slice(0, 10), // Keep top 10 for code issues
+  };
+
+  // Store in reviewer's memory
+  await ctx.runMutation(internal.agents.updateAgentMemory, {
+    stackId,
+    agentType: "reviewer",
+    memory: updatedMemory,
+  });
+
+  // If there are recommendations, update planner's state
   if (recommendations.length > 0) {
-    const updatedMemory = {
-      ...(agentState?.memory || {}),
-      last_review_time: Date.now(),
-      recommendations: recommendations.slice(0, 5), // Keep top 5
-    };
-
-    // Store in reviewer's memory
-    await ctx.runMutation(internal.agents.updateAgentMemory, {
-      stackId,
-      agentType: "reviewer",
-      memory: updatedMemory,
-    });
-
-    // Also update planner's state to signal recommendations
     const plannerState = await ctx.runQuery(
       internal.agentExecution.getAgentState,
       {
@@ -176,41 +167,38 @@ export async function executeReviewer(
           ...(plannerState.memory || {}),
           reviewer_recommendations: recommendations,
           recommendations_timestamp: Date.now(),
+          recommendations_type: "code_review",
         },
       });
     }
 
-    console.log(`[Reviewer] Stored ${recommendations.length} recommendations`);
+    console.log(
+      `[Reviewer] Stored ${recommendations.length} code review recommendations for planner`
+    );
   } else {
-    // Just update review time
-    const updatedMemory = {
-      ...(agentState?.memory || {}),
-      last_review_time: Date.now(),
-    };
-    await ctx.runMutation(internal.agents.updateAgentMemory, {
-      stackId,
-      agentType: "reviewer",
-      memory: updatedMemory,
-    });
+    console.log(`[Reviewer] No issues found - code looks good!`);
   }
 
   // 7. Update reviewer memory with thought
   await ctx.runMutation(internal.agentExecution.updateAgentMemory, {
     stackId,
     agentType: "reviewer",
-    thought: response.content,
+    thought: response.content.substring(0, 1000), // Truncate for memory
   });
 
   // 8. Log trace
   await ctx.runMutation(internal.traces.internalLog, {
     stack_id: stackId,
     agent_type: "reviewer",
-    thought: response.content,
-    action: "review",
+    thought: response.content.substring(0, 1000), // Truncate for trace
+    action: "code_review",
     result: {
-      completedReviewed: completedTodos.length,
+      artifactVersion: artifacts.version,
+      issuesFound: issues.length,
+      criticalIssues: issues.filter((i) => i.severity === "critical").length,
+      majorIssues: issues.filter((i) => i.severity === "major").length,
+      minorIssues: issues.filter((i) => i.severity === "minor").length,
       recommendationsCount: recommendations.length,
-      hasNewArtifact,
     },
   });
 

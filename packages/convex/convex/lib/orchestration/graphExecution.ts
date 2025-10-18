@@ -93,10 +93,19 @@ export async function executeGraph(
     `[GraphExecution] Executing ${graph.nodes.length} agents in ${waves.length} waves for stack ${stackId}`
   );
 
-  // Execute each wave
+  // Execute each wave with delays between them to avoid rate limiting
   for (let i = 0; i < waves.length; i++) {
     const wave = waves[i];
     if (!wave) continue; // Skip if wave is undefined
+
+    // Add 5-second delay before each wave (except the first)
+    if (i > 0) {
+      const delayMs = 5000;
+      console.log(
+        `[GraphExecution] Waiting ${delayMs}ms before wave ${i + 1} to avoid rate limits...`
+      );
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
 
     console.log(
       `[GraphExecution] Wave ${i + 1}/${waves.length}: ${wave.map((n) => n.agentType).join(", ")}`
