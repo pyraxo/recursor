@@ -25,7 +25,17 @@ import {
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { useMutation, useQuery } from "convex/react";
-import { Activity, Calendar, Clock, Pause, Play, Square, Trash2 } from "lucide-react";
+import {
+  Activity,
+  Calendar,
+  Clock,
+  Code2,
+  Pause,
+  Play,
+  Square,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { useState } from "react";
 
 export function TeamManagementList({
@@ -148,6 +158,24 @@ export function TeamManagementList({
     }
   };
 
+  const getTeamTypeStyles = (teamType: string) => {
+    switch (teamType) {
+      case "cursor":
+        return {
+          container: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20",
+          icon: Code2,
+          label: "Cursor",
+        };
+      case "standard":
+      default:
+        return {
+          container: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20",
+          icon: Users,
+          label: "Multi-Agent",
+        };
+    }
+  };
+
   if (!stacks) {
     return (
       <Card className="border-border bg-card p-6">
@@ -193,6 +221,9 @@ export function TeamManagementList({
                 const executionState = stack.execution_state || "idle";
                 const statusStyles = getStatusStyles(executionState);
                 const phaseStyles = getPhaseStyles(stack.phase);
+                const teamType = stack.team_type || "standard";
+                const teamTypeStyles = getTeamTypeStyles(teamType);
+                const TeamTypeIcon = teamTypeStyles.icon;
 
                 return (
                   <ContextMenu key={stack._id}>
@@ -201,178 +232,195 @@ export function TeamManagementList({
                         className="group relative flex items-center justify-between p-4 rounded-lg border border-border bg-background hover:border-foreground/20 transition-all duration-200 cursor-pointer"
                         onClick={() => onNavigateToTeam?.(stack._id)}
                       >
-                    <div className="flex-1 min-w-0">
-                      {/* Team Name and Status */}
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="font-mono text-sm font-semibold text-foreground truncate">
-                          {stack.participant_name}
-                        </span>
-
-                        {/* Execution Status Badge */}
-                        <Badge
-                          variant="outline"
-                          className={`${statusStyles.container} ${statusStyles.text} border px-2 py-0.5`}
-                        >
-                          <span className="relative flex items-center gap-1.5">
-                            {executionState === "running" && (
-                              <span
-                                className={`absolute inline-flex h-full w-full rounded-full ${statusStyles.pulse} opacity-25 animate-ping`}
-                              ></span>
-                            )}
-                            <span
-                              className={`relative inline-flex h-1.5 w-1.5 rounded-full ${statusStyles.pulse}`}
-                            ></span>
-                            <span className="font-mono text-[10px] uppercase tracking-wider">
-                              {executionState}
+                        <div className="flex-1 min-w-0">
+                          {/* Team Name and Status */}
+                          <div className="flex items-center gap-3 mb-3">
+                            <span className="font-mono text-sm font-semibold text-foreground truncate">
+                              {stack.participant_name}
                             </span>
-                          </span>
-                        </Badge>
 
-                        {/* Phase Badge */}
-                        <Badge
-                          variant="outline"
-                          className={`${phaseStyles} border px-2 py-0.5`}
-                        >
-                          <span className="font-mono text-[10px] uppercase tracking-wider">
-                            {stack.phase}
-                          </span>
-                        </Badge>
-                      </div>
+                            {/* Execution Status Badge */}
+                            <Badge
+                              variant="outline"
+                              className={`${statusStyles.container} ${statusStyles.text} border px-2 py-0.5`}
+                            >
+                              <span className="relative flex items-center gap-1.5">
+                                {executionState === "running" && (
+                                  <span
+                                    className={`absolute inline-flex h-full w-full rounded-full ${statusStyles.pulse} opacity-25 animate-ping`}
+                                  ></span>
+                                )}
+                                <span
+                                  className={`relative inline-flex h-1.5 w-1.5 rounded-full ${statusStyles.pulse}`}
+                                ></span>
+                                <span className="font-mono text-[10px] uppercase tracking-wider">
+                                  {executionState}
+                                </span>
+                              </span>
+                            </Badge>
 
-                      {/* Metadata */}
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className="h-3 w-3" />
-                          <span className="font-mono">
-                            {new Date(stack.created_at).toLocaleDateString()}
-                          </span>
+                            {/* Phase Badge */}
+                            <Badge
+                              variant="outline"
+                              className={`${phaseStyles} border px-2 py-0.5`}
+                            >
+                              <span className="font-mono text-[10px] uppercase tracking-wider">
+                                {stack.phase}
+                              </span>
+                            </Badge>
+
+                            {/* Team Type Badge */}
+                            <Badge
+                              variant="outline"
+                              className={`${teamTypeStyles.container} border px-2 py-0.5`}
+                            >
+                              <span className="flex items-center gap-1">
+                                <TeamTypeIcon className="h-2.5 w-2.5" />
+                                <span className="font-mono text-[10px] uppercase tracking-wider">
+                                  {teamTypeStyles.label}
+                                </span>
+                              </span>
+                            </Badge>
+                          </div>
+
+                          {/* Metadata */}
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="h-3 w-3" />
+                              <span className="font-mono">
+                                {new Date(
+                                  stack.created_at
+                                ).toLocaleDateString()}
+                              </span>
+                            </div>
+
+                            {stack.last_activity_at &&
+                              executionState === "running" && (
+                                <div className="flex items-center gap-1.5">
+                                  <Activity className="h-3 w-3 text-green-500" />
+                                  <span className="font-mono text-green-500">
+                                    Active{" "}
+                                    {new Date(
+                                      stack.last_activity_at
+                                    ).toLocaleTimeString()}
+                                  </span>
+                                </div>
+                              )}
+
+                            {stack.last_activity_at &&
+                              executionState !== "running" && (
+                                <div className="flex items-center gap-1.5">
+                                  <Clock className="h-3 w-3" />
+                                  <span className="font-mono">
+                                    Last active{" "}
+                                    {new Date(
+                                      stack.last_activity_at
+                                    ).toLocaleTimeString()}
+                                  </span>
+                                </div>
+                              )}
+                          </div>
                         </div>
 
-                        {stack.last_activity_at &&
-                          executionState === "running" && (
-                            <div className="flex items-center gap-1.5">
-                              <Activity className="h-3 w-3 text-green-500" />
-                              <span className="font-mono text-green-500">
-                                Active{" "}
-                                {new Date(
-                                  stack.last_activity_at
-                                ).toLocaleTimeString()}
-                              </span>
-                            </div>
-                          )}
-
-                        {stack.last_activity_at &&
-                          executionState !== "running" && (
-                            <div className="flex items-center gap-1.5">
-                              <Clock className="h-3 w-3" />
-                              <span className="font-mono">
-                                Last active{" "}
-                                {new Date(
-                                  stack.last_activity_at
-                                ).toLocaleTimeString()}
-                              </span>
-                            </div>
-                          )}
-                      </div>
-                    </div>
-
-                    <div
-                      className={`flex items-center gap-2 transition-opacity duration-200 ${
-                        processingStacks.has(stack._id)
-                          ? "opacity-100"
-                          : "opacity-50 group-hover:opacity-100"
-                      }`}
-                    >
-                      {/* Start/Stop Button */}
-                      {executionState === "running" ? (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStop(stack._id, stack.participant_name);
-                          }}
-                          disabled={processingStacks.has(stack._id)}
-                          className="text-orange-500 hover:text-orange-600 hover:bg-orange-500/10"
-                          title="Stop execution"
+                        <div
+                          className={`flex items-center gap-2 transition-opacity duration-200 ${
+                            processingStacks.has(stack._id)
+                              ? "opacity-100"
+                              : "opacity-50 group-hover:opacity-100"
+                          }`}
                         >
-                          <Square className="h-4 w-4" />
-                          <span className="sr-only">
-                            Stop {stack.participant_name}
-                          </span>
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStart(stack._id, stack.participant_name);
-                          }}
-                          disabled={processingStacks.has(stack._id)}
-                          className="text-green-500 hover:text-green-600 hover:bg-green-500/10"
-                          title="Start execution"
-                        >
-                          <Play className="h-4 w-4" />
-                          <span className="sr-only">
-                            Start {stack.participant_name}
-                          </span>
-                        </Button>
-                      )}
-
-                      {/* Delete Button */}
-                      <div
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex"
-                      >
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
+                          {/* Start/Stop Button */}
+                          {executionState === "running" ? (
                             <Button
                               variant="ghost"
                               size="icon"
-                              disabled={executionState === "running"}
-                              className="text-red-500 hover:text-red-600 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                              title={
-                                executionState === "running"
-                                  ? "Stop execution before deleting"
-                                  : "Delete team"
-                              }
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStop(stack._id, stack.participant_name);
+                              }}
+                              disabled={processingStacks.has(stack._id)}
+                              className="text-orange-500 hover:text-orange-600 hover:bg-orange-500/10"
+                              title="Stop execution"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Square className="h-4 w-4" />
+                              <span className="sr-only">
+                                Stop {stack.participant_name}
+                              </span>
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent className="sm:max-w-[425px] !fixed !left-[50%] !top-[50%] !translate-x-[-50%] !translate-y-[-50%]">
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Team</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will permanently delete{" "}
-                                <span className="font-medium text-foreground">
-                                  {stack.participant_name}
-                                </span>
-                                . This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                Cancel
-                              </AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteStack({ stackId: stack._id });
-                                }}
-                                className="bg-red-500 hover:bg-red-600"
-                              >
-                                Delete Team
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStart(stack._id, stack.participant_name);
+                              }}
+                              disabled={processingStacks.has(stack._id)}
+                              className="text-green-500 hover:text-green-600 hover:bg-green-500/10"
+                              title="Start execution"
+                            >
+                              <Play className="h-4 w-4" />
+                              <span className="sr-only">
+                                Start {stack.participant_name}
+                              </span>
+                            </Button>
+                          )}
+
+                          {/* Delete Button */}
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex"
+                          >
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  disabled={executionState === "running"}
+                                  className="text-red-500 hover:text-red-600 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  title={
+                                    executionState === "running"
+                                      ? "Stop execution before deleting"
+                                      : "Delete team"
+                                  }
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="sm:max-w-[425px] !fixed !left-[50%] !top-[50%] !translate-x-[-50%] !translate-y-[-50%]">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Delete Team
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently delete{" "}
+                                    <span className="font-medium text-foreground">
+                                      {stack.participant_name}
+                                    </span>
+                                    . This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    Cancel
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      deleteStack({ stackId: stack._id });
+                                    }}
+                                    className="bg-red-500 hover:bg-red-600"
+                                  >
+                                    Delete Team
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
                     </ContextMenuTrigger>
                     <ContextMenuContent className="w-48">
                       {executionState === "running" ? (
@@ -454,8 +502,10 @@ export function TeamManagementList({
             <AlertDialogDescription>
               This will permanently delete{" "}
               <span className="font-medium text-foreground">
-                {stacks.find((s: any) => s._id === deleteDialogOpen)
-                  ?.participant_name}
+                {
+                  stacks.find((s: any) => s._id === deleteDialogOpen)
+                    ?.participant_name
+                }
               </span>
               . This action cannot be undone.
             </AlertDialogDescription>
@@ -467,7 +517,9 @@ export function TeamManagementList({
             <AlertDialogAction
               onClick={() => {
                 if (deleteDialogOpen) {
-                  deleteStack({ stackId: deleteDialogOpen as Id<"agent_stacks"> });
+                  deleteStack({
+                    stackId: deleteDialogOpen as Id<"agent_stacks">,
+                  });
                   setDeleteDialogOpen(null);
                 }
               }}

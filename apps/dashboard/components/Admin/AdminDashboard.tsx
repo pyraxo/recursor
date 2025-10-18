@@ -60,9 +60,11 @@ export function AdminDashboard({
         </header>
 
         {/* Global Controls */}
-        <Card className="mb-8 border-border bg-card p-6">
-          <GlobalExecutionControls />
-        </Card>
+        {stacks && stacks.length > 0 && (
+          <Card className="mb-8 border-border bg-card p-6">
+            <GlobalExecutionControls />
+          </Card>
+        )}
 
         {/* Phase Distribution */}
         <section className="mb-8">

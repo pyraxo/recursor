@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { useQuery } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
 import { Id } from "@recursor/convex/_generated/dataModel";
+import { useQuery } from "convex/react";
+import { useState } from "react";
 import { AGENT_COLORS } from "../../lib/theme";
 import { FloatingParticles } from "./FloatingParticles";
 import { SpeechBubbles } from "./SpeechBubbles";
@@ -15,48 +15,57 @@ interface WorldMapProps {
 
 export function WorldMap({ selectedTeamId, onSelectTeam }: WorldMapProps) {
   const stacks = useQuery(api.agents.listStacks);
-  const [hoveredTeamId, setHoveredTeamId] = useState<Id<"agent_stacks"> | null>(null);
+  const [hoveredTeamId, setHoveredTeamId] = useState<Id<"agent_stacks"> | null>(
+    null
+  );
 
   if (!stacks) {
     return (
       <div className="w-full h-full flex items-center justify-center">
-        <div className="text-[var(--accent-primary)] font-mono">Loading simulation...</div>
+        <div className="text-[var(--accent-primary)] font-mono">
+          Loading simulation...
+        </div>
       </div>
     );
   }
 
-  const agentTypes = ["planner", "builder", "reviewer", "communicator"] as const;
+  const agentTypes = [
+    "planner",
+    "builder",
+    "reviewer",
+    "communicator",
+  ] as const;
 
   const agentPositions = [
     // Team 1 (Alpha) - center coordinates, will use transform to center sprite
-    { x: 215, y: 211 },  // planner (P1)
-    { x: 163, y: 123 },  // builder (B1)
-    { x: 93, y: 171 },   // reviewer (R1)
-    { x: 115, y: 258 },  // communicator (C1)
-    
+    { x: 215, y: 211 }, // planner (P1)
+    { x: 163, y: 123 }, // builder (B1)
+    { x: 93, y: 171 }, // reviewer (R1)
+    { x: 115, y: 258 }, // communicator (C1)
+
     // Team 2 (Beta)
-    { x: 699, y: 518 },  // planner (P2)
-    { x: 631, y: 438 },  // builder (B2)
-    { x: 563, y: 505 },  // reviewer (R2)
-    { x: 583, y: 559 },  // communicator (C2)
-    
+    { x: 699, y: 518 }, // planner (P2)
+    { x: 631, y: 438 }, // builder (B2)
+    { x: 563, y: 505 }, // reviewer (R2)
+    { x: 583, y: 559 }, // communicator (C2)
+
     // Team 3 (Gamma)
-    { x: 220, y: 791 },  // planner (P3)
-    { x: 156, y: 795 },  // builder (B3)
-    { x: 101, y: 876 },   // reviewer (R3)
-    { x: 219, y: 905 },  // communicator (C3)
-    
+    { x: 220, y: 791 }, // planner (P3)
+    { x: 156, y: 795 }, // builder (B3)
+    { x: 101, y: 876 }, // reviewer (R3)
+    { x: 219, y: 905 }, // communicator (C3)
+
     // Team 4 (Delta)
-    { x: 683, y: 788 },  // planner (P4)
-    { x: 621, y: 779 },  // builder (B4)
-    { x: 565, y: 789 },  // reviewer (R4)
-    { x: 684, y: 902 },  // communicator (C4)
-    
+    { x: 683, y: 788 }, // planner (P4)
+    { x: 621, y: 779 }, // builder (B4)
+    { x: 565, y: 789 }, // reviewer (R4)
+    { x: 684, y: 902 }, // communicator (C4)
+
     // Team 5 (Epsilon)
-    { x: 934, y: 787 },  // planner (P5)
-    { x: 871, y: 778 },  // builder (B5)
-    { x: 808, y: 782 },  // reviewer (R5)
-    { x: 816, y: 905 },  // communicator (C5)
+    { x: 934, y: 787 }, // planner (P5)
+    { x: 871, y: 778 }, // builder (B5)
+    { x: 808, y: 782 }, // reviewer (R5)
+    { x: 816, y: 905 }, // communicator (C5)
   ];
 
   return (
@@ -74,23 +83,23 @@ export function WorldMap({ selectedTeamId, onSelectTeam }: WorldMapProps) {
       >
         <FloatingParticles />
         <SpeechBubbles agentPositions={agentPositions} />
-        
+
         {stacks.slice(0, 5).map((stack: any, teamIndex: number) => {
           const isSelected = selectedTeamId === stack._id;
           const isHovered = hoveredTeamId === stack._id;
-          
+
           const teamPositions = [
             agentPositions[teamIndex * 4],
             agentPositions[teamIndex * 4 + 1],
             agentPositions[teamIndex * 4 + 2],
             agentPositions[teamIndex * 4 + 3],
           ].filter((p): p is { x: number; y: number } => p !== undefined);
-          
-          const minX = Math.min(...teamPositions.map(p => p.x)) - 50;
-          const maxX = Math.max(...teamPositions.map(p => p.x)) + 50;
-          const minY = Math.min(...teamPositions.map(p => p.y)) - 50;
-          const maxY = Math.max(...teamPositions.map(p => p.y)) + 50;
-          
+
+          const minX = Math.min(...teamPositions.map((p) => p.x)) - 50;
+          const maxX = Math.max(...teamPositions.map((p) => p.x)) + 50;
+          const minY = Math.min(...teamPositions.map((p) => p.y)) - 50;
+          const maxY = Math.max(...teamPositions.map((p) => p.y)) + 50;
+
           return (
             <div key={stack._id}>
               <div
@@ -104,17 +113,26 @@ export function WorldMap({ selectedTeamId, onSelectTeam }: WorldMapProps) {
                   top: `${minY}px`,
                   width: `${maxX - minX}px`,
                   height: `${maxY - minY}px`,
-                  border: isSelected ? "3px solid var(--accent-primary)" : isHovered ? "3px solid rgba(0, 255, 135, 0.5)" : "3px solid transparent",
+                  border: isSelected
+                    ? "3px solid var(--accent-primary)"
+                    : isHovered
+                      ? "3px solid rgba(0, 255, 135, 0.5)"
+                      : "3px solid transparent",
                   borderRadius: "8px",
-                  transition: "border 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease",
+                  transition:
+                    "border 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease",
                   pointerEvents: "auto",
-                  backgroundColor: isHovered ? "rgba(0, 255, 135, 0.05)" : "transparent",
-                  boxShadow: isHovered ? "0 0 20px rgba(0, 255, 135, 0.3)" : "none",
+                  backgroundColor: isHovered
+                    ? "rgba(0, 255, 135, 0.05)"
+                    : "transparent",
+                  boxShadow: isHovered
+                    ? "0 0 20px rgba(0, 255, 135, 0.3)"
+                    : "none",
                   transform: "none",
                 }}
               >
                 {(isSelected || isHovered) && (
-                  <div 
+                  <div
                     className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[var(--panel-bg)] border-2 border-[var(--accent-primary)] px-3 py-1 rounded text-sm font-mono"
                     style={{ pointerEvents: "none" }}
                   >
@@ -125,9 +143,9 @@ export function WorldMap({ selectedTeamId, onSelectTeam }: WorldMapProps) {
               {agentTypes.map((type, agentIndex) => {
                 const posIndex = teamIndex * 4 + agentIndex;
                 const pos = agentPositions[posIndex];
-                
+
                 if (!pos) return null;
-                
+
                 return (
                   <div
                     key={`${stack._id}-${type}`}
@@ -139,7 +157,7 @@ export function WorldMap({ selectedTeamId, onSelectTeam }: WorldMapProps) {
                       pointerEvents: "none",
                     }}
                   >
-                    <div 
+                    <div
                       className="relative"
                       style={{
                         animationName: isHovered ? "sprite-bob" : "none",
@@ -152,9 +170,11 @@ export function WorldMap({ selectedTeamId, onSelectTeam }: WorldMapProps) {
                       <img
                         src={`/assets/sprites/${type}.png`}
                         alt={type}
-                        className={type === "builder" ? "w-28 h-28" : "w-24 h-24"}
+                        className={
+                          type === "builder" ? "w-28 h-28" : "w-24 h-24"
+                        }
                         style={{
-                          filter: isSelected 
+                          filter: isSelected
                             ? "drop-shadow(0 0 8px var(--accent-primary))"
                             : "drop-shadow(2px 2px 4px rgba(0,0,0,0.5))",
                         }}
@@ -164,7 +184,8 @@ export function WorldMap({ selectedTeamId, onSelectTeam }: WorldMapProps) {
                           const parent = target.parentElement;
                           if (parent) {
                             const fallback = document.createElement("div");
-                            fallback.className = "w-24 h-24 rounded border-2 flex items-center justify-center";
+                            fallback.className =
+                              "w-24 h-24 rounded border-2 flex items-center justify-center";
                             fallback.style.borderColor = AGENT_COLORS[type];
                             fallback.style.backgroundColor = `${AGENT_COLORS[type]}20`;
                             fallback.textContent = type.charAt(0).toUpperCase();
@@ -182,14 +203,14 @@ export function WorldMap({ selectedTeamId, onSelectTeam }: WorldMapProps) {
             </div>
           );
         })}
-        
+
         {stacks.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-[var(--foreground)] font-mono text-lg mb-2">
+            <div className="text-center bg-white rounded-lg shadow-lg px-8 py-6 border-2 border-gray-200">
+              <p className="text-gray-900 font-mono text-lg mb-2">
                 No teams active yet
               </p>
-              <p className="text-[var(--foreground)]/60 font-mono text-sm">
+              <p className="text-gray-600 font-mono text-sm">
                 Waiting for simulation to start...
               </p>
             </div>
@@ -199,4 +220,3 @@ export function WorldMap({ selectedTeamId, onSelectTeam }: WorldMapProps) {
     </div>
   );
 }
-

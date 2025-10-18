@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import "./globals.css";
 import { ConvexClientProvider } from "../components/ConvexClientProvider";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Recursor - Live Hackathon Simulation",
+  title: "Recursor Hackathon",
   description: "Watch AI agents build projects in real-time",
 };
 
@@ -20,4 +20,3 @@ export default function RootLayout({
     </html>
   );
 }
-

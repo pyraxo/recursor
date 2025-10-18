@@ -126,6 +126,20 @@ export const getByAgentType = query({
   },
 });
 
+// Delete all traces
+export const deleteAll = mutation({
+  args: {},
+  handler: async (ctx: any) => {
+    const traces = await ctx.db.query("agent_traces").collect();
+
+    for (const trace of traces) {
+      await ctx.db.delete(trace._id);
+    }
+
+    return { deleted: traces.length };
+  },
+});
+
 // ========= INTERNAL FUNCTIONS FOR AGENT ADAPTERS =========
 
 // Internal query: Get recent traces for a stack

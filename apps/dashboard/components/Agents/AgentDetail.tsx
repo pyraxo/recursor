@@ -2,6 +2,7 @@
 import { api } from "@recursor/convex/_generated/api";
 import { Id } from "@recursor/convex/_generated/dataModel";
 import { Badge } from "@repo/ui/components/badge";
+import { Button } from "@repo/ui/components/button";
 import {
   Card,
   CardContent,
@@ -18,8 +19,10 @@ import {
   TabsTrigger,
 } from "@repo/ui/components/tabs";
 import { useQuery } from "convex/react";
+import { useRef } from "react";
 import {
   Activity,
+  ArrowDown,
   CheckCircle,
   CheckSquare,
   Circle,
@@ -30,8 +33,8 @@ import {
   User,
 } from "lucide-react";
 import { ExecutionControls } from "../Controls/ExecutionControls";
-import { OrchestrationMonitor } from "./OrchestrationMonitor";
 import { ChatPanel } from "./ChatPanel";
+import { OrchestrationMonitor } from "./OrchestrationMonitor";
 
 export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
   const stack = useQuery(api.agents.getStack, { stackId });
@@ -39,6 +42,13 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
   const todos = useQuery(api.todos.list, { stackId });
   const artifacts = useQuery(api.artifacts.list, { stackId });
   const timeline = useQuery(api.messages.getTimeline, { stackId });
+  const timelineScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollToLatestMessage = () => {
+    if (timelineScrollRef.current) {
+      timelineScrollRef.current.scrollTop = timelineScrollRef.current.scrollHeight;
+    }
+  };
 
   if (!stack) return <div className="text-muted-foreground">Loading...</div>;
 
@@ -63,7 +73,7 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 m-4">
               <User className="w-6 h-6" />
               <div>
                 <CardTitle>{stack.participant_name}</CardTitle>
@@ -86,57 +96,84 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
 
       {/* Tabbed Content */}
       <Tabs defaultValue="project" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="project" className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-6 gap-1 bg-muted/50 p-1 h-auto">
+          <TabsTrigger
+            value="project"
+            className="flex items-center justify-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+          >
             <Lightbulb className="w-4 h-4" />
-            Project
+            <span>Project</span>
           </TabsTrigger>
-          <TabsTrigger value="todos" className="flex items-center gap-2">
+          <TabsTrigger
+            value="todos"
+            className="flex items-center justify-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+          >
             <CheckSquare className="w-4 h-4" />
-            Todos
+            <span>Todos</span>
             {todos && todos.length > 0 && (
-              <Badge variant="secondary" className="ml-1">
+              <Badge
+                variant="outline"
+                className="ml-1 bg-background/80 text-foreground border-border data-[state=active]:bg-primary-foreground/90 data-[state=active]:text-primary data-[state=active]:border-primary-foreground"
+              >
                 {todos.length}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="artifacts" className="flex items-center gap-2">
+          <TabsTrigger
+            value="artifacts"
+            className="flex items-center justify-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+          >
             <FileCode className="w-4 h-4" />
-            Artifacts
+            <span>Artifacts</span>
             {artifacts && artifacts.length > 0 && (
-              <Badge variant="secondary" className="ml-1">
+              <Badge
+                variant="outline"
+                className="ml-1 bg-background/80 text-foreground border-border data-[state=active]:bg-primary-foreground/90 data-[state=active]:text-primary data-[state=active]:border-primary-foreground"
+              >
                 {artifacts.length}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="messages" className="flex items-center gap-2">
+          <TabsTrigger
+            value="messages"
+            className="flex items-center justify-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+          >
             <MessageSquare className="w-4 h-4" />
-            Messages
+            <span>Messages</span>
             {timeline && timeline.length > 0 && (
-              <Badge variant="secondary" className="ml-1">
+              <Badge
+                variant="outline"
+                className="ml-1 bg-background/80 text-foreground border-border data-[state=active]:bg-primary-foreground/90 data-[state=active]:text-primary data-[state=active]:border-primary-foreground"
+              >
                 {timeline.length}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="orchestration" className="flex items-center gap-2">
+          <TabsTrigger
+            value="orchestration"
+            className="flex items-center justify-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+          >
             <Activity className="w-4 h-4" />
-            Orchestration
+            <span>Orchestration</span>
           </TabsTrigger>
-          <TabsTrigger value="chat" className="flex items-center gap-2">
+          <TabsTrigger
+            value="chat"
+            className="flex items-center justify-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+          >
             <User className="w-4 h-4" />
-            Chat
+            <span>Chat</span>
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="project" className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="m-4">
               <CardTitle className="text-base flex items-center gap-2">
                 <Lightbulb className="w-5 h-5" />
                 Project Idea
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 m-4">
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Title</div>
                 <div className="font-medium">{idea?.title || "Not set"}</div>
@@ -252,9 +289,20 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
         <TabsContent value="messages" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <MessageSquare className="w-5 h-5" />
-                Message Timeline
+              <CardTitle className="text-base flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5" />
+                  Message Timeline
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={scrollToLatestMessage}
+                  className="text-xs"
+                >
+                  <ArrowDown className="w-3 h-3 mr-1" />
+                  To Latest
+                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -264,7 +312,7 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
                 </div>
               ) : (
                 <ScrollArea className="h-[400px]">
-                  <div className="space-y-3 pr-4">
+                  <div ref={timelineScrollRef} className="space-y-3 pr-4">
                     {timeline.map((m: any) => (
                       <div
                         key={m._id}
@@ -275,7 +323,10 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
                             {m.message_type}
                           </Badge>
                           {m.from_agent_type && (
-                            <Badge variant="outline" className="text-xs capitalize">
+                            <Badge
+                              variant="outline"
+                              className="text-xs capitalize"
+                            >
                               {m.from_agent_type}
                             </Badge>
                           )}

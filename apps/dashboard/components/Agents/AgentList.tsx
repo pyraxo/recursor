@@ -5,7 +5,7 @@ import { Button } from "@repo/ui/components/button";
 import { Card } from "@repo/ui/components/card";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { useQuery } from "convex/react";
-import { ChevronRight, User } from "lucide-react";
+import { ChevronRight, User, Users, Code2 } from "lucide-react";
 
 export function AgentList({ onSelect }: { onSelect: (id: string) => void }) {
   const stacks = useQuery(api.agents.listStacks);
@@ -28,6 +28,8 @@ export function AgentList({ onSelect }: { onSelect: (id: string) => void }) {
       <div className="space-y-2 pr-4">
         {stacks.map((s: any) => {
           const executionState = s.execution_state || "idle";
+          const teamType = s.team_type || "standard";
+
           const getStatusColor = () => {
             switch (executionState) {
               case "running":
@@ -40,6 +42,27 @@ export function AgentList({ onSelect }: { onSelect: (id: string) => void }) {
                 return "bg-gray-800 text-gray-400 border-gray-700";
             }
           };
+
+          const getTeamTypeStyles = () => {
+            switch (teamType) {
+              case "cursor":
+                return {
+                  container: "bg-cyan-900/50 text-cyan-400 border-cyan-800",
+                  icon: Code2,
+                  label: "Cursor",
+                };
+              case "standard":
+              default:
+                return {
+                  container: "bg-indigo-900/50 text-indigo-400 border-indigo-800",
+                  icon: Users,
+                  label: "Multi-Agent",
+                };
+            }
+          };
+
+          const teamTypeStyles = getTeamTypeStyles();
+          const TeamTypeIcon = teamTypeStyles.icon;
 
           return (
             <Button
@@ -63,6 +86,15 @@ export function AgentList({ onSelect }: { onSelect: (id: string) => void }) {
                       className={`uppercase text-xs ${getStatusColor()}`}
                     >
                       {executionState}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className={`uppercase text-xs ${teamTypeStyles.container}`}
+                    >
+                      <span className="flex items-center gap-1">
+                        <TeamTypeIcon className="h-2.5 w-2.5" />
+                        {teamTypeStyles.label}
+                      </span>
                     </Badge>
                   </div>
                 </div>

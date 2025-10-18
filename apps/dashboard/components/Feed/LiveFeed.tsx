@@ -1,18 +1,16 @@
 "use client";
 import { api } from "@recursor/convex/_generated/api";
 import { Badge } from "@repo/ui/components/badge";
-import { Button } from "@repo/ui/components/button";
 import { Card, CardContent } from "@repo/ui/components/card";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { Separator } from "@repo/ui/components/separator";
 import { useQuery } from "convex/react";
-import { Activity, ArrowUp, Clock, User, Zap } from "lucide-react";
+import { Activity, Clock, User, Zap } from "lucide-react";
 import {
   forwardRef,
   useEffect,
   useImperativeHandle,
   useRef,
-  useState,
 } from "react";
 
 export interface LiveFeedRef {
@@ -22,38 +20,31 @@ export interface LiveFeedRef {
 export const LiveFeed = forwardRef<LiveFeedRef>((props, ref) => {
   const traces = useQuery(api.traces.getRecentAll, { limit: 100 });
   const stacks = useQuery(api.agents.listStacks);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const prevLengthRef = useRef(0);
-  const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
     if (
       traces &&
       traces.length > prevLengthRef.current &&
-      containerRef.current
+      scrollAreaRef.current
     ) {
-      containerRef.current.scrollTop = 0;
+      // Find the actual scrollable element inside ScrollArea
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTop = 0;
+      }
     }
     prevLengthRef.current = traces?.length || 0;
   }, [traces]);
 
-  // Track scroll position to show/hide the scroll-to-top button
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      // Show button if scrolled down more than 200px
-      setShowScrollTop(container.scrollTop > 200);
-    };
-
-    container.addEventListener("scroll", handleScroll);
-    return () => container.removeEventListener("scroll", handleScroll);
-  }, []);
-
   const scrollToTop = () => {
-    if (containerRef.current) {
-      containerRef.current.scrollTop = 0;
+    if (scrollAreaRef.current) {
+      // Find the actual scrollable element inside ScrollArea
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTop = 0;
+      }
     }
   };
 
@@ -105,8 +96,8 @@ export const LiveFeed = forwardRef<LiveFeedRef>((props, ref) => {
 
   return (
     <div className="relative">
-      <ScrollArea className="h-[calc(100vh-220px)]">
-        <div ref={containerRef} className="space-y-2 pr-4">
+      <ScrollArea ref={scrollAreaRef} className="h-[calc(100vh-220px)]">
+        <div className="space-y-2 pr-4">
           {traces.map((t: any) => (
             <Card key={t._id} className="hover:bg-accent/30 transition-colors">
               <CardContent className="p-4">
@@ -169,19 +160,6 @@ export const LiveFeed = forwardRef<LiveFeedRef>((props, ref) => {
           ))}
         </div>
       </ScrollArea>
-
-      {/* Floating scroll-to-top button */}
-      {showScrollTop && (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={scrollToTop}
-          className="absolute bottom-4 right-4 shadow-lg border-border bg-card hover:bg-accent transition-opacity"
-        >
-          <ArrowUp className="w-4 h-4 mr-1" />
-          Top
-        </Button>
-      )}
     </div>
   );
 });
