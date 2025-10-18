@@ -1,8 +1,8 @@
 "use client";
 
-import { useQuery } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
 import { Id } from "@recursor/convex/_generated/dataModel";
+import { useQuery } from "convex/react";
 
 interface ReadmeTabProps {
   stackId: Id<"agent_stacks">;
@@ -15,9 +15,9 @@ export function ReadmeTab({ stackId }: ReadmeTabProps) {
 
   // Function to open HTML artifact in new tab
   const openInNewTab = (htmlContent: string) => {
-    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const blob = new Blob([htmlContent], { type: "text/html" });
     const url = URL.createObjectURL(blob);
-    const newWindow = window.open(url, '_blank');
+    const newWindow = window.open(url, "_blank");
 
     // Clean up the blob URL after a short delay
     if (newWindow) {
@@ -26,7 +26,11 @@ export function ReadmeTab({ stackId }: ReadmeTabProps) {
   };
 
   if (!stack) {
-    return <div className="text-[var(--foreground)]/60 font-mono text-sm">Loading...</div>;
+    return (
+      <div className="text-[var(--foreground)]/60 font-mono text-sm">
+        Loading...
+      </div>
+    );
   }
 
   return (
@@ -36,7 +40,8 @@ export function ReadmeTab({ stackId }: ReadmeTabProps) {
           {stack.participant_name}
         </h3>
         <div className="text-[var(--foreground)]/80">
-          <span className="text-[var(--accent-secondary)]">Phase:</span> {stack.phase}
+          <span className="text-[var(--accent-secondary)]">Phase:</span>{" "}
+          {stack.phase}
         </div>
       </div>
 
@@ -53,7 +58,10 @@ export function ReadmeTab({ stackId }: ReadmeTabProps) {
               {projectIdea.description}
             </p>
             <div className="mt-2 text-xs text-[var(--foreground)]/60">
-              Status: <span className="text-[var(--accent-quaternary)]">{projectIdea.status}</span>
+              Status:{" "}
+              <span className="text-[var(--accent-quaternary)]">
+                {projectIdea.status}
+              </span>
             </div>
           </div>
         </div>
@@ -70,9 +78,15 @@ export function ReadmeTab({ stackId }: ReadmeTabProps) {
       <div className="border-t-2 border-[var(--panel-border)] pt-4">
         <h4 className="text-[var(--accent-secondary)] font-bold mb-2">
           See the Project
-          {artifact && <span className="text-xs text-[var(--foreground)]/60 ml-2">(v{artifact.version})</span>}
+          {artifact && (
+            <span className="text-xs text-[var(--foreground)]/60 ml-2">
+              (v{artifact.version})
+            </span>
+          )}
         </h4>
-        {artifact && (artifact.type === "html" || artifact.type === "html_js") && artifact.content ? (
+        {artifact &&
+        (artifact.type === "html" || artifact.type === "html_js") &&
+        artifact.content ? (
           <div className="bg-white p-1 border-2 border-[var(--panel-border)] rounded">
             <iframe
               srcDoc={artifact.content}
@@ -92,7 +106,7 @@ export function ReadmeTab({ stackId }: ReadmeTabProps) {
               </div>
               <button
                 onClick={() => openInNewTab(artifact.content!)}
-                className="px-2 py-1 bg-[var(--accent-primary)] text-white rounded hover:bg-[var(--accent-secondary)] transition-colors text-xs font-bold"
+                className="px-2 py-1 bg-[var(--accent-primary)] text-primary hover:cursor-pointer rounded hover:bg-[var(--accent-secondary)] transition-colors text-xs font-bold"
               >
                 🚀 Open in New Tab
               </button>
@@ -148,4 +162,3 @@ export function ReadmeTab({ stackId }: ReadmeTabProps) {
     </div>
   );
 }
-
