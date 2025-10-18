@@ -2,6 +2,17 @@
 
 import { api } from "@recursor/convex/_generated/api";
 import { Id } from "@recursor/convex/_generated/dataModel";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@repo/ui/components/alert-dialog";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Card } from "@repo/ui/components/card";
@@ -10,7 +21,6 @@ import { Skeleton } from "@repo/ui/components/skeleton";
 import { useMutation, useQuery } from "convex/react";
 import { Activity, Calendar, Clock, Play, Square, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { DeleteTeamDialog } from "./DeleteTeamDialog";
 
 export function TeamManagementList({
   onNavigateToTeam,
@@ -20,11 +30,6 @@ export function TeamManagementList({
   const stacks = useQuery(api.agents.listStacks);
   const startExecution = useMutation(api.agents.startExecution);
   const stopExecution = useMutation(api.agents.stopExecution);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedStack, setSelectedStack] = useState<{
-    id: Id<"agent_stacks">;
-    name: string;
-  } | null>(null);
   const [processingStacks, setProcessingStacks] = useState<
     Set<Id<"agent_stacks">>
   >(new Set());
@@ -62,11 +67,6 @@ export function TeamManagementList({
         return next;
       });
     }
-  };
-
-  const handleDelete = (id: Id<"agent_stacks">, name: string) => {
-    setSelectedStack({ id, name });
-    setDeleteDialogOpen(true);
   };
 
   const getStatusStyles = (executionState: string) => {
@@ -285,26 +285,54 @@ export function TeamManagementList({
                       )}
 
                       {/* Delete Button */}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(stack._id, stack.participant_name);
-                        }}
-                        disabled={executionState === "running"}
-                        className="text-red-500 hover:text-red-600 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={
-                          executionState === "running"
-                            ? "Stop execution before deleting"
-                            : "Delete team"
-                        }
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">
-                          Delete {stack.participant_name}
-                        </span>
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                            disabled={executionState === "running"}
+                            className="text-red-500 hover:text-red-600 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={
+                              executionState === "running"
+                                ? "Stop execution before deleting"
+                                : "Delete team"
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">
+                              Delete {stack.participant_name}
+                            </span>
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Team</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete{" "}
+                              <span className="font-medium text-foreground">
+                                {stack.participant_name}
+                              </span>
+                              . This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => {
+                                alert(
+                                  `Delete functionality not yet implemented.\n\nWould delete: ${stack.participant_name}`
+                                );
+                              }}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete Team
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 );
@@ -313,13 +341,6 @@ export function TeamManagementList({
           </ScrollArea>
         )}
       </Card>
-
-      <DeleteTeamDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        stackId={selectedStack?.id || ("" as Id<"agent_stacks">)}
-        participantName={selectedStack?.name || ""}
-      />
     </>
   );
 }
