@@ -19,8 +19,7 @@ interface DataPoint {
 
 export function ProgressChart() {
   const stacks = useQuery(api.agents.listStacks);
-  const hasJudgingAPI = api && 'judging' in api;
-  const leaderboard = hasJudgingAPI ? useQuery(api.judging.getLeaderboard) : null;
+  const leaderboard = useQuery(api.judging.getLeaderboard);
 
   const chartData = useMemo(() => {
     if (!stacks || stacks.length === 0) {

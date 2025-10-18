@@ -29,15 +29,14 @@ interface TeamScore {
 }
 
 export function LeaderboardTable() {
-  const hasJudgingAPI = api && 'judging' in api;
-  const leaderboard = hasJudgingAPI ? useQuery(api.judging.getLeaderboard) : null;
+  const leaderboard = useQuery(api.judging.getLeaderboard);
 
   const teamScores = useMemo(() => {
     if (!leaderboard) return [];
 
     const scores: TeamScore[] = leaderboard.map((entry: any) => ({
       name: entry.name,
-      overall: Math.floor(entry.total_score / 4),
+      overall: entry.technical_merit + entry.execution + entry.polish + entry.wow_factor,
       technical: entry.technical_merit,
       execution: entry.execution,
       polish: entry.polish,
@@ -47,18 +46,16 @@ export function LeaderboardTable() {
     return scores;
   }, [leaderboard]);
 
-  if (!hasJudgingAPI || leaderboard === undefined || leaderboard === null) {
+  // Show loading state while query is pending
+  if (leaderboard === undefined) {
     return (
       <div className="pixel-panel">
         <div className="text-center py-12">
           <div className="text-[var(--foreground)] font-mono text-lg mb-4">
-            ⏱️ Judging System Initializing
+            ⏱️ Loading Leaderboard...
           </div>
           <div className="text-[var(--foreground)]/60 font-mono text-sm">
-            Judges will begin evaluating teams soon.
-          </div>
-          <div className="text-[var(--foreground)]/40 font-mono text-xs mt-2">
-            Auto-judging runs every 5 minutes
+            Fetching judging results
           </div>
         </div>
       </div>

@@ -15,8 +15,6 @@
  * @module cursor/api-client
  */
 
-import type { Id } from "@recursor/convex/_generated/dataModel";
-
 /**
  * Environment configuration for a Cursor Background Agent
  */
@@ -62,7 +60,7 @@ export interface BackgroundAgentRequest {
   prompt: BackgroundAgentPrompt;
   /** Source repository configuration */
   source: BackgroundAgentSource;
-  /** AI model to use (e.g., "claude-3.5-sonnet") */
+  /** AI model to use (e.g., "claude-4.5-sonnet") */
   model?: string;
   /** Environment configuration */
   environment?: BackgroundAgentEnvironment;
@@ -183,14 +181,11 @@ export class CursorAPIClient {
    * @throws {Error} If the API request fails
    */
   async getAgentStatus(agentId: string): Promise<BackgroundAgentResponse> {
-    const response = await fetch(
-      `${this.baseURL}/agents/${agentId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-      }
-    );
+    const response = await fetch(`${this.baseURL}/agents/${agentId}`, {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -212,23 +207,22 @@ export class CursorAPIClient {
    * @param prompt - Follow-up instructions (can be string or prompt object)
    * @throws {Error} If the API request fails
    */
-  async sendFollowUp(agentId: string, prompt: string | BackgroundAgentPrompt): Promise<void> {
+  async sendFollowUp(
+    agentId: string,
+    prompt: string | BackgroundAgentPrompt
+  ): Promise<void> {
     // Convert string to prompt object if needed
-    const promptObject: BackgroundAgentPrompt = typeof prompt === 'string'
-      ? { text: prompt }
-      : prompt;
+    const promptObject: BackgroundAgentPrompt =
+      typeof prompt === "string" ? { text: prompt } : prompt;
 
-    const response = await fetch(
-      `${this.baseURL}/agents/${agentId}/followup`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ prompt: promptObject }),
-      }
-    );
+    const response = await fetch(`${this.baseURL}/agents/${agentId}/followup`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ prompt: promptObject }),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -248,15 +242,12 @@ export class CursorAPIClient {
    * @throws {Error} If the API request fails
    */
   async terminateAgent(agentId: string): Promise<void> {
-    const response = await fetch(
-      `${this.baseURL}/agents/${agentId}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-      }
-    );
+    const response = await fetch(`${this.baseURL}/agents/${agentId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+    });
 
     if (!response.ok) {
       const errorText = await response.text();

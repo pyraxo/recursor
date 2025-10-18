@@ -218,18 +218,23 @@ export class VirtualWorkspaceManager {
         });
 
         console.log(`[Workspace] Repository already exists, using it: ${this.githubOwner}/${repoName}`);
+        console.log(`[Workspace] Repository is ${existingRepo.private ? 'PRIVATE' : 'PUBLIC'}`);
+        console.log(`[Workspace] Clone URL: ${existingRepo.clone_url}`);
         repo = existingRepo;
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Repository doesn't exist (404), create it
-        if (error.status === 404) {
+        const isNotFound = (error as { status?: number }).status === 404;
+        if (isNotFound) {
           console.log(`[Workspace] Creating new GitHub repo: ${this.githubOwner}/${repoName}`);
           const { data: newRepo } = await this.octokit.rest.repos.createInOrg({
             org: this.githubOwner,
             name: repoName,
-            private: true,
+            private: false, // Public repo for Cursor API access
             auto_init: true,
             description: `Virtual workspace for Recursor agent ${participantName}`,
           });
+          console.log(`[Workspace] Created PUBLIC repository`);
+          console.log(`[Workspace] Clone URL: ${newRepo.clone_url}`);
           repo = newRepo;
         } else {
           // Some other error occurred

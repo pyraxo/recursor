@@ -6,7 +6,7 @@ const crons = cronJobs();
 /**
  * Autonomous Graph-Based Orchestrator
  *
- * This cron job runs every 5 seconds and manages ALL agent stacks
+ * This cron job runs every 15 seconds and manages ALL agent stacks
  * using intelligent graph-based orchestration.
  *
  * Features:
@@ -19,7 +19,7 @@ const crons = cronJobs();
  */
 crons.interval(
   "autonomous orchestrator",
-  { seconds: 5 },
+  { seconds: 15 },
   internal.orchestration.scheduledOrchestrator
 );
 

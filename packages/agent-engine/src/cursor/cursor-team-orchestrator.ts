@@ -120,8 +120,14 @@ export class CursorTeamOrchestrator implements IOrchestrator {
 
     // If this is a restart after stop, clear the old Cursor agent ID
     // (the agent session is over, but we keep the repository)
-    if (stack.cursor_config?.agent_id && stack.execution_state === 'running' && stack.stopped_at) {
-      console.log(`[CursorOrchestrator] Clearing old Cursor agent ID after restart`);
+    if (
+      stack.cursor_config?.agent_id &&
+      stack.execution_state === "running" &&
+      stack.stopped_at
+    ) {
+      console.log(
+        `[CursorOrchestrator] Clearing old Cursor agent ID after restart`
+      );
       await this.updateCursorConfig({
         agent_id: undefined,
         // Keep repository info, just clear agent_id
@@ -218,21 +224,52 @@ export class CursorTeamOrchestrator implements IOrchestrator {
 
         // Check if team already has a persistent repository
         if (cursorConfig?.repository_url && cursorConfig?.repository_name) {
-          // Reuse existing repository
+          // Try to reuse existing repository
           console.log(
-            `[CursorOrchestrator] Cloning existing repository: ${cursorConfig.repository_name}`
+            `[CursorOrchestrator] Attempting to clone existing repository: ${cursorConfig.repository_name}`
           );
 
-          this.currentWorkspace = await this.workspaceManager.cloneExistingWorkspace(
-            this.stackId,
-            cursorConfig.repository_url,
-            cursorConfig.repository_name,
-            cursorConfig.workspace_branch || "agent-workspace"
-          );
+          try {
+            this.currentWorkspace =
+              await this.workspaceManager.cloneExistingWorkspace(
+                this.stackId,
+                cursorConfig.repository_url,
+                cursorConfig.repository_name,
+                cursorConfig.workspace_branch || "agent-workspace"
+              );
 
-          console.log(
-            `[CursorOrchestrator] Workspace ready (existing): ${this.currentWorkspace.repoName}`
-          );
+            console.log(
+              `[CursorOrchestrator] Workspace ready (existing): ${this.currentWorkspace.repoName}`
+            );
+          } catch (cloneError) {
+            // Repository doesn't exist anymore, create a new one
+            console.log(
+              `[CursorOrchestrator] Clone failed (repo may not exist), creating new PUBLIC repository`
+            );
+
+            this.currentWorkspace = await this.workspaceManager.createWorkspace(
+              this.stackId,
+              stack.participant_name,
+              await this.artifactSync.materializeArtifacts(this.stackId)
+            );
+
+            // Set up Cursor environment
+            await this.workspaceManager.setupEnvironmentConfig(
+              this.currentWorkspace,
+              process.env.CONVEX_URL || ""
+            );
+
+            // Save new workspace info to Convex
+            await this.updateCursorConfig({
+              repository_url: this.currentWorkspace.repoUrl,
+              repository_name: this.currentWorkspace.repoName,
+              workspace_branch: this.currentWorkspace.branch,
+            });
+
+            console.log(
+              `[CursorOrchestrator] Workspace ready (new): ${this.currentWorkspace.repoName}`
+            );
+          }
         } else {
           // Create new repository for this team
           console.log(
@@ -274,20 +311,68 @@ export class CursorTeamOrchestrator implements IOrchestrator {
       if (!agentId) {
         // Create new Cursor Background Agent
         console.log(`[CursorOrchestrator] Creating Cursor Background Agent`);
+        console.log(`[CursorOrchestrator] Repository URL: ${this.currentWorkspace.repoUrl}`);
+        console.log(`[CursorOrchestrator] Branch: ${this.currentWorkspace.branch}`);
+        console.log(`[CursorOrchestrator] Repo Name: ${this.currentWorkspace.repoName}`);
 
-        const agentResponse = await this.cursorAPI.createAgent({
-          prompt: {
-            text: prompt,
-          },
-          source: {
-            repository: this.currentWorkspace.repoUrl,
-            ref: this.currentWorkspace.branch,
-          },
-          model: "claude-3.5-sonnet",
-        });
+        try {
+          const agentResponse = await this.cursorAPI.createAgent({
+            prompt: {
+              text: prompt,
+            },
+            source: {
+              repository: this.currentWorkspace.repoUrl,
+              ref: this.currentWorkspace.branch,
+            },
+            model: "claude-4.5-sonnet",
+          });
 
-        agentId = agentResponse.agent_id;
-        result.agentId = agentId;
+          agentId = agentResponse.agent_id;
+          result.agentId = agentId;
+        } catch (error: unknown) {
+          // Provide more helpful error message for GitHub authorization issues
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (errorMessage?.includes("do not have access to repository")) {
+            const enhancedError = new Error(
+              `❌ Cursor GitHub App Authorization Required\n\n` +
+              `Repository: ${this.currentWorkspace.repoUrl}\n` +
+              `Branch: ${this.currentWorkspace.branch}\n\n` +
+              `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+              `The repository was created successfully by your GitHub PAT,\n` +
+              `but the Cursor API cannot access it.\n\n` +
+              `DIAGNOSIS: The Cursor GitHub App is not authorized for the\n` +
+              `'recursor-sandbox' organization.\n\n` +
+              `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+              `HOW TO FIX:\n\n` +
+              `METHOD 1 - Use the direct authorization link:\n` +
+              `   Open this URL in your browser:\n` +
+              `   https://cursor.com/api/auth/connect-github?owner=recursor-sandbox&source=BACKGROUND_AGENT_API\n\n` +
+              `METHOD 2 - Through Cursor Settings:\n` +
+              `   1. Open Cursor IDE\n` +
+              `   2. Go to Settings (Cmd/Ctrl + Shift + J)\n` +
+              `   3. Navigate to "Background Agents" or "GitHub" section\n` +
+              `   4. Click "Connect to GitHub"\n` +
+              `   5. When GitHub prompts you:\n` +
+              `      - Select 'recursor-sandbox' organization\n` +
+              `      - Grant access to ALL repositories (or repositories matching 'recursor-*')\n` +
+              `      - Ensure "Read and write" permissions are selected\n\n` +
+              `METHOD 3 - Via GitHub directly:\n` +
+              `   1. Go to: https://github.com/settings/installations\n` +
+              `   2. Find "Cursor" in the installed apps\n` +
+              `   3. Click "Configure"\n` +
+              `   4. Ensure 'recursor-sandbox' is selected\n` +
+              `   5. Grant access to all repos or select 'recursor-*' pattern\n\n` +
+              `VERIFICATION:\n` +
+              `   After authorizing, restart your dev server:\n` +
+              `   > pnpm dev\n\n` +
+              `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+              `Technical details:\n` +
+              `${errorMessage}\n`
+            );
+            throw enhancedError;
+          }
+          throw error;
+        }
 
         // Save agent ID
         await this.updateCursorConfig({
@@ -581,14 +666,16 @@ After completing EACH todo or making significant progress:
   /**
    * Update cursor configuration in Convex
    */
-  private async updateCursorConfig(config: Partial<{
-    agent_id?: string;
-    repository_url?: string;
-    repository_name?: string;
-    workspace_branch?: string;
-    last_prompt_at?: number;
-    total_prompts_sent?: number;
-  }>) {
+  private async updateCursorConfig(
+    config: Partial<{
+      agent_id?: string;
+      repository_url?: string;
+      repository_name?: string;
+      workspace_branch?: string;
+      last_prompt_at?: number;
+      total_prompts_sent?: number;
+    }>
+  ) {
     const currentConfig = await this.getCursorConfig();
 
     // Merge with existing config
@@ -596,9 +683,11 @@ After completing EACH todo or making significant progress:
       agent_id: config.agent_id ?? currentConfig?.agent_id,
       repository_url: config.repository_url ?? currentConfig?.repository_url,
       repository_name: config.repository_name ?? currentConfig?.repository_name,
-      workspace_branch: config.workspace_branch ?? currentConfig?.workspace_branch,
+      workspace_branch:
+        config.workspace_branch ?? currentConfig?.workspace_branch,
       last_prompt_at: config.last_prompt_at ?? currentConfig?.last_prompt_at,
-      total_prompts_sent: config.total_prompts_sent ?? currentConfig?.total_prompts_sent ?? 0,
+      total_prompts_sent:
+        config.total_prompts_sent ?? currentConfig?.total_prompts_sent ?? 0,
     };
 
     console.log(`[CursorOrchestrator] Updating cursor config:`, updatedConfig);
