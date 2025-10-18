@@ -1,7 +1,22 @@
 "use client";
 
-import { useQuery } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@repo/ui/components/table";
+import { useQuery } from "convex/react";
 import { useMemo } from "react";
 
 interface TeamScore {
@@ -69,83 +84,76 @@ export function LeaderboardTable() {
   }
 
   return (
-    <div className="pixel-panel">
-      <h2 className="text-xl font-mono font-bold text-[var(--accent-primary)] uppercase tracking-wider mb-4">
-        Leaderboard
-      </h2>
-      
-      <div className="overflow-x-auto">
-        <table className="w-full font-mono text-sm">
-          <thead>
-            <tr className="border-b-2 border-[var(--panel-border)]">
-              <th className="text-left py-3 px-2 text-[var(--foreground)]/80 font-bold uppercase text-xs">
-                Rank
-              </th>
-              <th className="text-left py-3 px-2 text-[var(--foreground)]/80 font-bold uppercase text-xs">
-                Team
-              </th>
-              <th className="text-right py-3 px-2 text-[var(--foreground)]/80 font-bold uppercase text-xs">
-                Overall
-              </th>
-              <th className="text-right py-3 px-2 text-[var(--foreground)]/80 font-bold uppercase text-xs">
-                Tech
-              </th>
-              <th className="text-right py-3 px-2 text-[var(--foreground)]/80 font-bold uppercase text-xs">
-                Exec
-              </th>
-              <th className="text-right py-3 px-2 text-[var(--foreground)]/80 font-bold uppercase text-xs">
-                Polish
-              </th>
-              <th className="text-right py-3 px-2 text-[var(--foreground)]/80 font-bold uppercase text-xs">
-                Wow
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {teamScores.map((team, index) => {
-              const rankClass =
-                index === 0
-                  ? "leaderboard-row-gold"
-                  : index === 1
-                    ? "leaderboard-row-silver"
-                    : index === 2
-                      ? "leaderboard-row-bronze"
-                      : "";
-
-              return (
-                <tr
-                  key={team.name}
-                  className={`border-b border-[var(--panel-border)]/50 ${rankClass}`}
-                >
-                  <td className="py-3 px-2 font-bold">
-                    {index === 0 && <span className="text-[var(--gold)]">🥇</span>}
-                    {index === 1 && <span className="text-[var(--silver)]">🥈</span>}
-                    {index === 2 && <span className="text-[var(--bronze)]">🥉</span>}
-                    {index > 2 && <span className="text-[var(--foreground)]/60">#{index + 1}</span>}
-                  </td>
-                  <td className="py-3 px-2 text-[var(--foreground)]">{team.name}</td>
-                  <td className="py-3 px-2 text-right font-bold text-[var(--accent-primary)] tabular-nums">
-                    {team.overall}
-                  </td>
-                  <td className="py-3 px-2 text-right text-[var(--foreground)]/80 tabular-nums">
-                    {team.technical}
-                  </td>
-                  <td className="py-3 px-2 text-right text-[var(--foreground)]/80 tabular-nums">
-                    {team.execution}
-                  </td>
-                  <td className="py-3 px-2 text-right text-[var(--foreground)]/80 tabular-nums">
-                    {team.polish}
-                  </td>
-                  <td className="py-3 px-2 text-right text-[var(--foreground)]/80 tabular-nums">
-                    {team.wow}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-xl">Leaderboard</CardTitle>
+        <CardDescription>Team rankings and scores</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <div className="overflow-hidden rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-left uppercase text-xs">
+                    Rank
+                  </TableHead>
+                  <TableHead className="text-left uppercase text-xs">
+                    Team
+                  </TableHead>
+                  <TableHead className="text-right uppercase text-xs">
+                    Overall
+                  </TableHead>
+                  <TableHead className="text-right uppercase text-xs">
+                    Tech
+                  </TableHead>
+                  <TableHead className="text-right uppercase text-xs">
+                    Exec
+                  </TableHead>
+                  <TableHead className="text-right uppercase text-xs">
+                    Polish
+                  </TableHead>
+                  <TableHead className="text-right uppercase text-xs">
+                    Wow
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {teamScores.map((team, index) => (
+                  <TableRow key={team.name}>
+                    <TableCell className="font-bold">
+                      {index === 0 && <span>🥇</span>}
+                      {index === 1 && <span>🥈</span>}
+                      {index === 2 && <span>🥉</span>}
+                      {index > 2 && (
+                        <span className="text-muted-foreground">
+                          #{index + 1}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>{team.name}</TableCell>
+                    <TableCell className="text-right font-bold tabular-nums">
+                      {team.overall}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground tabular-nums">
+                      {team.technical}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground tabular-nums">
+                      {team.execution}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground tabular-nums">
+                      {team.polish}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground tabular-nums">
+                      {team.wow}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
-

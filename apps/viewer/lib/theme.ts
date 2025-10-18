@@ -1,8 +1,8 @@
 export const AGENT_COLORS = {
-  planner: "#00d4ff",
-  builder: "#00ff41",
-  reviewer: "#ff6b6b",
-  communicator: "#ffd700",
+  planner: "#0066cc",
+  builder: "#008822",
+  reviewer: "#cc3333",
+  communicator: "#996600",
 } as const;
 
 export const SCORE_COLORS = {
