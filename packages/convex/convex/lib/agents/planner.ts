@@ -120,15 +120,16 @@ export async function executePlanner(
       "What should the team work on next? Create specific todos.",
   });
 
-  // 4. Call LLM with JSON mode
+  // 4. Call LLM with structured output
   console.log(`[Planner] Calling LLM with ${messages.length} messages`);
   const response = await llmProvider.chat(messages, {
     temperature: 0.8,
-    max_tokens: 1500,
-    json_mode: true, // Request JSON output
+    max_tokens: 8000, // Increased from 1500 for more detailed planning
+    structured: true,
+    schema: llmProvider.getSchema("planner"),
   });
 
-  // 5. Parse JSON response
+  // 5. Parse JSON response (structured output guarantees valid JSON)
   console.log(`[Planner] LLM Response (first 500 chars):\n${response.content.substring(0, 500)}`);
 
   let parsed: { thinking: string; actions: any[] };
@@ -141,10 +142,9 @@ export async function executePlanner(
     console.log(`[Planner] Parsed JSON with ${parsed.actions.length} actions`);
     console.log(`[Planner] Thinking: ${parsed.thinking.substring(0, 200)}...`);
   } catch (error) {
-    console.error(`[Planner] Failed to parse JSON response:`, error);
-    console.error(`[Planner] Response:`, response.content);
-    // Fallback to empty actions
-    parsed = { thinking: response.content, actions: [] };
+    console.error(`[Planner] Failed to parse structured JSON response:`, error);
+    console.error(`[Planner] Response:`, response.content.substring(0, 1000));
+    throw new Error(`Planner received invalid JSON from LLM provider: ${error}`);
   }
 
   if (!parsed.actions || parsed.actions.length === 0) {

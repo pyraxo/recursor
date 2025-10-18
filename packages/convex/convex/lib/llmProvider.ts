@@ -17,7 +17,13 @@ export interface Message {
 
 // Structured action types for agent responses
 export interface TodoAction {
-  type: "create_todo" | "update_todo" | "delete_todo" | "clear_all_todos" | "update_project" | "update_phase";
+  type:
+    | "create_todo"
+    | "update_todo"
+    | "delete_todo"
+    | "clear_all_todos"
+    | "update_project"
+    | "update_phase";
   content?: string; // For create and delete
   oldContent?: string; // For update
   newContent?: string; // For update
@@ -40,7 +46,9 @@ export interface ChatOptions {
   max_tokens?: number;
   model?: string;
   stream?: boolean;
-  json_mode?: boolean; // Request JSON output
+  json_mode?: boolean; // Request JSON output (legacy)
+  structured?: boolean; // Use provider's native structured output API
+  schema?: any; // JSON schema for structured output
 }
 
 export interface LLMResponse {
@@ -74,8 +82,18 @@ async function callGroq(
     stream: false, // Convex actions don't support streaming
   };
 
-  // Enable JSON mode if requested
-  if (options.json_mode) {
+  // Enable structured output
+  if (options.structured && options.schema) {
+    requestBody.response_format = {
+      type: "json_schema",
+      json_schema: {
+        name: "response",
+        strict: true,
+        schema: options.schema,
+      },
+    };
+  } else if (options.json_mode) {
+    // Legacy mode - just request JSON without schema validation
     requestBody.response_format = { type: "json_object" };
   }
 
@@ -118,16 +136,33 @@ async function callOpenAI(
     throw new Error("OPENAI_API_KEY not configured in Convex environment");
   }
 
+  const model = options.model || "gpt-5";
   const requestBody: any = {
-    model: options.model || "gpt-4o-mini",
+    model,
     messages,
-    temperature: options.temperature ?? 0.7,
-    max_tokens: options.max_tokens || 2000,
+    temperature: options.temperature ?? 1,
     stream: false,
   };
 
-  // Enable JSON mode if requested
-  if (options.json_mode) {
+  // GPT-4o and newer models use max_completion_tokens, older models use max_tokens
+  if (model.includes("gpt-5")) {
+    requestBody.max_completion_tokens = options.max_tokens || 2000;
+  } else {
+    requestBody.max_tokens = options.max_tokens || 2000;
+  }
+
+  // Enable structured output
+  if (options.structured && options.schema) {
+    requestBody.response_format = {
+      type: "json_schema",
+      json_schema: {
+        name: "response",
+        strict: true,
+        schema: options.schema,
+      },
+    };
+  } else if (options.json_mode) {
+    // Legacy mode - just request JSON without schema validation
     requestBody.response_format = { type: "json_object" };
   }
 
@@ -156,7 +191,7 @@ async function callOpenAI(
 }
 
 /**
- * Alternative provider: Google Gemini
+ * Google Gemini provider
  */
 async function callGemini(
   messages: Message[],
@@ -167,26 +202,51 @@ async function callGemini(
     throw new Error("GEMINI_API_KEY not configured in Convex environment");
   }
 
+  const model = options.model || "gemini-2.5-pro"; // Latest stable Gemini 2.5 Pro (June 2025)
+
   // Convert messages to Gemini format
   const contents = messages.map((msg) => ({
     role: msg.role === "assistant" ? "model" : "user",
     parts: [{ text: msg.content }],
   }));
 
+  const requestBody: any = {
+    contents,
+    generationConfig: {
+      temperature: options.temperature ?? 1,
+      maxOutputTokens: options.max_tokens || 2000,
+    },
+  };
+
+  // Handle structured output via function calling
+  if (options.structured && options.schema) {
+    requestBody.tools = [
+      {
+        functionDeclarations: [
+          {
+            name: "respond",
+            description: "Respond with structured output",
+            parameters: options.schema,
+          },
+        ],
+      },
+    ];
+    requestBody.toolConfig = {
+      functionCallingConfig: {
+        mode: "ANY",
+        allowedFunctionNames: ["respond"],
+      },
+    };
+  }
+
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        contents,
-        generationConfig: {
-          temperature: options.temperature ?? 0.7,
-          maxOutputTokens: options.max_tokens || 2000,
-        },
-      }),
+      body: JSON.stringify(requestBody),
     }
   );
 
@@ -197,10 +257,123 @@ async function callGemini(
 
   const data = await response.json();
 
+  // Check for error response
+  if (!data.candidates || data.candidates.length === 0) {
+    console.error(
+      "[Gemini] No candidates in response:",
+      JSON.stringify(data).substring(0, 500)
+    );
+    throw new Error(
+      `Gemini API returned no candidates: ${JSON.stringify(data).substring(0, 200)}`
+    );
+  }
+
+  // Extract content - handle both text and function call responses
+  let content = "";
+  const parts = data.candidates[0]?.content?.parts;
+  if (parts) {
+    // Check for function call (structured output)
+    const functionCall = parts.find((p: any) => p.functionCall);
+    if (functionCall) {
+      content = JSON.stringify(functionCall.functionCall.args);
+    } else {
+      // Regular text response
+      content = parts[0]?.text || "";
+    }
+  }
+
   return {
-    content: data.candidates[0]?.content?.parts[0]?.text || "",
-    model: "gemini-2.0-flash-exp",
+    content,
+    model: model,
     provider: "gemini",
+  };
+}
+
+/**
+ * Claude provider: Anthropic
+ */
+async function callClaude(
+  messages: Message[],
+  options: ChatOptions = {}
+): Promise<LLMResponse> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY not configured in Convex environment");
+  }
+
+  const model = options.model || "claude-sonnet-4-5-20250929"; // Latest Claude 4.5 Sonnet (Sept 29, 2025)
+
+  // Separate system message from other messages
+  const systemMessage = messages.find((m) => m.role === "system");
+  const conversationMessages = messages.filter((m) => m.role !== "system");
+
+  const requestBody: any = {
+    model: model,
+    max_tokens: options.max_tokens || 2000,
+    temperature: options.temperature ?? 0.7,
+    messages: conversationMessages.map((msg) => ({
+      role: msg.role === "assistant" ? "assistant" : "user",
+      content: msg.content,
+    })),
+  };
+
+  // Add system message if present
+  if (systemMessage) {
+    requestBody.system = systemMessage.content;
+  }
+
+  // Handle structured output via tool use
+  if (options.structured && options.schema) {
+    requestBody.tools = [
+      {
+        name: "respond",
+        description: "Respond with structured output",
+        input_schema: options.schema,
+      },
+    ];
+    requestBody.tool_choice = { type: "tool", name: "respond" };
+  }
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Claude API error: ${response.status} - ${error}`);
+  }
+
+  const data = await response.json();
+
+  // Extract content - handle both text and tool use responses
+  let content = "";
+  if (data.content) {
+    // Check for tool use (structured output)
+    const toolUse = data.content.find((c: any) => c.type === "tool_use");
+    if (toolUse) {
+      content = JSON.stringify(toolUse.input);
+    } else {
+      // Regular text response
+      content = data.content[0]?.text || "";
+    }
+  }
+
+  return {
+    content,
+    usage: {
+      prompt_tokens: data.usage?.input_tokens || 0,
+      completion_tokens: data.usage?.output_tokens || 0,
+      total_tokens:
+        (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0),
+    },
+    model: data.model,
+    provider: "anthropic",
   };
 }
 
@@ -215,32 +388,42 @@ export class ConvexLLMProvider {
     messages: Message[],
     options: ChatOptions = {}
   ): Promise<LLMResponse> {
+    // Use ONLY latest models: Claude 4.5 Sonnet and Gemini 2.5 Pro
     const providers = [
-      { name: "groq", fn: callGroq },
-      { name: "openai", fn: callOpenAI },
-      { name: "gemini", fn: callGemini },
+      {
+        name: "claude-4.5-sonnet",
+        fn: callClaude,
+        model: "claude-4.5-sonnet", // Latest Claude 4.5 Sonnet (Sept 29, 2025)
+      },
+      {
+        name: "gemini-2.5-pro",
+        fn: callGemini,
+        model: "gemini-2.5-pro", // Latest Gemini 2.5 Pro (June 2025 stable)
+      },
+      {
+        name: "openai-gpt-5",
+        fn: callOpenAI,
+        model: "gpt-5", // Latest GPT-4o as final fallback
+      },
     ];
 
     let lastError: Error | null = null;
 
     for (const provider of providers) {
-      for (let attempt = 0; attempt < this.maxRetries; attempt++) {
-        try {
-          console.log(`Attempting ${provider.name} (attempt ${attempt + 1})`);
-          const response = await provider.fn(messages, options);
-          console.log(`Success with ${provider.name}`);
-          return response;
-        } catch (error) {
-          lastError = error as Error;
-          console.error(`${provider.name} failed:`, error);
-
-          // Wait before retry (except on last attempt)
-          if (attempt < this.maxRetries - 1) {
-            await new Promise((resolve) =>
-              setTimeout(resolve, this.retryDelay)
-            );
-          }
-        }
+      try {
+        console.log(`Attempting ${provider.name}`);
+        const response = await provider.fn(messages, {
+          ...options,
+          model: options.model || provider.model,
+        });
+        console.log(
+          `Success with ${provider.name} (${response.usage?.total_tokens || "N/A"} tokens)`
+        );
+        return response;
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`${provider.name} failed:`, error);
+        // Move to next provider immediately (no retries on individual providers)
       }
     }
 
@@ -250,9 +433,200 @@ export class ConvexLLMProvider {
   }
 
   /**
+   * Builder-optimized chat with smarter models and more tokens
+   * Uses Claude 4.5 Sonnet and Gemini 2.5 Pro for best code generation
+   */
+  async chatForBuilder(
+    messages: Message[],
+    options: ChatOptions = {}
+  ): Promise<LLMResponse> {
+    // Builder-specific defaults: more tokens, smarter models
+    const builderOptions = {
+      ...options,
+      max_tokens: options.max_tokens || 16000, // Much more space for code
+      temperature: options.temperature ?? 0.7,
+    };
+
+    // Use latest models: Claude 4.5 Sonnet (excellent at code) and Gemini 2.5 Pro
+    const providers = [
+      {
+        name: "claude-4.5-sonnet",
+        fn: callClaude,
+        model: "claude-4.5-sonnet", // Latest Claude 4.5 Sonnet (Sept 29, 2025)
+      },
+      {
+        name: "gemini-2.5-pro",
+        fn: callGemini,
+        model: "gemini-2.5-pro", // Latest Gemini 2.5 Pro (June 2025 stable)
+      },
+      {
+        name: "openai-gpt-5",
+        fn: callOpenAI,
+        model: "gpt-5", // Latest GPT-5 as final fallback
+      },
+    ];
+
+    let lastError: Error | null = null;
+
+    for (const provider of providers) {
+      try {
+        console.log(`[Builder] Attempting ${provider.name}`);
+        const response = await provider.fn(messages, {
+          ...builderOptions,
+          model: provider.model,
+        });
+        console.log(
+          `[Builder] Success with ${provider.name} (${response.usage?.total_tokens || "N/A"} tokens)`
+        );
+        return response;
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`[Builder] ${provider.name} failed:`, error);
+        // Don't retry on builder - just move to next provider
+      }
+    }
+
+    throw new Error(
+      `All builder LLM providers failed. Last error: ${lastError?.message}`
+    );
+  }
+
+  /**
+   * Get JSON schema for structured output based on agent role
+   */
+  getSchema(role: string): any {
+    switch (role) {
+      case "planner":
+        return {
+          type: "object",
+          properties: {
+            thinking: {
+              type: "string",
+              description: "Your thoughts about what needs to happen next",
+            },
+            actions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  type: {
+                    type: "string",
+                    enum: ["create_todo", "update_todo", "delete_todo", "clear_all_todos", "update_project", "update_phase"],
+                  },
+                  content: { type: "string" },
+                  oldContent: { type: "string" },
+                  newContent: { type: "string" },
+                  priority: { type: "number" },
+                  reason: { type: "string" },
+                  title: { type: "string" },
+                  description: { type: "string" },
+                  phase: { type: "string" },
+                },
+                required: ["type"],
+              },
+            },
+          },
+          required: ["thinking", "actions"],
+        };
+      case "builder":
+        return {
+          type: "object",
+          properties: {
+            thinking: {
+              type: "string",
+              description: "Brief summary of what you're trying to accomplish",
+            },
+            results: {
+              type: "object",
+              properties: {
+                artifact: {
+                  type: "string",
+                  description: "The complete HTML code with inline CSS and JavaScript",
+                },
+              },
+              required: ["artifact"],
+            },
+          },
+          required: ["thinking", "results"],
+        };
+      case "communicator":
+        return {
+          type: "object",
+          properties: {
+            thinking: {
+              type: "string",
+              description: "Brief summary of what you're responding to",
+            },
+            results: {
+              type: "object",
+              properties: {
+                message: {
+                  type: "string",
+                  description: "The actual message to send",
+                },
+                recipient: {
+                  type: "string",
+                  description: "Who you're sending to (name or 'broadcast')",
+                },
+                type: {
+                  type: "string",
+                  enum: ["direct", "broadcast"],
+                },
+              },
+              required: ["message", "recipient", "type"],
+            },
+          },
+          required: ["thinking", "results"],
+        };
+      case "reviewer":
+        return {
+          type: "object",
+          properties: {
+            thinking: {
+              type: "string",
+              description: "Brief assessment of progress and time management",
+            },
+            results: {
+              type: "object",
+              properties: {
+                recommendations: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Specific actionable recommendations",
+                },
+                issues: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      severity: {
+                        type: "string",
+                        enum: ["critical", "major", "minor"],
+                      },
+                      description: { type: "string" },
+                    },
+                    required: ["severity", "description"],
+                  },
+                },
+              },
+              required: ["recommendations", "issues"],
+            },
+          },
+          required: ["thinking", "results"],
+        };
+      default:
+        return {};
+    }
+  }
+
+  /**
    * Helper method to build system prompts
    */
-  buildSystemPrompt(role: string, context: any, useStructuredOutput: boolean = false): Message {
+  buildSystemPrompt(
+    role: string,
+    context: any,
+    useStructuredOutput: boolean = false
+  ): Message {
     const roleDescription = this.getRoleDescription(role, useStructuredOutput);
 
     return {
@@ -268,7 +642,10 @@ Keep it moving - be creative, work autonomously, and focus on building something
     };
   }
 
-  private getRoleDescription(role: string, useStructuredOutput: boolean = false): string {
+  private getRoleDescription(
+    role: string,
+    useStructuredOutput: boolean = false
+  ): string {
     switch (role) {
       case "planner":
         if (useStructuredOutput) {
@@ -377,33 +754,49 @@ Just write naturally like you're talking to people - no need for markdown format
         }
       case "reviewer":
         if (useStructuredOutput) {
-          return `Your job is to review code that the builder creates and spot issues. Look for bugs, security problems, code quality issues, accessibility problems, and performance concerns.
+          return `Your job is to audit the builder and keep the team on track during this hackathon. This is NOT a code quality review - focus on whether the implementation is good enough to pass and if the team can achieve their goals in time.
 
 Respond with JSON in this exact format:
 {
-  "thinking": "brief summary of your overall assessment of the code",
+  "thinking": "brief assessment of progress, implementation adequacy, and time management",
   "results": {
     "recommendations": [
-      "Specific actionable fix 1",
-      "Specific actionable fix 2"
+      "Specific actionable recommendation 1",
+      "Specific actionable recommendation 2"
     ],
     "issues": [
-      {"severity": "critical", "description": "Description of critical issue"},
-      {"severity": "major", "description": "Description of major issue"},
-      {"severity": "minor", "description": "Description of minor issue"}
+      {"severity": "critical", "description": "Critical blocker or time management issue"},
+      {"severity": "major", "description": "Significant concern about goals or approach"},
+      {"severity": "minor", "description": "Minor suggestion or optimization"}
     ]
   }
 }
 
-In your "thinking" field, just give a high-level summary of the code review (1-2 sentences).
+In your "thinking" field, assess:
+1. Is the implementation good enough to demo and pass? (This is a hackathon - it doesn't need to be perfect)
+2. Can they achieve their goals before the hackathon ends?
+3. Is the builder on track or spinning wheels?
+4. Any strategic pivots needed?
 
-In your "results" field, list all the specific issues found and actionable recommendations for the planner. Be thorough and constructive.`;
+In your "results" field, provide actionable recommendations focused on:
+- Cutting scope if running out of time
+- Prioritizing what matters for the demo
+- Fixing blockers that prevent functionality
+- Strategic direction changes
+
+DO NOT focus on code quality, security, best practices, or maintainability. Focus on: Will this work? Can we finish in time? What's blocking progress?`;
         } else {
-          return `Your job is to review code that the builder creates and spot issues. Look for bugs, security problems, code quality issues, accessibility problems, and performance concerns.
+          return `Your job is to audit the builder and keep the team on track during this hackathon. This is NOT a code quality review.
 
-When you find something, explain what the issue is and how severe it is - critical, major, or minor. Then give a specific recommendation for how to fix it. Start those recommendations with "RECOMMENDATION:" so the planner can spot them.
+Focus on these questions:
+1. Is the implementation good enough to demo and pass? (This is a hackathon - it doesn't need to be perfect)
+2. Can they achieve their goals before the hackathon ends?
+3. Is the builder on track or spinning wheels?
+4. Any strategic pivots needed?
 
-Talk through your review naturally - don't use markdown or formal formatting, just explain what you're seeing like you're doing a code review with a teammate.`;
+When you spot issues, focus on blockers, time management, and strategic direction - NOT code quality or security. Give recommendations starting with "RECOMMENDATION:" that help the team finish in time with something that works.
+
+Talk through your assessment naturally like you're checking in with the team.`;
         }
       default:
         return "Your job is to help the team build something great.";
@@ -435,9 +828,9 @@ Talk through your review naturally - don't use markdown or formal formatting, ju
       case "planner":
         // Look for todo creation patterns - support multiple formats
         const todoPatterns = [
-          /TODO:\s*(.+)/gi,                           // TODO: <content>
-          /TASK:\s*(.+)/gi,                           // TASK: <content>
-          /Create(?:\s+todo)?:\s*(.+)/gi,             // Create: <content> or Create todo: <content>
+          /TODO:\s*(.+)/gi, // TODO: <content>
+          /TASK:\s*(.+)/gi, // TASK: <content>
+          /Create(?:\s+todo)?:\s*(.+)/gi, // Create: <content> or Create todo: <content>
           /^[-*]\s+(.+?)(?:\s*\((?:TODO|TASK)\))?$/gim, // - <content> or - <content> (TODO)
           /^\d+\.\s+(.+?)(?:\s*\((?:TODO|TASK)\))?$/gim, // 1. <content> or 1. <content> (TODO)
         ];
@@ -445,7 +838,8 @@ Talk through your review naturally - don't use markdown or formal formatting, ju
         // Look for UPDATE_TODO patterns
         // UPDATE_TODO: "old content" -> "new content"
         // UPDATE_TODO: "content" PRIORITY: 9
-        const updatePattern = /UPDATE_TODO:\s*"([^"]+)"(?:\s*->\s*"([^"]+)"|(?:\s+PRIORITY:\s*(\d+)))/gi;
+        const updatePattern =
+          /UPDATE_TODO:\s*"([^"]+)"(?:\s*->\s*"([^"]+)"|(?:\s+PRIORITY:\s*(\d+)))/gi;
 
         // Look for DELETE_TODO patterns
         // DELETE_TODO: "content to delete"
@@ -506,17 +900,24 @@ Talk through your review naturally - don't use markdown or formal formatting, ju
           }
         }
 
-        console.log(`[Parser] Found ${actions.actions.length} todo actions from planner response`);
-        console.log(`[Parser] Breakdown: ${
-          actions.actions.filter((a: any) => a.type === "create_todo").length
-        } creates, ${
-          actions.actions.filter((a: any) => a.type === "update_todo").length
-        } updates, ${
-          actions.actions.filter((a: any) => a.type === "delete_todo").length
-        } deletes`);
+        console.log(
+          `[Parser] Found ${actions.actions.length} todo actions from planner response`
+        );
+        console.log(
+          `[Parser] Breakdown: ${
+            actions.actions.filter((a: any) => a.type === "create_todo").length
+          } creates, ${
+            actions.actions.filter((a: any) => a.type === "update_todo").length
+          } updates, ${
+            actions.actions.filter((a: any) => a.type === "delete_todo").length
+          } deletes`
+        );
 
         if (actions.actions.length === 0) {
-          console.warn("[Parser] No actions found. Response:", response.substring(0, 200));
+          console.warn(
+            "[Parser] No actions found. Response:",
+            response.substring(0, 200)
+          );
         }
         break;
 

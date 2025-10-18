@@ -99,15 +99,16 @@ export async function executeCommunicator(
     }
   }
 
-  // 4. Call LLM with JSON mode
+  // 4. Call LLM with structured output
   console.log(`[Communicator] Calling LLM with ${llmMessages.length} messages`);
   const response = await llmProvider.chat(llmMessages, {
     temperature: 0.8,
-    max_tokens: 1000,
-    json_mode: true, // Request JSON output
+    max_tokens: 4000, // Increased from 1000 for more detailed responses
+    structured: true,
+    schema: llmProvider.getSchema("communicator"),
   });
 
-  // 5. Parse JSON response
+  // 5. Parse JSON response (structured output guarantees valid JSON)
   console.log(`[Communicator] LLM Response (first 500 chars):\n${response.content.substring(0, 500)}`);
 
   let parsed: { thinking: string; results: { message: string; recipient: string; type: string } };
@@ -119,13 +120,9 @@ export async function executeCommunicator(
     };
     console.log(`[Communicator] Parsed JSON - thinking: ${parsed.thinking.substring(0, 100)}...`);
   } catch (error) {
-    console.error(`[Communicator] Failed to parse JSON response:`, error);
-    console.error(`[Communicator] Response:`, response.content);
-    // Fallback to sending the raw response as a broadcast
-    parsed = {
-      thinking: "Failed to parse response",
-      results: { message: response.content, recipient: "broadcast", type: "broadcast" }
-    };
+    console.error(`[Communicator] Failed to parse structured JSON response:`, error);
+    console.error(`[Communicator] Response:`, response.content.substring(0, 1000));
+    throw new Error(`Communicator received invalid JSON from LLM provider: ${error}`);
   }
 
   // 6. Send message based on results
@@ -229,15 +226,16 @@ async function handleUserMessage(
     content: `${userMessage.sender_name} asks (${timeAgo}m ago): "${userMessage.content}"\n\nRespond directly to ${userMessage.sender_name} in a friendly, conversational manner. Keep it concise (2-3 sentences max).`,
   });
 
-  // Call LLM with JSON mode
+  // Call LLM with structured output
   console.log(`[Communicator] Calling LLM for user message response`);
   const response = await llmProvider.chat(llmMessages, {
     temperature: 0.8,
     max_tokens: 500, // Shorter responses for chat
-    json_mode: true, // Request JSON output
+    structured: true,
+    schema: llmProvider.getSchema("communicator"),
   });
 
-  // Parse JSON response
+  // Parse JSON response (structured output guarantees valid JSON)
   console.log(`[Communicator] LLM Response (first 200 chars):\n${response.content.substring(0, 200)}`);
 
   let parsed: { thinking: string; results: { message: string; recipient: string; type: string } };
@@ -249,12 +247,9 @@ async function handleUserMessage(
     };
     console.log(`[Communicator] Parsed JSON - sending to ${parsed.results.recipient}`);
   } catch (error) {
-    console.error(`[Communicator] Failed to parse JSON response:`, error);
-    // Fallback to using raw response as direct message
-    parsed = {
-      thinking: "Responding to user message",
-      results: { message: response.content, recipient: userMessage.sender_name, type: "direct" }
-    };
+    console.error(`[Communicator] Failed to parse structured JSON response:`, error);
+    console.error(`[Communicator] Response:`, response.content.substring(0, 1000));
+    throw new Error(`Communicator received invalid JSON from LLM provider: ${error}`);
   }
 
   // Send direct response (NOT a broadcast - it's a reply to this specific message)

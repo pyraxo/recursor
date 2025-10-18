@@ -35,6 +35,23 @@ export const getLatestJudgmentInternal = internalQuery({
   },
 });
 
+export const getJudgmentHistoryInternal = internalQuery({
+  args: {
+    stackId: v.id("agent_stacks"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit || 10; // Default to last 10 judgments
+    const judgments = await ctx.db
+      .query("judgments")
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+      .order("desc")
+      .take(limit);
+
+    return judgments;
+  },
+});
+
 export const getLeaderboard = query({
   args: {},
   handler: async (ctx) => {
@@ -102,11 +119,12 @@ export const createJudgmentInternal = internalMutation({
 async function executeJudgeLogic(ctx: ActionCtx, stackId: Id<"agent_stacks">): Promise<{ total_score: number; message: string }> {
   console.log(`[Judge] Executing for stack ${stackId}`);
 
-  const [stack, projectIdea, artifacts, todos] = await Promise.all([
+  const [stack, projectIdea, artifacts, todos, previousJudgments] = await Promise.all([
     ctx.runQuery(internal.agentExecution.getStackForExecution, { stackId }),
     ctx.runQuery(internal.agentExecution.getProjectIdea, { stackId }),
     ctx.runQuery(internal.artifacts.internalGetLatest, { stackId }),
     ctx.runQuery(internal.todos.internalList, { stackId }),
+    ctx.runQuery(internal.judging.getJudgmentHistoryInternal, { stackId, limit: 5 }), // Get last 5 judgments for context
   ]);
 
   if (!stack) {
@@ -138,10 +156,41 @@ async function executeJudgeLogic(ctx: ActionCtx, stackId: Id<"agent_stacks">): P
   const completedTodos = todos?.filter((t: any) => t.status === "completed") || [];
   const totalTodos = todos?.length || 0;
 
+  // Build previous scores context
+  let previousScoresContext = "";
+  if (previousJudgments && previousJudgments.length > 0) {
+    previousScoresContext = `\n\n**Previous Judgments for this Team** (for reference - track actual progress, not linear growth):
+${previousJudgments.map((j, idx) => {
+  const timeAgo = Math.round((Date.now() - j.judged_at) / 60000); // minutes ago
+  return `${idx + 1}. ${timeAgo}min ago (v${j.artifact_version_judged}): Total=${j.total_score}/40 (Tech=${j.technical_merit}, Polish=${j.polish}, Exec=${j.execution}, Wow=${j.wow_factor})`;
+}).join("\n")}
+
+Compare this submission to their previous work. Scores should reflect ACTUAL PROGRESS - they may improve, stay flat, or even decrease if they introduced bugs or took a step back. Don't assume linear improvement.`;
+  }
+
   const messages: Message[] = [
     {
       role: "system",
-      content: `You are a judge for the Cursor AI Hackathon. You will evaluate team submissions based on 4 criteria:
+      content: `You are an OBJECTIVE and IMPARTIAL judge for the Cursor AI Hackathon. Your role is to evaluate based on what you observe in the actual code and progress, not assumptions.
+
+CRITICAL: You must be HONEST and OBJECTIVE. Scores should reflect the actual state of the project:
+- Teams may improve between iterations (scores go up)
+- Teams may stay the same (scores stay flat)
+- Teams may regress if they introduce bugs or remove features (scores go down)
+- DO NOT give artificially linear or gradually increasing scores
+- Base your judgment ONLY on what you see in the current artifact
+
+SCORING SCALE (normalize towards 5 as average):
+- **1-2**: Poor/broken - major issues, doesn't work, minimal effort
+- **3-4**: Below average - works partially, significant gaps
+- **5**: Average - decent hackathon project, works as expected for the time given
+- **6-7**: Above average - well executed, goes beyond basics
+- **8-9**: Excellent - impressive quality and execution
+- **10**: Outstanding - exceptional, production-ready, wow-worthy
+
+Most projects should score around 5. Only truly exceptional work deserves 8+. Avoid grade inflation.
+
+Evaluate teams based on 4 criteria:
 
 **Technical Merit (1-10)**: Quality of code, architecture, and implementation
 - Is the code well-structured and maintainable?
@@ -176,7 +225,7 @@ You must respond with ONLY a valid JSON object in this exact format:
   "overall_assessment": "<2-3 sentence overall assessment>"
 }
 
-Be fair but constructive. Consider this is a hackathon with limited time. Focus on what they achieved.`,
+Be fair, honest, and objective. Normalize scores around 5 (average). Consider this is a hackathon with limited time. Focus on what they actually achieved.`,
     },
     {
       role: "user",
@@ -187,6 +236,7 @@ Be fair but constructive. Consider this is a hackathon with limited time. Focus 
 **Description**: ${projectIdea?.description || "No description"}
 **Phase**: ${stack.phase}
 **Progress**: ${completedTodos.length}/${totalTodos} todos completed
+${previousScoresContext}
 
 **Artifact Code** (version ${artifacts.version}):
 \`\`\`html
@@ -196,7 +246,7 @@ ${artifacts.content?.substring(0, 8000) || "No content"}
 ${artifacts.metadata?.description ? `**Artifact Description**: ${artifacts.metadata.description}` : ""}
 ${artifacts.metadata?.tech_stack ? `**Tech Stack**: ${artifacts.metadata.tech_stack.join(", ")}` : ""}
 
-Provide your judgment as JSON only.`,
+Provide your OBJECTIVE judgment as JSON only. Remember: scores should reflect actual progress, not assumptions.`,
     },
   ];
 

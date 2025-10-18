@@ -65,37 +65,36 @@ export async function executeReviewer(
   // Add the artifact code for review
   messages.push({
     role: "user",
-    content: `Please review this code artifact (version ${artifacts.version}):
+    content: `Audit this hackathon project (version ${artifacts.version}):
 
 \`\`\`html
 ${artifacts.content}
 \`\`\`
 
-Review this code for:
-1. Bugs and logic errors
-2. Security vulnerabilities
-3. Code quality and best practices
-4. Accessibility issues
-5. Performance problems
-6. Maintainability concerns
+Focus on these hackathon-critical questions:
+1. **Implementation Quality**: Is this good enough to demo and pass? Does the core functionality work?
+2. **Time Management**: Can they achieve their goals before the hackathon ends? Are they on track?
+3. **Builder Audit**: Is the builder making progress or stuck? Any blockers preventing functionality?
+4. **Strategic Direction**: Any scope cuts or pivots needed to finish in time?
 
 For each issue found, provide:
-- Clear description of the problem
-- Severity: CRITICAL, MAJOR, or MINOR
-- RECOMMENDATION: Specific actionable fix for the planner
+- Clear description of the problem (focus on blockers, time concerns, strategic issues)
+- Severity: CRITICAL (blocks demo/functionality), MAJOR (risks timeline), or MINOR (nice-to-have)
+- RECOMMENDATION: Specific actionable guidance for the planner
 
-Be thorough and constructive.`,
+This is a HACKATHON - don't worry about code quality, security, or best practices. Focus on: Will this work? Can we finish? What's blocking us?`,
   });
 
-  // 4. Call LLM with JSON mode
-  console.log(`[Reviewer] Calling LLM for code review with ${messages.length} messages`);
+  // 4. Call LLM with structured output
+  console.log(`[Reviewer] Calling LLM for hackathon audit with ${messages.length} messages`);
   const response = await llmProvider.chat(messages, {
-    temperature: 0.3, // Lower temperature for more focused code review
-    max_tokens: 2000, // More tokens for detailed code review
-    json_mode: true, // Request JSON output
+    temperature: 0.3, // Lower temperature for more focused assessment
+    max_tokens: 8000, // Increased for comprehensive audit
+    structured: true,
+    schema: llmProvider.getSchema("reviewer"),
   });
 
-  // 5. Parse JSON response
+  // 5. Parse JSON response (structured output guarantees valid JSON)
   console.log(`[Reviewer] LLM Response (first 500 chars):\n${response.content.substring(0, 500)}`);
 
   let parsed: {
@@ -114,10 +113,9 @@ Be thorough and constructive.`,
     console.log(`[Reviewer] Parsed JSON with ${parsed.results.issues.length} issues and ${parsed.results.recommendations.length} recommendations`);
     console.log(`[Reviewer] Thinking: ${parsed.thinking.substring(0, 200)}...`);
   } catch (error) {
-    console.error(`[Reviewer] Failed to parse JSON response:`, error);
-    console.error(`[Reviewer] Response:`, response.content);
-    // Fallback to empty results
-    parsed = { thinking: response.content.substring(0, 1000), results: { recommendations: [], issues: [] } };
+    console.error(`[Reviewer] Failed to parse structured JSON response:`, error);
+    console.error(`[Reviewer] Response:`, response.content.substring(0, 1000));
+    throw new Error(`Reviewer received invalid JSON from LLM provider: ${error}`);
   }
 
   const recommendations = parsed.results.recommendations || [];
@@ -131,13 +129,13 @@ Be thorough and constructive.`,
     } major, ${issues.filter((i) => i.severity === "minor").length} minor)`
   );
 
-  // 6. Store code review results and recommendations for planner
+  // 6. Store audit results and recommendations for planner
   const updatedMemory = {
     ...(agentState?.memory || {}),
     last_review_time: Date.now(),
     last_reviewed_version: artifacts.version,
     last_review_issues_count: issues.length,
-    recommendations: recommendations.slice(0, 10), // Keep top 10 for code issues
+    recommendations: recommendations.slice(0, 10), // Keep top 10 recommendations
   };
 
   // Store in reviewer's memory
@@ -165,23 +163,23 @@ Be thorough and constructive.`,
           ...(plannerState.memory || {}),
           reviewer_recommendations: recommendations,
           recommendations_timestamp: Date.now(),
-          recommendations_type: "code_review",
+          recommendations_type: "hackathon_audit",
         },
       });
     }
 
     console.log(
-      `[Reviewer] Stored ${recommendations.length} code review recommendations for planner`
+      `[Reviewer] Stored ${recommendations.length} hackathon audit recommendations for planner`
     );
   } else {
-    console.log(`[Reviewer] No issues found - code looks good!`);
+    console.log(`[Reviewer] No issues found - implementation looks good for hackathon!`);
   }
 
   // 7. Update reviewer memory with thinking only
   await ctx.runMutation(internal.agentExecution.updateAgentMemory, {
     stackId,
     agentType: "reviewer",
-    thought: parsed.thinking || "Code review complete",
+    thought: parsed.thinking || "Hackathon audit complete",
   });
 
   // 8. Log trace with thinking only
@@ -189,7 +187,7 @@ Be thorough and constructive.`,
     stack_id: stackId,
     agent_type: "reviewer",
     thought: parsed.thinking.substring(0, 1000), // Limit thought length in trace
-    action: "code_review",
+    action: "hackathon_audit",
     result: {
       artifactVersion: artifacts.version,
       issuesFound: issues.length,
@@ -200,5 +198,5 @@ Be thorough and constructive.`,
     },
   });
 
-  return parsed.thinking || "Code review complete";
+  return parsed.thinking || "Hackathon audit complete";
 }

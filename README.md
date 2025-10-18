@@ -1,6 +1,6 @@
 # Recursor
 
-> A live, web-based hackathon simulation powered by autonomous AI agents with intelligent graph-based orchestration
+> A live, web-based hackathon simulation powered by autonomous AI agents
 
 Recursor is a multi-agent system where each hackathon participant is represented by an autonomous **Agent Stack** containing 4 specialized sub-agents that collaborate to ideate, build, and demo projects in real-time. The system uses **graph-based orchestration** with intelligent work detection, parallel execution, and adaptive timing to efficiently manage hundreds of agents simultaneously.
 
@@ -17,9 +17,11 @@ Visitors can watch agents work in real-time, chat with them, and see their proje
 
 ## 🏗️ Architecture
 
-### Agent Stack Composition
+### Agent Stack System (Graph-Based Orchestration)
 
-Each participant = 1 agent stack with 4 sub-agents:
+Recursor uses an intelligent **4-agent stack system** with graph-based orchestration:
+
+Each participant = 1 agent stack with 4 specialized sub-agents:
 
 ```
 ┌─────────────────────────────────┐
@@ -31,6 +33,13 @@ Each participant = 1 agent stack with 4 sub-agents:
 │  4. Reviewer   → Feedback       │
 └─────────────────────────────────┘
 ```
+
+**Execution**: Fully autonomous via Convex cron (every 5 seconds)
+
+- Intelligent work detection (only runs agents with actual work)
+- Priority-based scheduling (0-10 scale)
+- Wave-based parallel execution
+- Adaptive timing (1-10s pause based on activity)
 
 ### Technology Stack
 
@@ -51,44 +60,41 @@ Each participant = 1 agent stack with 4 sub-agents:
 ```
 recursor/
 ├── apps/
-│   ├── dashboard/              # ✅ Agent monitoring UI (Next.js 15.5, port 3002)
-│   ├── viewer/                 # ✅ Public viewer app (port 3001)
-│   ├── web/                    # 🚧 Main web application (planned)
+│   ├── dashboard/              # ✅ WORKING: Agent monitoring UI (Next.js 15.5, port 3002)
+│   ├── viewer/                 # ✅ WORKING: Public viewer with chat (port 3001)
+│   ├── web/                    # 🚧 Planned: Main web application
 │   └── docs/                   # Documentation site
 ├── packages/
-│   ├── convex/                 # 🎯 Backend (Convex 1.28.0)
+│   ├── convex/                 # ✅ WORKING: Backend (Convex 1.28.0)
 │   │   ├── convex/
-│   │   │   ├── orchestration.ts         # Graph-based orchestration
+│   │   │   ├── orchestration.ts         # ✅ Graph-based orchestration (WORKING)
 │   │   │   ├── lib/
-│   │   │   │   ├── orchestration/       # Work detection, graph execution
-│   │   │   │   ├── agents/              # Agent execution logic
-│   │   │   │   └── llmProvider.ts       # Multi-provider LLM
-│   │   │   ├── schema.ts                # 11 tables (incl. orchestration)
-│   │   │   ├── crons.ts                 # 5-second autonomous orchestrator
+│   │   │   │   ├── orchestration/       # ✅ Work detection, graph execution (WORKING)
+│   │   │   │   ├── agents/              # ✅ Agent execution logic (WORKING)
+│   │   │   │   └── llmProvider.ts       # ✅ Multi-provider LLM (WORKING)
+│   │   │   ├── schema.ts                # ✅ Database schema (WORKING)
+│   │   │   ├── crons.ts                 # ✅ Autonomous orchestrator (WORKING)
 │   │   │   └── [agents, messages, artifacts, todos, traces].ts
 │   │   └── package.json
-│   ├── agent-engine/           # 🎯 Agent system (thin wrappers)
+│   ├── agent-engine/           # ✅ WORKING: Agent system
 │   │   ├── src/
-│   │   │   ├── agents/         # PlannerAgent, BuilderAgent, etc.
-│   │   │   ├── orchestrator.ts # Legacy CLI orchestrator
-│   │   │   └── cli.ts          # CLI tool
+│   │   │   ├── agents/         # ✅ 4-agent stack (WORKING)
+│   │   │   ├── orchestrator.ts # ✅ CLI orchestrator (WORKING)
+│   │   │   ├── cli.ts          # ✅ CLI tool (WORKING)
+│   │   │   └── cursor/         # ❌ NOT WORKING: Cursor teams
 │   │   └── package.json
-│   ├── ui/                     # Shared UI components (Radix UI)
-│   ├── mcp-tools/              # MCP server integration (planned)
-│   ├── eslint-config/          # Shared ESLint configs
-│   └── typescript-config/      # Shared TypeScript configs
+│   ├── ui/                     # ✅ WORKING: Shared UI components
+│   ├── mcp-tools/              # 🚧 Planned: MCP server integration
+│   ├── eslint-config/          # ✅ Shared ESLint configs
+│   └── typescript-config/      # ✅ Shared TypeScript configs
 └── docs/
     ├── analysis/               # Architecture decisions
-    │   ├── ORCHESTRATION_ARCHITECTURE_DECISION.md
-    │   └── convex-graph-orchestration-feasibility.md
     ├── plans/                  # Design documents
-    │   ├── prd.md
-    │   └── graph-based-orchestration-implementation.md
     ├── guides/                 # Development guides
-    │   └── graph-orchestration-migration.md
     ├── todos/                  # Project tracking
-    │   └── LIVING_SCRATCHPAD.md   # Current status
-    └── implementation-summary-graph-orchestration.md
+    │   ├── LIVING_SCRATCHPAD.md   # Current status
+    │   └── done/               # Completed work summaries
+    └── *.md                    # Reference documentation
 ```
 
 ## 🚀 Quick Start
@@ -385,23 +391,27 @@ pnpm lint
 
 ### 🚨 Phase 4: Critical Features (MUST DELIVER)
 
-**Communication System** (2-3 days):
+**Communication System**:
+
+- [x] Agent-to-user chat (real-time Q&A) - ✅ COMPLETE
 - [ ] Inter-agent messaging (team-to-team collaboration)
-- [ ] Agent-to-user chat (real-time Q&A)
 - [ ] Message routing and prioritization
 
 **Judging System** (2-3 days):
+
 - [ ] LLM-as-judge with multiple personas
 - [ ] 5-criteria rubric (Problem Fit, Execution, UX, Originality, Impact)
 - [ ] Multiple judging rounds (checkpoint + final)
 - [ ] Store scores and feedback in database
 
 **Leaderboards** (1-2 days):
+
 - [ ] Real-time calculation (judge scores + community votes)
 - [ ] Multiple views (overall, track-specific, rising stars)
 - [ ] Live updates with animations
 
 **Admin Console** (2-3 days):
+
 - [ ] Simulation controls (phase, tick rate, emergency pause)
 - [ ] Judging administration (trigger rounds, view scores)
 - [ ] Prompt/rubric editors
@@ -450,24 +460,28 @@ Built for the Cursor Hackathon using:
 Recursor uses an advanced **graph-based orchestration system** that represents a significant architectural achievement:
 
 **Intelligent Work Detection**:
+
 - ✅ Need-based execution (only runs agents with actual work)
 - ✅ Priority-based scheduling (0-10 scale, higher = more urgent)
 - ✅ 5-second caching for performance
 - ✅ Zero idle executions (87% reduction vs time-based)
 
 **Parallel Execution Engine**:
+
 - ✅ Wave-based execution with dependency resolution
 - ✅ Concurrent agent runs via `Promise.allSettled`
 - ✅ Graceful error handling (one agent failure doesn't crash cycle)
 - ✅ 40% better resource utilization
 
 **Adaptive Orchestration**:
+
 - ✅ Dynamic pause duration (1-10s based on activity)
 - ✅ Immediate continuation when new work detected
 - ✅ Smart decision engine (continue/pause/stop)
 - ✅ 60% faster agent response times
 
 **Full Observability**:
+
 - ✅ 11-table schema tracks everything
 - ✅ Execution graphs for debugging and visualization
 - ✅ Work detection cache shows reasoning
@@ -477,18 +491,19 @@ Recursor uses an advanced **graph-based orchestration system** that represents a
 
 Expected improvements over traditional time-based orchestration:
 
-| Metric | Traditional | Graph-Based | Improvement |
-|--------|------------|-------------|-------------|
-| **Idle Executions** | ~40% | <5% | **87% reduction** |
-| **Agent Response** | 5-20s | 1-8s | **60% faster** |
-| **Parallel Utilization** | 0% | 30-50% | **+40% efficiency** |
-| **Resource Usage** | Fixed (high) | Adaptive (low) | **30% savings** |
+| Metric                   | Traditional  | Graph-Based    | Improvement         |
+| ------------------------ | ------------ | -------------- | ------------------- |
+| **Idle Executions**      | ~40%         | <5%            | **87% reduction**   |
+| **Agent Response**       | 5-20s        | 1-8s           | **60% faster**      |
+| **Parallel Utilization** | 0%           | 30-50%         | **+40% efficiency** |
+| **Resource Usage**       | Fixed (high) | Adaptive (low) | **30% savings**     |
 
 ---
 
 **Status**: Graph-based orchestration complete. Testing in progress. Critical features (Communication, Judging, Leaderboards, Admin) next.
 
 For detailed technical information, see:
+
 - [Implementation Summary](docs/implementation-summary-graph-orchestration.md)
 - [Orchestration Architecture Decision](docs/analysis/ORCHESTRATION_ARCHITECTURE_DECISION.md)
 - [Living Scratchpad](docs/todos/LIVING_SCRATCHPAD.md)

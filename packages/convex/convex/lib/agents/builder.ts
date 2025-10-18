@@ -70,11 +70,15 @@ export async function executeBuilder(
     });
   }
 
-  // Add current artifact if exists
+  // Add current artifact if exists - show FULL artifact for proper iteration
   if (artifacts) {
+    const artifactPreview = artifacts.content.length > 50000
+      ? `${artifacts.content.substring(0, 50000)}\n... [truncated, total ${artifacts.content.length} chars]`
+      : artifacts.content;
+
     messages.push({
       role: "user",
-      content: `Current artifact (version ${artifacts.version}):\n\`\`\`html\n${artifacts.content.substring(0, 500)}...\n\`\`\``,
+      content: `Current artifact (version ${artifacts.version}):\n\`\`\`html\n${artifactPreview}\n\`\`\``,
     });
   }
 
@@ -86,15 +90,16 @@ export async function executeBuilder(
     } to complete this task. Create a single-file HTML application with inline CSS and JavaScript.`,
   });
 
-  // 5. Call LLM with JSON mode
+  // 5. Call LLM with builder-optimized settings (smarter models, more tokens)
   console.log(`[Builder] Calling LLM for todo: ${todo.content} with ${messages.length} messages`);
-  const response = await llmProvider.chat(messages, {
+  const response = await llmProvider.chatForBuilder(messages, {
     temperature: 0.7,
-    max_tokens: 3000, // More tokens for code generation
-    json_mode: true, // Request JSON output
+    // max_tokens is set to 16000 by chatForBuilder
+    structured: true,
+    schema: llmProvider.getSchema("builder"),
   });
 
-  // 6. Parse JSON response
+  // 6. Parse JSON response (structured output guarantees valid JSON)
   console.log(`[Builder] LLM Response (first 500 chars):\n${response.content.substring(0, 500)}`);
 
   let parsed: {
@@ -112,16 +117,9 @@ export async function executeBuilder(
     console.log(`[Builder] Parsed JSON - thinking: ${parsed.thinking.substring(0, 100)}...`);
     console.log(`[Builder] Artifact size: ${parsed.results.artifact.length} chars`);
   } catch (error) {
-    console.error(`[Builder] Failed to parse JSON response:`, error);
-    console.error(`[Builder] Response:`, response.content);
-    // Fallback: try to extract HTML from response
-    const htmlMatch =
-      response.content.match(/```html\n?([\s\S]*?)\n?```/) ||
-      response.content.match(/(<!DOCTYPE[\s\S]*<\/html>)/);
-    parsed = {
-      thinking: "Built artifact",
-      results: { artifact: htmlMatch?.[1] || "" }
-    };
+    console.error(`[Builder] Failed to parse structured JSON response:`, error);
+    console.error(`[Builder] Response:`, response.content.substring(0, 1000));
+    throw new Error(`Builder received invalid JSON from LLM provider: ${error}`);
   }
 
   // 7. Create artifact from results
