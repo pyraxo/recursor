@@ -4769,9 +4769,6 @@ packages:
     peerDependencies:
       zod: ^3.24.1
 
-  zod@3.25.67:
-    resolution: {integrity: sha512-idA2YXwpCdqUSKRCACDE6ItZD9TZzy3OZMtpfLoh6oPR47lipysRrJfjzMqFxQ3uJuUPyUeWe1r9vLH33xO/Qw==}
-
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
@@ -5316,8 +5313,8 @@ snapshots:
       express-rate-limit: 7.5.1(express@5.1.0)
       pkce-challenge: 5.0.0
       raw-body: 3.0.1
-      zod: 3.25.67
-      zod-to-json-schema: 3.24.6(zod@3.25.67)
+      zod: 3.25.76
+      zod-to-json-schema: 3.24.6(zod@3.25.76)
     transitivePeerDependencies:
       - supports-color
 
@@ -6309,8 +6306,8 @@ snapshots:
       lodash: 4.17.21
       okay-error: 1.0.3
       uuid: 11.1.0
-      zod: 3.25.67
-      zod-to-json-schema: 3.24.6(zod@3.25.67)
+      zod: 3.25.76
+      zod-to-json-schema: 3.24.6(zod@3.25.76)
     transitivePeerDependencies:
       - supports-color
 
@@ -7462,9 +7459,9 @@ snapshots:
     dependencies:
       cross-fetch: 4.1.0
       dotenv: 16.4.7
-      openai: 5.23.2(ws@8.18.3)(zod@3.25.67)
-      zod: 3.25.67
-      zod-to-json-schema: 3.24.6(zod@3.25.67)
+      openai: 5.23.2(ws@8.18.3)(zod@3.25.76)
+      zod: 3.25.76
+      zod-to-json-schema: 3.24.6(zod@3.25.76)
     transitivePeerDependencies:
       - encoding
       - ws
@@ -8263,10 +8260,10 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  openai@5.23.2(ws@8.18.3)(zod@3.25.67):
+  openai@5.23.2(ws@8.18.3)(zod@3.25.76):
     optionalDependencies:
       ws: 8.18.3
-      zod: 3.25.67
+      zod: 3.25.76
 
   optionator@0.9.4:
     dependencies:
@@ -9267,10 +9264,8 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod-to-json-schema@3.24.6(zod@3.25.67):
+  zod-to-json-schema@3.24.6(zod@3.25.76):
     dependencies:
-      zod: 3.25.67
-
-  zod@3.25.67: {}
+      zod: 3.25.76
 
   zod@3.25.76: {}
