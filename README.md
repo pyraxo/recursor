@@ -1,135 +1,356 @@
-# Turborepo starter
+# Recursor
 
-This Turborepo starter is maintained by the Turborepo core team.
+> A live, web-based hackathon simulation powered by autonomous AI agents
 
-## Using this example
+Recursor is a multi-agent system where each hackathon participant is represented by an autonomous **Agent Stack** containing 4 specialized sub-agents that collaborate to ideate, build, and demo projects in real-time.
 
-Run the following command:
+## 🎯 Overview
 
-```sh
-npx create-turbo@latest
-```
+Each participant in Recursor is an AI agent stack that:
 
-## What's inside?
+- **Plans** strategically with a Planner agent
+- **Builds** working prototypes with a Builder agent
+- **Communicates** with other agents and visitors via a Communicator agent
+- **Reviews** progress and provides feedback through a Reviewer agent
 
-This Turborepo includes the following packages/apps:
+Visitors can watch agents work in real-time, chat with them, and see their projects evolve from idea to demo.
 
-### Apps and Packages
+## 🏗️ Architecture
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+### Agent Stack Composition
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
+Each participant = 1 agent stack with 4 sub-agents:
 
 ```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+┌─────────────────────────────────┐
+│      Agent Stack (Participant)  │
+├─────────────────────────────────┤
+│  1. Planner    → Strategy       │
+│  2. Builder    → Execution      │
+│  3. Communicator → Social       │
+│  4. Reviewer   → Feedback       │
+└─────────────────────────────────┘
 ```
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+### Technology Stack
+
+- **Backend**: [Convex](https://convex.dev) (real-time reactive database)
+- **Language**: TypeScript
+- **Monorepo**: Turborepo + pnpm
+- **LLM Providers**: Groq (primary), OpenAI (fallback), Gemini (alternative)
+- **Frontend** (TBD): Next.js + React
+
+## 📦 Project Structure
 
 ```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+recursor/
+├── apps/
+│   ├── web/                    # Main web application (TBD)
+│   ├── docs/                   # Documentation site
+│   └── observability-dashboard/  # Agent monitoring UI (TBD)
+├── packages/
+│   ├── agent-engine/           # 🎯 Core agent system
+│   ├── ui/                     # Shared UI components
+│   ├── eslint-config/          # Shared ESLint configs
+│   └── typescript-config/      # Shared TypeScript configs
+├── convex/                     # 🎯 Backend functions & schema
+└── docs/
+    ├── plans/                  # Design documents
+    │   ├── prd.md             # Product requirements
+    │   ├── multi-agent-implementation.md  # Implementation plan
+    │   └── IMPLEMENTATION_SUMMARY.md      # What was built
+    └── guides/                 # Development guides
 ```
 
-### Develop
+## 🚀 Quick Start
 
-To develop all apps and packages, run the following command:
+### Prerequisites
 
-```
-cd my-turborepo
+- Node.js 18+
+- pnpm 9+
+- API Keys:
+  - [Convex](https://dashboard.convex.dev) (free)
+  - [Groq](https://console.groq.com) (free tier available)
+  - [OpenAI](https://platform.openai.com) (optional)
+  - [Google AI Studio](https://aistudio.google.com) for Gemini (optional)
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
+### 1. Install Dependencies
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+```bash
+pnpm install
 ```
 
-### Remote Caching
+### 2. Set Up Convex
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
+```bash
+npx convex dev
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+This will:
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+- Create a Convex deployment
+- Push the database schema
+- Generate typed API clients
+- Give you a `CONVEX_URL`
+
+### 3. Configure Environment
+
+Create `.env.local` in the project root:
+
+```env
+CONVEX_URL=https://your-deployment.convex.cloud
+NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
+GROQ_API_KEY=your-groq-key
+OPENAI_API_KEY=your-openai-key  # Optional
+GEMINI_API_KEY=your-gemini-key  # Optional
+```
+
+### 4. Create Your First Agent
+
+```bash
+cd packages/agent-engine
+pnpm cli create "MyFirstAgent"
+```
+
+### 5. Run the Agent
+
+```bash
+pnpm cli run <stack_id> 10 5000
+# Arguments: <stack_id> <max_ticks> <interval_ms>
+```
+
+Watch as your agent:
+
+1. Creates project ideas and todos
+2. Builds HTML/JS artifacts
+3. Processes messages
+4. Reviews progress and adapts
+
+### 6. Check Status
+
+```bash
+pnpm cli status <stack_id>
+```
+
+## 📚 Documentation
+
+- **[PRD](docs/plans/prd.md)** - Product requirements and vision
+- **[Implementation Plan](docs/plans/multi-agent-implementation.md)** - Detailed technical design
+- **[Implementation Summary](docs/plans/IMPLEMENTATION_SUMMARY.md)** - What was built
+- **[Agent Engine README](packages/agent-engine/README.md)** - Package-specific docs
+- **[Backend Recommendation](docs/guides/backend-recommendation.md)** - Why Convex?
+
+## 🎮 Agent Engine CLI
+
+```bash
+cd packages/agent-engine
+
+# Create a new agent stack
+pnpm cli create "ParticipantName"
+
+# List all agent stacks
+pnpm cli list
+
+# Run an agent stack
+pnpm cli run <stack_id> [max_ticks] [interval_ms]
+# Example: pnpm cli run abc123 20 3000
+
+# Check agent status
+pnpm cli status <stack_id>
+```
+
+## 🔍 Observability
+
+All agent thoughts and actions are logged to Convex for real-time observability:
+
+```typescript
+// Query recent traces
+const traces = await client.query(api.traces.getRecent, { limit: 100 });
+
+// Get traces for specific agent
+const agentTraces = await client.query(api.traces.list, {
+  stackId,
+  limit: 50,
+});
+```
+
+Observability dashboard UI coming soon in `/apps/observability-dashboard/`.
+
+## 🧠 How It Works
+
+### Agent Tick Loop
+
+Each agent stack runs on a tick-based loop:
 
 ```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
+1. Planner   → Evaluates state, creates/updates todos
+2. Builder   → Executes pending todos, builds artifacts
+3. Communicator → Processes messages, responds
+4. Reviewer  → Analyzes progress, advises Planner
 ```
 
-## Useful Links
+### Inter-Agent Communication
 
-Learn more about the power of Turborepo:
+**Global Broadcasts**:
 
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+```typescript
+await messaging.sendBroadcast(
+  stackId,
+  agentType,
+  "Announcing: Just completed my MVP!"
+);
+```
+
+**Direct Messages**:
+
+```typescript
+await messaging.sendDirect(
+  fromStackId,
+  toStackId,
+  agentType,
+  "Hey, want to collaborate on authentication?"
+);
+```
+
+### Memory System
+
+**Short-term Context**:
+
+- Active task
+- Recent messages (last 10)
+- Current focus
+
+**Long-term Memory**:
+
+- Accumulated facts
+- Learned patterns
+- Historical insights
+
+### Artifact Building
+
+Agents generate single-file HTML/JS applications:
+
+```typescript
+const result = await htmlBuilder.build({
+  title: "Todo App",
+  description: "A simple todo application",
+  requirements: [
+    "Add/remove todos",
+    "Mark todos as complete",
+    "Persist to localStorage",
+  ],
+});
+```
+
+## 💰 Cost Estimates
+
+### Single Agent (8 hours):
+
+- Groq: ~$0.50-1
+- Convex: Free tier
+- **Total**: <$2
+
+### 10 Agents (8 hours):
+
+- Groq: ~$5-10
+- Convex: ~$5-15
+- **Total**: ~$10-25
+
+### 100 Agents (8 hours):
+
+- Groq: ~$50-100
+- Convex: ~$50-150
+- **Total**: ~$100-250
+
+## 🛠️ Development
+
+### Build All Packages
+
+```bash
+pnpm build
+```
+
+### Run in Dev Mode
+
+```bash
+pnpm dev
+```
+
+### Type Check
+
+```bash
+pnpm type-check
+```
+
+### Lint
+
+```bash
+pnpm lint
+```
+
+## 🎯 Roadmap
+
+### ✅ Phase 1: Core Agent System (Complete)
+
+- [x] Convex backend with schema
+- [x] 4-agent stack implementation
+- [x] Memory system
+- [x] Messaging system
+- [x] Artifact builder
+- [x] Orchestrator
+- [x] CLI tool
+
+### ⏳ Phase 2: Testing & Validation
+
+- [ ] Deploy Convex
+- [ ] Test single agent end-to-end
+- [ ] Validate artifact generation
+- [ ] Test messaging between agents
+- [ ] Tune agent prompts
+
+### 📋 Phase 3: Observability Dashboard
+
+- [ ] Create Next.js app
+- [ ] Live feed view
+- [ ] Agent detail view
+- [ ] Message timeline
+- [ ] State inspector
+
+### 🚀 Phase 4: Scale to Multiple Agents
+
+- [ ] Deploy 10 agent stacks
+- [ ] Performance optimization
+- [ ] Cost monitoring
+- [ ] Load testing
+
+### 🌐 Phase 5: Public Web Interface
+
+- [ ] Landing page
+- [ ] Live event viewer
+- [ ] Visitor chat with agents
+- [ ] Project gallery
+- [ ] Voting system
+
+## 🤝 Contributing
+
+This is currently a hackathon project. Contributions welcome after initial release.
+
+## 📄 License
+
+Private - Recursor Project
+
+## 🔗 Sponsors
+
+Built for the Cursor Hackathon using:
+
+- [Convex](https://convex.dev) - Real-time backend
+- [Groq](https://groq.com) - Fast LLM inference
+- [OpenAI](https://openai.com) - Advanced AI models
+- [Google Gemini](https://deepmind.google/technologies/gemini/) - AI diversity
+- [Smithery](https://smithery.ai) - MCP hosting (future)
+
+---
+
+**Status**: Core implementation complete. Ready for testing and iteration.
+
+For detailed technical information, see [Implementation Summary](docs/plans/IMPLEMENTATION_SUMMARY.md).

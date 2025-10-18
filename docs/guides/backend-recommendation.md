@@ -34,19 +34,20 @@ After analyzing the PRD for VibeHack (the live hackathon simulation), **Convex i
 
 ### Perfect Match for Core Requirements
 
-| Requirement | Convex | Supabase | Winner |
-|------------|---------|----------|---------|
-| Real-time updates | Native, automatic | Requires setup | ✅ Convex |
-| <1s latency | Optimistic updates built-in | Manual implementation | ✅ Convex |
-| Live chat | Reactive queries | Requires WebSocket setup | ✅ Convex |
-| Agent state management | Reactive, automatic sync | Manual pub/sub | ✅ Convex |
-| High-frequency writes | Designed for this | Can handle but not optimized | ✅ Convex |
-| Type safety | TypeScript-first | Partial | ✅ Convex |
-| Developer velocity | Instant hot-reload | Slower iteration | ✅ Convex |
+| Requirement            | Convex                      | Supabase                     | Winner    |
+| ---------------------- | --------------------------- | ---------------------------- | --------- |
+| Real-time updates      | Native, automatic           | Requires setup               | ✅ Convex |
+| <1s latency            | Optimistic updates built-in | Manual implementation        | ✅ Convex |
+| Live chat              | Reactive queries            | Requires WebSocket setup     | ✅ Convex |
+| Agent state management | Reactive, automatic sync    | Manual pub/sub               | ✅ Convex |
+| High-frequency writes  | Designed for this           | Can handle but not optimized | ✅ Convex |
+| Type safety            | TypeScript-first            | Partial                      | ✅ Convex |
+| Developer velocity     | Instant hot-reload          | Slower iteration             | ✅ Convex |
 
 ### Specific Advantages for VibeHack
 
 #### 1. Real-time Agent Simulation
+
 ```typescript
 // Convex makes agent updates trivial
 export const updateAgentState = mutation({
@@ -74,16 +75,14 @@ function AgentView({ agentId }) {
 ```
 
 #### 2. Live Activity Feed
+
 ```typescript
 // Convex: Automatic real-time feed
 export const getActivityFeed = query({
   handler: async (ctx) => {
     // Returns live, reactive data
-    return await ctx.db
-      .query("activities")
-      .order("desc")
-      .take(50);
-  }
+    return await ctx.db.query("activities").order("desc").take(50);
+  },
 });
 
 // Supabase: Would require manual WebSocket setup
@@ -91,6 +90,7 @@ export const getActivityFeed = query({
 ```
 
 #### 3. Optimistic Updates for <1s Latency
+
 ```typescript
 // Convex: Built-in optimistic updates
 const sendMessage = useMutation(api.chat.send);
@@ -101,6 +101,7 @@ await sendMessage({ text: "Hello" });
 ```
 
 #### 4. Agent Event Loop ("Ticks")
+
 ```typescript
 // Convex: Easy to implement with scheduled functions
 export const agentTick = internalMutation({
@@ -108,19 +109,18 @@ export const agentTick = internalMutation({
     const agents = await ctx.db.query("agents").collect();
 
     // Process all agents in parallel
-    await Promise.all(agents.map(agent =>
-      processAgentTick(ctx, agent)
-    ));
+    await Promise.all(agents.map((agent) => processAgentTick(ctx, agent)));
 
     // Schedule next tick
     await ctx.scheduler.runAfter(1000, internal.simulation.agentTick);
-  }
+  },
 });
 ```
 
 ### Performance & Scale
 
 Convex handles the exact scale requirements:
+
 - ✅ 300-500 concurrent agents making updates
 - ✅ 1,000+ viewers receiving real-time updates
 - ✅ Automatic horizontal scaling
@@ -129,6 +129,7 @@ Convex handles the exact scale requirements:
 ### Developer Experience for Rapid Iteration
 
 Given the aggressive timeline (MVP in 1-2 weeks):
+
 - **Convex**: Write functions, they work instantly
 - **Supabase**: Set up tables, RLS policies, WebSocket channels, etc.
 
@@ -151,6 +152,7 @@ Supabase is excellent, but not for this project:
 ## Migration Path (If Needed)
 
 If you later need Supabase features:
+
 1. Keep Convex for real-time simulation
 2. Add Supabase for:
    - Authentication (Phase 2+)
@@ -160,6 +162,7 @@ If you later need Supabase features:
 ## Cost Considerations
 
 For a hackathon simulation:
+
 - **Convex**: Pay for function calls and database operations
   - Estimated: Moderate cost for event duration
   - Built-in cost controls via tick rate adjustment
@@ -172,13 +175,13 @@ For a hackathon simulation:
 
 ### Time to implement core features:
 
-| Feature | Convex | Supabase |
-|---------|---------|----------|
-| Real-time feed | 30 min | 2-3 hours |
-| Agent chat | 1 hour | 3-4 hours |
-| Live voting | 30 min | 2 hours |
-| Agent state sync | 1 hour | 4-5 hours |
-| **Total MVP** | **1-2 days** | **4-5 days** |
+| Feature          | Convex       | Supabase     |
+| ---------------- | ------------ | ------------ |
+| Real-time feed   | 30 min       | 2-3 hours    |
+| Agent chat       | 1 hour       | 3-4 hours    |
+| Live voting      | 30 min       | 2 hours      |
+| Agent state sync | 1 hour       | 4-5 hours    |
+| **Total MVP**    | **1-2 days** | **4-5 days** |
 
 ## Recommended Architecture
 
@@ -215,18 +218,19 @@ For a hackathon simulation:
 
 ## Decision Matrix
 
-| Factor | Weight | Convex | Supabase |
-|--------|--------|---------|----------|
-| Real-time capability | 30% | 10/10 | 6/10 |
-| Developer velocity | 25% | 10/10 | 7/10 |
-| Performance (<1s latency) | 20% | 10/10 | 6/10 |
-| Scale handling | 15% | 9/10 | 8/10 |
-| Cost efficiency | 10% | 8/10 | 7/10 |
-| **Weighted Score** | | **9.65** | **6.75** |
+| Factor                    | Weight | Convex   | Supabase |
+| ------------------------- | ------ | -------- | -------- |
+| Real-time capability      | 30%    | 10/10    | 6/10     |
+| Developer velocity        | 25%    | 10/10    | 7/10     |
+| Performance (<1s latency) | 20%    | 10/10    | 6/10     |
+| Scale handling            | 15%    | 9/10     | 8/10     |
+| Cost efficiency           | 10%    | 8/10     | 7/10     |
+| **Weighted Score**        |        | **9.65** | **6.75** |
 
 ## Final Recommendation
 
 **Use Convex immediately.** It's purpose-built for exactly what VibeHack needs:
+
 1. Real-time collaborative features
 2. Live reactive updates
 3. Low-latency interactions
@@ -237,6 +241,7 @@ You can ship the MVP in days, not weeks, and the real-time features will "just w
 ## Next Steps
 
 1. Initialize Convex in the project:
+
    ```bash
    npx convex dev
    ```

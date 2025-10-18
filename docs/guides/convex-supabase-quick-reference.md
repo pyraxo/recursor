@@ -25,6 +25,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ## Quick Setup
 
 ### 1. Convex Client
+
 ```typescript
 // lib/convex.ts
 import { ConvexClient } from "convex/browser";
@@ -32,29 +33,30 @@ export const convex = new ConvexClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 ```
 
 ### 2. Supabase Client
+
 ```typescript
 // lib/supabase.ts
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 export const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 );
 ```
 
 ## When to Use What
 
-| Use Case | Use Convex | Use Supabase |
-|----------|------------|--------------|
-| Real-time updates | ✅ | ❌ |
-| User authentication | ❌ | ✅ |
-| File storage | ❌ | ✅ |
-| Collaborative features | ✅ | ❌ |
-| Complex SQL queries | ❌ | ✅ |
-| Optimistic updates | ✅ | ❌ |
-| Vector search | ❌ | ✅ |
-| Serverless functions | ✅ | ✅ |
-| Type safety | ✅ | ⚠️ |
-| Row-level security | ⚠️ | ✅ |
+| Use Case               | Use Convex | Use Supabase |
+| ---------------------- | ---------- | ------------ |
+| Real-time updates      | ✅         | ❌           |
+| User authentication    | ❌         | ✅           |
+| File storage           | ❌         | ✅           |
+| Collaborative features | ✅         | ❌           |
+| Complex SQL queries    | ❌         | ✅           |
+| Optimistic updates     | ✅         | ❌           |
+| Vector search          | ❌         | ✅           |
+| Serverless functions   | ✅         | ✅           |
+| Type safety            | ✅         | ⚠️           |
+| Row-level security     | ⚠️         | ✅           |
 
 ## Common Code Patterns
 
@@ -62,14 +64,17 @@ export const supabase = createClient(
 
 ```typescript
 // Sign in with Supabase
-const { data: { user } } = await supabase.auth.signInWithPassword({
-  email, password
+const {
+  data: { user },
+} = await supabase.auth.signInWithPassword({
+  email,
+  password,
 });
 
 // Use user ID in Convex
 await convex.mutation(api.messages.send, {
   text: "Hello",
-  userId: user.id
+  userId: user.id,
 });
 ```
 
@@ -78,7 +83,7 @@ await convex.mutation(api.messages.send, {
 ```typescript
 // Upload to Supabase
 const { data } = await supabase.storage
-  .from('files')
+  .from("files")
   .upload(`${userId}/${fileName}`, file);
 
 // Store metadata in Convex
@@ -86,7 +91,7 @@ await convex.mutation(api.files.create, {
   path: data.path,
   name: fileName,
   size: file.size,
-  uploadedBy: userId
+  uploadedBy: userId,
 });
 ```
 
@@ -116,6 +121,7 @@ function MyComponent() {
 ## Schema Examples
 
 ### Convex Schema
+
 ```typescript
 // convex/schema.ts
 import { defineSchema, defineTable } from "convex/server";
@@ -131,6 +137,7 @@ export default defineSchema({
 ```
 
 ### Supabase Schema
+
 ```sql
 -- PostgreSQL
 CREATE TABLE profiles (

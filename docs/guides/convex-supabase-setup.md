@@ -7,6 +7,7 @@ This guide explains how to set up and use both Convex and Supabase in your proje
 ## Why Use Both Services?
 
 ### Convex Strengths
+
 - **Real-time reactive database**: Automatically syncs data across clients without additional configuration
 - **TypeScript-first**: End-to-end type safety with auto-generated types
 - **Serverless functions**: Write backend logic directly in TypeScript with hot-reload
@@ -15,6 +16,7 @@ This guide explains how to set up and use both Convex and Supabase in your proje
 - **Simple deployment**: No infrastructure management needed
 
 ### Supabase Strengths
+
 - **Full PostgreSQL database**: Access to all PostgreSQL features and extensions
 - **Row-Level Security (RLS)**: Fine-grained access control at the database level
 - **Built-in authentication**: Multiple auth providers out of the box
@@ -25,6 +27,7 @@ This guide explains how to set up and use both Convex and Supabase in your proje
 ## Recommended Architecture Pattern
 
 Use each service for what it does best:
+
 - **Convex**: Real-time features, collaborative features, reactive UI state
 - **Supabase**: Authentication, file storage, complex SQL queries, analytics
 
@@ -55,6 +58,7 @@ npx convex dev
 ```
 
 This command will:
+
 - Prompt you to log in to Convex
 - Create a new project or connect to an existing one
 - Generate a `convex/` directory with configuration files
@@ -212,7 +216,7 @@ export const convex = new ConvexClient(convexUrl);
 Create `lib/supabase.ts`:
 
 ```typescript
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -232,12 +236,14 @@ Since Supabase has excellent built-in authentication, we'll use it as the primar
 Create `lib/auth-bridge.ts`:
 
 ```typescript
-import { supabase } from './supabase';
-import { convex } from './convex';
-import { api } from '../convex/_generated/api';
+import { supabase } from "./supabase";
+import { convex } from "./convex";
+import { api } from "../convex/_generated/api";
 
 export async function syncAuthToConvex() {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (user) {
     // Store user info in Convex for real-time features
@@ -251,7 +257,7 @@ export async function syncAuthToConvex() {
 
 // Call this on auth state changes
 supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_IN' && session) {
+  if (event === "SIGNED_IN" && session) {
     syncAuthToConvex();
   }
 });
@@ -300,10 +306,10 @@ Create a component that uses both services:
 
 ```tsx
 // components/ChatWithProfile.tsx
-import { useEffect, useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '../convex/_generated/api';
-import { supabase } from '../lib/supabase';
+import { useEffect, useState } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../convex/_generated/api";
+import { supabase } from "../lib/supabase";
 
 export function ChatWithProfile() {
   const [user, setUser] = useState(null);
@@ -318,9 +324,9 @@ export function ChatWithProfile() {
       if (user) {
         // Fetch profile from Supabase
         supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
           .single()
           .then(({ data }) => setProfile(data));
       }
@@ -332,7 +338,7 @@ export function ChatWithProfile() {
     if (user) {
       await sendMessage({
         text,
-        userId: user.id
+        userId: user.id,
       });
     }
   };
@@ -340,9 +346,7 @@ export function ChatWithProfile() {
   return (
     <div>
       <div>
-        {profile && (
-          <img src={profile.avatar_url} alt={profile.full_name} />
-        )}
+        {profile && <img src={profile.avatar_url} alt={profile.full_name} />}
       </div>
       <div>
         {messages?.map((msg) => (
@@ -360,6 +364,7 @@ export function ChatWithProfile() {
 ### 1. Service Selection Guidelines
 
 **Use Convex for:**
+
 - Real-time collaborative features (chat, presence, live cursors)
 - Reactive UI state that needs to sync across clients
 - Simple CRUD operations with type safety
@@ -367,6 +372,7 @@ export function ChatWithProfile() {
 - Serverless functions that need to run close to your data
 
 **Use Supabase for:**
+
 - User authentication and authorization
 - File/media storage and CDN delivery
 - Complex SQL queries and reporting
@@ -377,6 +383,7 @@ export function ChatWithProfile() {
 ### 2. Data Synchronization
 
 When you need data to exist in both systems:
+
 - Keep the source of truth in one system
 - Use webhooks or background jobs to sync
 - Consider eventual consistency requirements
@@ -402,7 +409,8 @@ When you need data to exist in both systems:
 ```typescript
 // Supabase handles auth
 const { user } = await supabase.auth.signInWithPassword({
-  email, password
+  email,
+  password,
 });
 
 // Convex handles real-time messages
@@ -413,9 +421,7 @@ const messages = useQuery(api.chat.messages);
 
 ```typescript
 // Supabase stores the file
-const { data } = await supabase.storage
-  .from('uploads')
-  .upload(path, file);
+const { data } = await supabase.storage.from("uploads").upload(path, file);
 
 // Convex tracks metadata and sharing
 await convex.mutation(api.files.create, {
@@ -458,11 +464,13 @@ pnpm dev
 ### Production
 
 1. **Deploy Convex:**
+
 ```bash
 npx convex deploy
 ```
 
 2. **Deploy Supabase:**
+
 - Push database changes: `npx supabase db push`
 - Deploy edge functions: `npx supabase functions deploy`
 
@@ -502,6 +510,7 @@ npx supabase db reset
 By combining Convex and Supabase, you get the best of both worlds: Convex's excellent real-time capabilities and developer experience with Supabase's powerful PostgreSQL features and built-in authentication. This architecture provides flexibility to choose the right tool for each feature while maintaining a cohesive backend infrastructure.
 
 Remember to:
+
 - Start simple and add complexity as needed
 - Monitor usage and costs for both services
 - Keep security as a top priority

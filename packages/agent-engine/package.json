@@ -1,0 +1,29 @@
+{
+  "name": "@recursor/agent-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "cli": "tsx src/cli.ts",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "convex": "^1.28.0",
+    "groq-sdk": "^0.7.0",
+    "openai": "^4.67.3",
+    "@google/generative-ai": "^0.21.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.5.0",
+    "typescript": "^5.6.2",
+    "tsx": "^4.19.2"
+  }
+}
