@@ -48,7 +48,7 @@ export function AdminDashboard({
 
   return (
     <div className="h-full bg-background dark overflow-auto">
-      <div className="mx-auto max-w-[1600px] p-6 md:p-8 lg:p-12">
+      <div className="w-full p-6 md:p-8 lg:p-12">
         {/* Header */}
         <header className="mb-12">
           <h1 className="font-mono text-4xl font-bold tracking-tight text-foreground mb-3">
