@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { action, mutation, query, internalQuery, internalMutation, internalAction } from "./_generated/server";
+import { action, query, internalQuery, internalMutation, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import { ActionCtx } from "./_generated/server";
@@ -93,6 +93,34 @@ export const getLeaderboard = query({
   },
 });
 
+export const getAllJudgmentHistory = query({
+  args: {},
+  handler: async (ctx) => {
+    // Get all judgments ordered by time (oldest first for chart display)
+    const judgments = await ctx.db
+      .query("judgments")
+      .withIndex("by_time")
+      .order("asc")
+      .collect();
+
+    const stacks = await ctx.db.query("agent_stacks").collect();
+    const stackIdToName = new Map(stacks.map((s) => [s._id, s.participant_name]));
+
+    // Transform to include team name
+    return judgments.map((j) => ({
+      stack_id: j.stack_id,
+      team_name: stackIdToName.get(j.stack_id) || "Unknown",
+      technical_merit: j.technical_merit,
+      polish: j.polish,
+      execution: j.execution,
+      wow_factor: j.wow_factor,
+      total_score: j.total_score,
+      judged_at: j.judged_at,
+      artifact_version: j.artifact_version_judged,
+    }));
+  },
+});
+
 export const createJudgmentInternal = internalMutation({
   args: {
     stack_id: v.id("agent_stacks"),
@@ -171,61 +199,67 @@ Compare this submission to their previous work. Scores should reflect ACTUAL PRO
   const messages: Message[] = [
     {
       role: "system",
-      content: `You are an OBJECTIVE and IMPARTIAL judge for the Cursor AI Hackathon. Your role is to evaluate based on what you observe in the actual code and progress, not assumptions.
+      content: `You are an OBJECTIVE and IMPARTIAL judge for the Cursor AI Hackathon. Your role is to critically evaluate each project using the FULL 1-10 scoring scale.
 
-CRITICAL: You must be HONEST and OBJECTIVE. Scores should reflect the actual state of the project:
-- Teams may improve between iterations (scores go up)
-- Teams may stay the same (scores stay flat)
-- Teams may regress if they introduce bugs or remove features (scores go down)
-- DO NOT give artificially linear or gradually increasing scores
-- Base your judgment ONLY on what you see in the current artifact
+CRITICAL JUDGING PRINCIPLES:
+- USE THE FULL 1-10 SCALE - Don't cluster everything around 5
+- Be DISCRIMINATING: Poor work gets low scores (1-4), great work gets high scores (7-10)
+- Evaluate what the code PRODUCES when rendered, not just the code itself
+- Consider the VISUAL OUTPUT: What does this look like in a browser?
+- Consider the UX: Is it intuitive, responsive, and well-designed?
+- Use the README/Description as the PITCH - does the execution match the vision?
+- Scores should reflect ACTUAL QUALITY differences between teams
 
-SCORING SCALE (normalize towards 5 as average):
-- **1-2**: Poor/broken - major issues, doesn't work, minimal effort
-- **3-4**: Below average - works partially, significant gaps
-- **5**: Average - decent hackathon project, works as expected for the time given
-- **6-7**: Above average - well executed, goes beyond basics
-- **8-9**: Excellent - impressive quality and execution
-- **10**: Outstanding - exceptional, production-ready, wow-worthy
+SCORING SCALE (use the FULL range):
+- **1-2**: Broken/minimal - doesn't work, barely started, no real functionality
+- **3-4**: Below average - works partially but has major gaps, poor UX, looks unfinished
+- **5-6**: Average/decent - works as expected, basic functionality, acceptable UX
+- **7-8**: Above average/good - well executed, polished, goes beyond basics, good UX
+- **9-10**: Excellent/outstanding - impressive quality, production-level polish, exceptional UX
 
-Most projects should score around 5. Only truly exceptional work deserves 8+. Avoid grade inflation.
+DO NOT assume all projects are average. Evaluate objectively and use scores that reflect real quality differences.
 
 Evaluate teams based on 4 criteria:
 
 **Technical Merit (1-10)**: Quality of code, architecture, and implementation
-- Is the code well-structured and maintainable?
-- Are best practices followed?
+- Is the code well-structured and functional?
+- Does it actually work when rendered?
 - Is the technical implementation sound?
+- What does the code PRODUCE visually?
 
-**Polish (1-10)**: Attention to detail, UX, and overall execution quality
-- Is the UI/UX polished and professional?
-- Are there attention to details?
-- Is the overall presentation high-quality?
+**Polish (1-10)**: Visual design, UX, and attention to detail
+- What does this LOOK LIKE when rendered in a browser?
+- Is the UI polished, professional, and visually appealing?
+- Is the UX intuitive and well-designed?
+- Are there nice touches and attention to details?
+- Does it feel finished or half-baked?
 
 **Execution (1-10)**: How well the team delivered on their vision
+- Read the Description/README as their PITCH - did they deliver on it?
 - Does the project work as intended?
-- Is the project complete or mostly complete?
-- Did they execute their vision well?
+- Is it complete or mostly complete?
+- Does the visual output match what they promised?
 
 **Wow Factor (1-10)**: How memorable and impressive the hack is
 - Is it innovative and creative?
-- Does it stand out?
+- Does it stand out visually or functionally?
 - Would it impress judges and viewers?
+- Is there a "wow" moment when you see it rendered?
 
 You must respond with ONLY a valid JSON object in this exact format:
 {
   "technical_merit": <score 1-10>,
   "technical_merit_notes": "<brief explanation>",
   "polish": <score 1-10>,
-  "polish_notes": "<brief explanation>",
+  "polish_notes": "<brief explanation based on VISUAL OUTPUT and UX>",
   "execution": <score 1-10>,
-  "execution_notes": "<brief explanation>",
+  "execution_notes": "<brief explanation comparing to their pitch>",
   "wow_factor": <score 1-10>,
   "wow_factor_notes": "<brief explanation>",
-  "overall_assessment": "<2-3 sentence overall assessment>"
+  "overall_assessment": "<2-3 sentence overall assessment of the rendered output and UX>"
 }
 
-Be fair, honest, and objective. Normalize scores around 5 (average). Consider this is a hackathon with limited time. Focus on what they actually achieved.`,
+Be honest, critical, and use the full scoring range. Great work deserves high scores. Poor work deserves low scores. Don't give everything a 5.`,
     },
     {
       role: "user",
@@ -233,7 +267,7 @@ Be fair, honest, and objective. Normalize scores around 5 (average). Consider th
 
 **Team**: ${stack.participant_name}
 **Project**: ${projectIdea?.title || "Unknown"}
-**Description**: ${projectIdea?.description || "No description"}
+**Description/Pitch**: ${projectIdea?.description || "No description"}
 **Phase**: ${stack.phase}
 **Progress**: ${completedTodos.length}/${totalTodos} todos completed
 ${previousScoresContext}
@@ -246,7 +280,14 @@ ${artifacts.content?.substring(0, 8000) || "No content"}
 ${artifacts.metadata?.description ? `**Artifact Description**: ${artifacts.metadata.description}` : ""}
 ${artifacts.metadata?.tech_stack ? `**Tech Stack**: ${artifacts.metadata.tech_stack.join(", ")}` : ""}
 
-Provide your OBJECTIVE judgment as JSON only. Remember: scores should reflect actual progress, not assumptions.`,
+IMPORTANT:
+- Read the HTML/CSS/JavaScript and VISUALIZE what it will look like when rendered in a browser
+- Evaluate the VISUAL OUTPUT, not just the code quality
+- Consider the UX when someone actually uses this application
+- Compare the rendered result to their pitch/description
+- Use the FULL 1-10 scale - be discriminating between poor, average, and excellent work
+
+Provide your OBJECTIVE judgment as JSON only.`,
     },
   ];
 

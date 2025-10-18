@@ -19,11 +19,11 @@ interface DataPoint {
 
 export function ProgressChart() {
   const stacks = useQuery(api.agents.listStacks);
-  const leaderboard = useQuery(api.judging.getLeaderboard);
+  const judgmentHistory = useQuery(api.judging.getAllJudgmentHistory);
 
   const chartData = useMemo(() => {
     if (!stacks || stacks.length === 0) {
-      return { data: [], colors: [] };
+      return { data: [], colors: [], teamNames: [] };
     }
 
     const colors = [
@@ -37,53 +37,78 @@ export function ProgressChart() {
       "#7fff00",
     ];
 
-    if (!leaderboard || leaderboard.length === 0) {
-      const timePoints = 10;
-      const data: DataPoint[] = [];
+    const teamNames = stacks.map((s) => s.participant_name);
 
-      for (let i = 0; i <= timePoints; i++) {
-        const point: DataPoint = {
-          time: `T+${i}h`,
-          scores: {},
-        };
-
-        stacks.forEach((stack) => {
-          point.scores[stack.participant_name] = 0;
-        });
-
-        data.push(point);
-      }
-
-      return { data, colors };
+    // If no judgments yet, show empty chart
+    if (!judgmentHistory || judgmentHistory.length === 0) {
+      return {
+        data: [{ time: "Start", scores: Object.fromEntries(teamNames.map(n => [n, 0])) }],
+        colors,
+        teamNames
+      };
     }
 
-    const now = Date.now();
-    const oneHour = 60 * 60 * 1000;
-    const timePoints = 10;
-    const data: DataPoint[] = [];
+    // Group judgments by team
+    const teamJudgments = new Map<string, Array<{ time: number; score: number }>>();
 
-    for (let i = 0; i <= timePoints; i++) {
+    judgmentHistory.forEach((j: any) => {
+      if (!teamJudgments.has(j.team_name)) {
+        teamJudgments.set(j.team_name, []);
+      }
+      // Convert total_score (out of 40) to percentage (out of 100)
+      const score = Math.round((j.total_score / 40) * 100);
+      teamJudgments.get(j.team_name)!.push({
+        time: j.judged_at,
+        score: Math.min(100, Math.max(0, score)),
+      });
+    });
+
+    // Find all unique timestamps across all teams
+    const allTimestamps = new Set<number>();
+    judgmentHistory.forEach((j: any) => allTimestamps.add(j.judged_at));
+    const sortedTimestamps = Array.from(allTimestamps).sort((a, b) => a - b);
+
+    // If we have timestamps, use them; otherwise show single point
+    if (sortedTimestamps.length === 0) {
+      return {
+        data: [{ time: "Start", scores: Object.fromEntries(teamNames.map(n => [n, 0])) }],
+        colors,
+        teamNames
+      };
+    }
+
+    const startTime = sortedTimestamps[0];
+
+    // Build data points from actual judgments
+    const data: DataPoint[] = sortedTimestamps.map((timestamp, idx) => {
       const point: DataPoint = {
-        time: `T+${i}h`,
+        // Show elapsed minutes from start
+        time: idx === 0 ? "Start" : `+${Math.round((timestamp - startTime) / 60000)}m`,
         scores: {},
       };
 
-      stacks.forEach((stack) => {
-        const teamJudgment = leaderboard.find((j: any) => j.name === stack.participant_name);
-        if (teamJudgment) {
-          const score = Math.floor(teamJudgment.total_score / 4 * 10);
-          const simulatedProgress = (i / timePoints) * score;
-          point.scores[stack.participant_name] = Math.min(100, simulatedProgress);
+      // For each team, find their score at this timestamp
+      teamNames.forEach((teamName) => {
+        const judgments = teamJudgments.get(teamName) || [];
+
+        // Find the most recent judgment at or before this timestamp
+        const relevantJudgments = judgments.filter(j => j.time <= timestamp);
+
+        if (relevantJudgments.length > 0) {
+          // Use the most recent judgment
+          const latestJudgment = relevantJudgments[relevantJudgments.length - 1];
+          point.scores[teamName] = latestJudgment.score;
         } else {
-          point.scores[stack.participant_name] = 0;
+          // No judgment yet for this team at this time
+          point.scores[teamName] = 0;
         }
       });
 
-      data.push(point);
-    }
+      return point;
+    });
 
-    return { data, colors };
-  }, [stacks, leaderboard]);
+    return { data, colors, teamNames };
+  }, [stacks, judgmentHistory]);
 
   if (!stacks || stacks.length === 0) {
     return (
@@ -97,7 +122,7 @@ export function ProgressChart() {
     );
   }
 
-  const teamNames = stacks.map((s) => s.participant_name);
+  const { teamNames } = chartData;
   const maxScore = 100;
   const chartHeight = 300;
   const chartWidth = 800;

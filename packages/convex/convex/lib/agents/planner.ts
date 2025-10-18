@@ -225,6 +225,13 @@ export async function executePlanner(
         console.log(
           `[Planner] Updated todo: "${action.oldContent}" -> "${action.newContent || "same"}"`
         );
+        // Update local array to reflect the change
+        if (action.newContent) {
+          matchingTodo.content = action.newContent;
+        }
+        if (action.priority !== undefined) {
+          matchingTodo.priority = action.priority;
+        }
       } else {
         console.warn(
           `[Planner] Could not find todo to update: "${action.oldContent}"`
@@ -240,6 +247,8 @@ export async function executePlanner(
         });
         todosDeleted++;
         console.log(`[Planner] Deleted todo: "${action.content}"`);
+        // Remove from local array to prevent duplicate deletion attempts
+        todos = todos.filter((t: any) => t._id !== matchingTodo._id);
       } else {
         console.warn(
           `[Planner] Could not find todo to delete: "${action.content}"`

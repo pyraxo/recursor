@@ -114,6 +114,13 @@ export const internalUpdateStatus = internalMutation({
     status: v.string(),
   },
   handler: async (ctx, args) => {
+    // Check if the todo exists before updating
+    const todo = await ctx.db.get(args.todoId);
+    if (!todo) {
+      console.warn(`[todos:internalUpdateStatus] Todo ${args.todoId} does not exist, skipping update`);
+      return;
+    }
+
     const updates: Record<string, any> = {
       status: args.status,
     };
@@ -135,6 +142,13 @@ export const internalUpdate = internalMutation({
     status: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Check if the todo exists before updating
+    const todo = await ctx.db.get(args.todoId);
+    if (!todo) {
+      console.warn(`[todos:internalUpdate] Todo ${args.todoId} does not exist, skipping update`);
+      return args.todoId;
+    }
+
     const updates: Record<string, any> = {};
 
     if (args.content !== undefined) {
@@ -166,7 +180,13 @@ export const internalDelete = internalMutation({
     todoId: v.id("todos"),
   },
   handler: async (ctx, args) => {
-    await ctx.db.delete(args.todoId);
+    // Check if the todo exists before deleting (defensive against race conditions)
+    const todo = await ctx.db.get(args.todoId);
+    if (todo) {
+      await ctx.db.delete(args.todoId);
+    } else {
+      console.warn(`[todos:internalDelete] Todo ${args.todoId} does not exist, skipping deletion`);
+    }
   },
 });
 
