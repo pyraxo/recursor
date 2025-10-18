@@ -134,19 +134,16 @@ export async function executeCommunicator(
 
   // Send broadcast message (only for agent messages or explicit broadcast requests)
   let messageSent = false;
-  let responseMessageId = null;
   if (
     hasUnreadMessages ||
     needsBroadcast ||
     parsed.actions.some((a: any) => a.type === "send_message")
   ) {
-    // Store the message ID so we can link it to user messages
-    const messageId = await ctx.runMutation(internal.messages.internalSend, {
+    await ctx.runMutation(internal.messages.internalSend, {
       sender_id: stackId,
       message_type: "broadcast",
       content: response.content,
     });
-    responseMessageId = messageId;
     messageSent = true;
     console.log(`[Communicator] Sent broadcast message`);
 
