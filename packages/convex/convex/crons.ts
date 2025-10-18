@@ -23,4 +23,10 @@ crons.interval(
   internal.orchestration.scheduledOrchestrator
 );
 
+crons.interval(
+  "judge all teams",
+  { minutes: 5 },
+  internal.judging.executeAllJudgesScheduled
+);
+
 export default crons;

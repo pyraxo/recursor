@@ -15,7 +15,7 @@ import { Label } from "@repo/ui/components/label";
 import { RadioGroup, RadioGroupItem } from "@repo/ui/components/radio-group";
 import { Textarea } from "@repo/ui/components/textarea";
 import { useMutation } from "convex/react";
-import { Bot, Code2, Lightbulb, Loader2, UserPlus, Users } from "lucide-react";
+import { Code2, Lightbulb, Loader2, UserPlus, Users } from "lucide-react";
 import { useState } from "react";
 
 export function CreateTeamForm() {
@@ -38,10 +38,12 @@ export function CreateTeamForm() {
         participant_name: participantName.trim(),
         team_type: teamType,
         // Pass initial project idea if provided
-        ...(provideIdea && projectTitle && projectDescription && {
-          initial_project_title: projectTitle.trim(),
-          initial_project_description: projectDescription.trim(),
-        }),
+        ...(provideIdea &&
+          projectTitle &&
+          projectDescription && {
+            initial_project_title: projectTitle.trim(),
+            initial_project_description: projectDescription.trim(),
+          }),
       });
 
       // Reset form
@@ -59,9 +61,9 @@ export function CreateTeamForm() {
 
   return (
     <Card className="border-border bg-card h-fit">
-      <CardHeader className="pb-4">
+      <CardHeader className="m-4">
         <CardTitle className="font-mono text-sm font-semibold flex items-center gap-2">
-          <UserPlus className="h-4 w-4" />
+          <UserPlus className="size-4" />
           Create New Team
         </CardTitle>
         <CardDescription className="font-mono text-xs text-muted-foreground">
@@ -70,7 +72,7 @@ export function CreateTeamForm() {
       </CardHeader>
 
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 m-4">
           {/* Participant Name Input */}
           <div className="space-y-2">
             <Label
@@ -96,29 +98,36 @@ export function CreateTeamForm() {
 
           {/* Team Type Selection */}
           <div className="space-y-3">
-            <Label className="font-mono text-xs font-medium">
+            <Label className="font-mono text-xs font-medium pl-1">
               Team Architecture
               <span className="text-red-500 ml-1">*</span>
             </Label>
             <RadioGroup
               value={teamType}
-              onValueChange={(value) => setTeamType(value as "standard" | "cursor")}
+              onValueChange={(value) =>
+                setTeamType(value as "standard" | "cursor")
+              }
               disabled={isCreating}
               className="space-y-2"
             >
               {/* Standard Multi-Agent Option */}
               <div className="flex items-start space-x-3 p-3 rounded-lg border border-border hover:bg-muted/20 transition-colors">
-                <RadioGroupItem value="standard" id="standard" className="mt-0.5" />
+                <RadioGroupItem
+                  value="standard"
+                  id="standard"
+                  className="mt-0.5"
+                />
                 <div className="space-y-1 flex-1">
                   <Label
                     htmlFor="standard"
                     className="font-mono text-xs cursor-pointer flex items-center gap-2"
                   >
-                    <Users className="h-3.5 w-3.5" />
+                    <Users className="size-3.5" />
                     Standard Multi-Agent (4 agents)
                   </Label>
                   <p className="font-mono text-[10px] text-muted-foreground leading-relaxed">
-                    Traditional architecture with Planner, Builder, Communicator, and Reviewer agents working in coordination.
+                    Traditional architecture with Planner, Builder,
+                    Communicator, and Reviewer agents working in coordination.
                   </p>
                 </div>
               </div>
@@ -131,11 +140,12 @@ export function CreateTeamForm() {
                     htmlFor="cursor"
                     className="font-mono text-xs cursor-pointer flex items-center gap-2"
                   >
-                    <Code2 className="h-3.5 w-3.5" />
+                    <Code2 className="size-3.5" />
                     Cursor Background Agent
                   </Label>
                   <p className="font-mono text-[10px] text-muted-foreground leading-relaxed">
-                    Single autonomous agent with full IDE tooling (grep, lint, test, git) working in an isolated VM with GitHub workspace.
+                    Single autonomous agent with full IDE tooling (grep, lint,
+                    test, git) working in an isolated VM with GitHub workspace.
                   </p>
                 </div>
               </div>
@@ -156,7 +166,7 @@ export function CreateTeamForm() {
                 htmlFor="provide-idea"
                 className="font-mono text-xs cursor-pointer flex items-center gap-2"
               >
-                <Lightbulb className="h-3 w-3" />
+                <Lightbulb className="size-3" />
                 Provide initial project idea
               </Label>
               <p className="font-mono text-[10px] text-muted-foreground">
@@ -213,12 +223,12 @@ export function CreateTeamForm() {
           >
             {isCreating ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+                <Loader2 className="size-3.5 animate-spin" />
                 Creating Team...
               </>
             ) : (
               <>
-                <UserPlus className="w-3.5 h-3.5 mr-2" />
+                <UserPlus className="size-3.5" />
                 Create Team
               </>
             )}

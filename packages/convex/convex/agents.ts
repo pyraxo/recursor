@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query, internalMutation } from "./_generated/server";
+import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
 
 // Create a new agent stack
 export const createStack = mutation({
@@ -495,5 +495,21 @@ export const getCursorConfig = query({
     }
 
     return stack.cursor_config || null;
+  },
+});
+
+export const internalListStacks = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("agent_stacks").collect();
+  },
+});
+
+export const getTotalIterations = query({
+  args: {},
+  handler: async (ctx) => {
+    const stacks = await ctx.db.query("agent_stacks").collect();
+    const totalCycles = stacks.reduce((sum, stack) => sum + (stack.total_cycles || 0), 0);
+    return totalCycles;
   },
 });

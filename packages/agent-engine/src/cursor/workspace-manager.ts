@@ -77,24 +77,24 @@ export interface VirtualWorkspace {
  */
 export class VirtualWorkspaceManager {
   private readonly octokit: Octokit;
-  private readonly githubUsername: string;
+  private readonly githubOwner: string;
 
   /**
    * Create a new workspace manager
    *
    * @param githubToken - GitHub Personal Access Token with repo permissions
-   * @param githubUsername - GitHub username (defaults to "recursor-cursor-bot")
+   * @param githubOwner - GitHub organization or username (defaults to "recursor-sandbox")
    */
   constructor(
     githubToken: string,
-    githubUsername: string = "recursor-cursor-bot"
+    githubOwner: string = "recursor-sandbox"
   ) {
     if (!githubToken || githubToken.trim() === "") {
       throw new Error("GitHub token is required");
     }
 
     this.octokit = new Octokit({ auth: githubToken });
-    this.githubUsername = githubUsername;
+    this.githubOwner = githubOwner;
   }
 
   /**
@@ -127,10 +127,11 @@ export class VirtualWorkspaceManager {
     const branch = `agent-workspace`;
 
     try {
-      // 1. Create GitHub repository
-      console.log(`[Workspace] Creating GitHub repo: ${repoName}`);
+      // 1. Create GitHub repository in organization
+      console.log(`[Workspace] Creating GitHub repo: ${this.githubOwner}/${repoName}`);
       const { data: repo } =
-        await this.octokit.rest.repos.createForAuthenticatedUser({
+        await this.octokit.rest.repos.createInOrg({
+          org: this.githubOwner,
           name: repoName,
           private: true,
           auto_init: true,
@@ -185,9 +186,9 @@ export class VirtualWorkspaceManager {
           await cleanupDir();
 
           // Delete GitHub repository
-          console.log(`[Workspace] Deleting GitHub repo: ${repoName}`);
+          console.log(`[Workspace] Deleting GitHub repo: ${this.githubOwner}/${repoName}`);
           await this.octokit.rest.repos.delete({
-            owner: this.githubUsername,
+            owner: this.githubOwner,
             repo: repoName,
           });
         } catch (error) {
@@ -394,11 +395,11 @@ export class ConvexTool {
     for (const repoName of repoNames) {
       try {
         await this.octokit.rest.repos.delete({
-          owner: this.githubUsername,
+          owner: this.githubOwner,
           repo: repoName,
         });
         results.push({ repo: repoName, success: true });
-        console.log(`[Workspace] Deleted repo: ${repoName}`);
+        console.log(`[Workspace] Deleted repo: ${this.githubOwner}/${repoName}`);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         results.push({ repo: repoName, success: false, error: errorMsg });

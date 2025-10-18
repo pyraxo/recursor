@@ -1,7 +1,7 @@
 "use client";
 
-import { useQuery } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
+import { useQuery } from "convex/react";
 import { PixelPanel } from "../shared/PixelPanel";
 
 export function AdminTab() {
@@ -17,13 +17,17 @@ export function AdminTab() {
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="text-[var(--foreground)]/60 text-xs mb-1">Active Teams</div>
+                <div className="text-[var(--foreground)]/60 text-xs mb-1">
+                  Active Teams
+                </div>
                 <div className="text-2xl font-bold text-[var(--accent-primary)]">
                   {stacks?.length || 0}
                 </div>
               </div>
               <div>
-                <div className="text-[var(--foreground)]/60 text-xs mb-1">Total Agents</div>
+                <div className="text-[var(--foreground)]/60 text-xs mb-1">
+                  Total Agents
+                </div>
                 <div className="text-2xl font-bold text-[var(--accent-primary)]">
                   {(stacks?.length || 0) * 4}
                 </div>
@@ -55,8 +59,8 @@ export function AdminTab() {
                         stack.execution_state === "running"
                           ? "bg-green-500/20 text-green-500 border border-green-500"
                           : stack.execution_state === "paused"
-                          ? "bg-yellow-500/20 text-yellow-500 border border-yellow-500"
-                          : "bg-gray-500/20 text-gray-500 border border-gray-500"
+                            ? "bg-yellow-500/20 text-yellow-500 border border-yellow-500"
+                            : "bg-gray-500/20 text-gray-500 border border-gray-500"
                       }`}
                     >
                       {stack.execution_state || "idle"}

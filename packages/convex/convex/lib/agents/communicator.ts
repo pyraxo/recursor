@@ -28,28 +28,22 @@ export async function executeCommunicator(
     throw new Error(`Stack ${stackId} not found`);
   }
 
-  // 2. Determine communication needs
-  const hasUnreadMessages = messages && messages.length > 0;
-  const lastBroadcastTime =
-    (agentState as any)?.memory?.last_broadcast_time || 0;
-  const timeSinceLastBroadcast = Date.now() - lastBroadcastTime;
-  const needsStatusUpdate = timeSinceLastBroadcast > 120000; // 2 minutes
+  // 2. Determine communication needs (PRIORITY ORDER)
 
-  // Check if there are todos for responding to users (contains "respond to user" or similar)
-  const userResponseTodos = todos?.filter((t) =>
-    t.status === "pending" &&
-    (t.content.toLowerCase().includes("respond to user") ||
-     t.content.toLowerCase().includes("answer user") ||
-     t.content.toLowerCase().includes("reply to user"))
-  ) || [];
-  const needsUserResponse = userResponseTodos.length > 0;
-
-  if (!hasUnreadMessages && !needsStatusUpdate && !needsUserResponse) {
-    console.log(`[Communicator] No communication needed`);
-    return "Communicator idle: No messages to process or status updates needed";
+  // HIGHEST PRIORITY: User messages (process ONE at a time, chatroom style)
+  if (userMessages && userMessages.length > 0) {
+    return await handleUserMessage(ctx, stackId, userMessages[0], stack, projectIdea, todos);
   }
 
-  // 3. Build conversation
+  // PRIORITY 2: Unread messages from other agent teams
+  const hasUnreadMessages = messages && messages.length > 0;
+
+  if (!hasUnreadMessages) {
+    console.log(`[Communicator] No communication needed`);
+    return "Communicator idle: No messages to process";
+  }
+
+  // 3. Build conversation for agent messages or broadcasts
   const llmMessages: Message[] = [
     llmProvider.buildSystemPrompt("communicator", {
       projectTitle: projectIdea?.title,
@@ -67,73 +61,42 @@ export async function executeCommunicator(
     });
   }
 
-  // Process unread messages
+  // Process unread messages from other agent teams
   if (hasUnreadMessages) {
-    // Separate user messages from agent messages
-    const userMessages = messages.filter((m: any) => m.message_type === "visitor");
-    const agentMessages = messages.filter((m: any) => m.message_type !== "visitor");
+    // Enrich messages with sender team names
+    const enrichedMessages = await Promise.all(
+      messages.map(async (m: any) => {
+        if (m.from_stack_id) {
+          const senderStack = await ctx.runQuery(internal.agentExecution.getStackForExecution, {
+            stackId: m.from_stack_id,
+          });
+          return {
+            ...m,
+            senderTeamName: senderStack?.participant_name || "Unknown Team",
+          };
+        }
+        return { ...m, senderTeamName: "Unknown Team" };
+      })
+    );
 
-    let messagesSummary = "";
-
-    // Format user messages (these should be responded to directly)
-    if (userMessages.length > 0) {
-      const userMsgText = userMessages
-        .map((m: any) => `${m.from_user_name || "Visitor"}: ${m.content}`)
-        .join("\n");
-      messagesSummary += `User messages (respond to these directly, addressing the user):\n${userMsgText}\n\n`;
-    }
-
-    // Format agent messages (these are from other teams)
-    if (agentMessages.length > 0) {
-      const agentMsgText = agentMessages
-        .map((m: any) => {
-          const sender = m.from_agent_type || "someone";
-          return `From ${sender}: ${m.content}`;
-        })
-        .join("\n");
-      messagesSummary += `Messages from other participants:\n${agentMsgText}\n\n`;
-    }
+    const agentMsgText = enrichedMessages
+      .map((m: any) => {
+        return `From ${m.senderTeamName}: ${m.content}`;
+      })
+      .join("\n");
 
     llmMessages.push({
       role: "user",
-      content: `${messagesSummary}Please respond appropriately to these messages.`,
+      content: `Messages from other participants:\n${agentMsgText}\n\nPlease respond appropriately.`,
     });
 
     // Mark messages as read
     for (const msg of messages) {
       await ctx.runMutation(internal.messages.internalMarkAsRead, {
         messageId: msg._id,
-        stackId: stackId, // Add the current stack ID
+        stackId: stackId,
       });
     }
-  }
-
-  // Handle user response todos
-  if (needsUserResponse && userMessages && userMessages.length > 0) {
-    const userMessagesSummary = userMessages
-      .map((msg: any) => {
-        const timeAgo = Math.floor((Date.now() - msg.timestamp) / 60000);
-        return `- From ${msg.sender_name} (${timeAgo}m ago): ${msg.content}`;
-      })
-      .join("\n");
-
-    llmMessages.push({
-      role: "user",
-      content: `User messages to respond to:\n${userMessagesSummary}\n\nBased on the planner's todos (${userResponseTodos.map(t => t.content).join(", ")}), craft an appropriate response to the users.`,
-    });
-  }
-
-  // Request status update if needed
-  if (needsStatusUpdate) {
-    const completedTodos =
-      todos?.filter((t) => t.status === "completed").length || 0;
-    const pendingTodos =
-      todos?.filter((t) => t.status === "pending").length || 0;
-
-    llmMessages.push({
-      role: "user",
-      content: `Please provide a team status update. Progress: ${completedTodos} completed, ${pendingTodos} pending todos.`,
-    });
   }
 
   // 4. Call LLM
@@ -149,21 +112,16 @@ export async function executeCommunicator(
     "communicator"
   );
 
-  // Send broadcast message
   let messageSent = false;
-  let responseMessageId = null;
   if (
-    needsStatusUpdate ||
-    needsUserResponse ||
+    hasUnreadMessages ||
     parsed.actions.some((a: any) => a.type === "send_message")
   ) {
-    // Store the message ID so we can link it to user messages
-    const messageId = await ctx.runMutation(internal.messages.internalSend, {
+    await ctx.runMutation(internal.messages.internalSend, {
       sender_id: stackId,
       message_type: "broadcast",
       content: response.content,
     });
-    responseMessageId = messageId;
     messageSent = true;
     console.log(`[Communicator] Sent broadcast message`);
 
@@ -177,28 +135,6 @@ export async function executeCommunicator(
       agentType: "communicator",
       memory: updatedMemory,
     });
-  }
-
-  // Mark user messages as processed if we responded to them
-  if (needsUserResponse && userMessages && userMessages.length > 0 && responseMessageId) {
-    for (const userMsg of userMessages) {
-      await ctx.runMutation(internal.userMessages.internalMarkProcessed, {
-        message_id: userMsg._id,
-        response_id: responseMessageId,
-      });
-      console.log(`[Communicator] Marked user message ${userMsg._id} as processed`);
-    }
-  }
-
-  // Mark user response todos as completed
-  if (needsUserResponse) {
-    for (const todo of userResponseTodos) {
-      await ctx.runMutation(internal.todos.internalUpdateStatus, {
-        todoId: todo._id,
-        status: "completed",
-      });
-      console.log(`[Communicator] Completed todo: ${todo.content}`);
-    }
   }
 
   // 6. Update communicator memory
@@ -215,11 +151,107 @@ export async function executeCommunicator(
     thought: response.content,
     action: "communicate",
     result: {
-      messagesProcessed: messages?.length || 0,
+      agentMessagesProcessed: messages?.length || 0,
       messageSent,
-      statusUpdate: needsStatusUpdate,
     },
   });
 
   return response.content;
+}
+
+/**
+ * Handle a single user message (chatroom style)
+ * Process one message at a time to maintain conversational flow
+ */
+async function handleUserMessage(
+  ctx: ActionCtx,
+  stackId: Id<"agent_stacks">,
+  userMessage: any,
+  stack: any,
+  projectIdea: any,
+  todos: any[]
+): Promise<string> {
+  console.log(
+    `[Communicator] Responding to user message from ${userMessage.sender_name}: "${userMessage.content.substring(0, 50)}..."`
+  );
+
+  // Build conversation for this specific user message
+  const llmMessages: Message[] = [
+    llmProvider.buildSystemPrompt("communicator", {
+      projectTitle: projectIdea?.title,
+      phase: stack.phase,
+      todoCount: todos?.length || 0,
+      teamName: stack.participant_name,
+    }),
+  ];
+
+  // Add project context
+  if (projectIdea) {
+    llmMessages.push({
+      role: "user",
+      content: `Our project: ${projectIdea.title}\n${projectIdea.description}`,
+    });
+  }
+
+  // Add current progress context
+  const completedTodos = todos?.filter((t) => t.status === "completed").length || 0;
+  const pendingTodos = todos?.filter((t) => t.status === "pending").length || 0;
+
+  if (todos && todos.length > 0) {
+    llmMessages.push({
+      role: "user",
+      content: `Current progress: ${completedTodos} completed, ${pendingTodos} pending todos.`,
+    });
+  }
+
+  // Add the user's message
+  const timeAgo = Math.floor((Date.now() - userMessage.timestamp) / 60000);
+  llmMessages.push({
+    role: "user",
+    content: `${userMessage.sender_name} asks (${timeAgo}m ago): "${userMessage.content}"\n\nRespond directly to ${userMessage.sender_name} in a friendly, conversational manner. Keep it concise (2-3 sentences max).`,
+  });
+
+  // Call LLM
+  console.log(`[Communicator] Calling LLM for user message response`);
+  const response = await llmProvider.chat(llmMessages, {
+    temperature: 0.8,
+    max_tokens: 500, // Shorter responses for chat
+  });
+
+  // Send direct response (NOT a broadcast - it's a reply to this specific message)
+  const responseMessageId = await ctx.runMutation(internal.messages.internalSend, {
+    sender_id: stackId,
+    message_type: "direct", // Direct response, not broadcast
+    content: response.content,
+  });
+
+  console.log(`[Communicator] Sent direct response to ${userMessage.sender_name}`);
+
+  // Mark this user message as processed and link to the response
+  await ctx.runMutation(internal.userMessages.internalMarkProcessed, {
+    message_id: userMessage._id,
+    response_id: responseMessageId,
+  });
+
+  // Update communicator memory
+  await ctx.runMutation(internal.agentExecution.updateAgentMemory, {
+    stackId,
+    agentType: "communicator",
+    thought: `Responded to ${userMessage.sender_name}: ${response.content}`,
+  });
+
+  // Log trace
+  await ctx.runMutation(internal.traces.internalLog, {
+    stack_id: stackId,
+    agent_type: "communicator",
+    thought: `User message from ${userMessage.sender_name}`,
+    action: "respond_to_user",
+    result: {
+      userMessageId: userMessage._id,
+      senderName: userMessage.sender_name,
+      responseLength: response.content.length,
+    },
+  });
+
+  return `Responded to ${userMessage.sender_name}: ${response.content}`;
 }
