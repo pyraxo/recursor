@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
 import { Id } from "@recursor/convex/_generated/dataModel";
@@ -15,6 +15,15 @@ export function ChatTab({ stackId }: ChatTabProps) {
   const [message, setMessage] = useState("");
   const messages = useQuery(api.messages.getTimeline, { stackId });
   const sendMessage = useMutation(api.messages.send);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleSend = async () => {
     if (!message.trim()) return;
@@ -31,8 +40,8 @@ export function ChatTab({ stackId }: ChatTabProps) {
   };
 
   return (
-    <div className="flex flex-col h-[600px]">
-      <div className="flex-1 overflow-y-auto scrollbar-hide space-y-2 mb-4">
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto scrollbar-hide space-y-2 mb-4 min-h-0">
         {!messages && (
           <div className="text-[var(--foreground)]/60 font-mono text-sm">Loading messages...</div>
         )}
@@ -62,7 +71,7 @@ export function ChatTab({ stackId }: ChatTabProps) {
                   className="text-xs font-bold uppercase"
                   style={{ color: agentColor }}
                 >
-                  {isVisitor ? "Visitor" : msg.from_agent_type}
+                  {isVisitor ? "You" : msg.from_agent_type}
                 </div>
                 <div className="text-xs text-[var(--foreground)]/50">
                   {new Date(msg.created_at).toLocaleTimeString()}
@@ -74,9 +83,10 @@ export function ChatTab({ stackId }: ChatTabProps) {
             </div>
           );
         })}
+        <div ref={messagesEndRef} />
       </div>
       
-      <div className="border-t-2 border-[var(--panel-border)] pt-4">
+      <div className="border-t-2 border-[var(--panel-border)] pt-4 flex-shrink-0">
         <div className="flex gap-2">
           <input
             type="text"
