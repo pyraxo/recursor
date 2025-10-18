@@ -170,6 +170,27 @@ export const internalDelete = internalMutation({
   },
 });
 
+// Internal: Clear all todos for a stack
+export const internalClearAll = internalMutation({
+  args: {
+    stack_id: v.id("agent_stacks"),
+  },
+  handler: async (ctx, args) => {
+    const todos = await ctx.db
+      .query("todos")
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stack_id))
+      .collect();
+
+    let deletedCount = 0;
+    for (const todo of todos) {
+      await ctx.db.delete(todo._id);
+      deletedCount++;
+    }
+
+    return deletedCount;
+  },
+});
+
 // Query: Get todos by stack ID (for use in agent adapters)
 export const getByStackId = query({
   args: {

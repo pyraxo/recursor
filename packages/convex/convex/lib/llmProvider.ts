@@ -15,11 +15,30 @@ export interface Message {
   content: string;
 }
 
+// Structured action types for agent responses
+export interface TodoAction {
+  type: "create_todo" | "update_todo" | "delete_todo" | "clear_all_todos" | "update_project";
+  content?: string; // For create and delete
+  oldContent?: string; // For update
+  newContent?: string; // For update
+  priority?: number;
+  reason?: string; // For clear_all_todos - why we're clearing
+  // For update_project
+  title?: string; // New project title (optional)
+  description?: string; // New/updated project description
+}
+
+export interface PlannerResult {
+  thinking: string; // Conversational thoughts about what to do
+  actions: TodoAction[]; // Structured actions to perform
+}
+
 export interface ChatOptions {
   temperature?: number;
   max_tokens?: number;
   model?: string;
   stream?: boolean;
+  json_mode?: boolean; // Request JSON output
 }
 
 export interface LLMResponse {
@@ -45,6 +64,19 @@ async function callGroq(
     throw new Error("GROQ_API_KEY not configured in Convex environment");
   }
 
+  const requestBody: any = {
+    model: options.model || "llama-3.3-70b-versatile",
+    messages,
+    temperature: options.temperature ?? 0.7,
+    max_tokens: options.max_tokens || 2000,
+    stream: false, // Convex actions don't support streaming
+  };
+
+  // Enable JSON mode if requested
+  if (options.json_mode) {
+    requestBody.response_format = { type: "json_object" };
+  }
+
   const response = await fetch(
     "https://api.groq.com/openai/v1/chat/completions",
     {
@@ -53,13 +85,7 @@ async function callGroq(
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: options.model || "llama-3.3-70b-versatile",
-        messages,
-        temperature: options.temperature ?? 0.7,
-        max_tokens: options.max_tokens || 2000,
-        stream: false, // Convex actions don't support streaming
-      }),
+      body: JSON.stringify(requestBody),
     }
   );
 
@@ -90,19 +116,26 @@ async function callOpenAI(
     throw new Error("OPENAI_API_KEY not configured in Convex environment");
   }
 
+  const requestBody: any = {
+    model: options.model || "gpt-4o-mini",
+    messages,
+    temperature: options.temperature ?? 0.7,
+    max_tokens: options.max_tokens || 2000,
+    stream: false,
+  };
+
+  // Enable JSON mode if requested
+  if (options.json_mode) {
+    requestBody.response_format = { type: "json_object" };
+  }
+
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      model: options.model || "gpt-4o-mini",
-      messages,
-      temperature: options.temperature ?? 0.7,
-      max_tokens: options.max_tokens || 2000,
-      stream: false,
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
@@ -217,80 +250,73 @@ export class ConvexLLMProvider {
   /**
    * Helper method to build system prompts
    */
-  buildSystemPrompt(role: string, context: any): Message {
+  buildSystemPrompt(role: string, context: any, useStructuredOutput: boolean = false): Message {
+    const roleDescription = this.getRoleDescription(role, useStructuredOutput);
+
     return {
       role: "system",
-      content: `You are a ${role} agent in the Recursor hackathon simulation.
+      content: `You're the ${role} for team ${context.teamName || "Team"} in a hackathon simulation.
 
-Current context:
-- Project: ${context.projectTitle || "Not yet defined"}
-- Phase: ${context.phase || "Ideation"}
-- Todos: ${context.todoCount || 0} tasks
-- Team: ${context.teamName || "Team"}
+Right now you're working on: ${context.projectTitle || "figuring out what to build"}.
+Phase: ${context.phase || "ideation"}. There are ${context.todoCount || 0} tasks on the board.
 
-Your role is to ${this.getRoleDescription(role)}
+${roleDescription}
 
-Remember:
-- Be creative and productive
-- Work autonomously but collaborate
-- Focus on building a working demo
-- Make decisions quickly and move forward`,
+Keep it moving - be creative, work autonomously, and focus on building something that works. Make quick decisions and push forward.`,
     };
   }
 
-  private getRoleDescription(role: string): string {
+  private getRoleDescription(role: string, useStructuredOutput: boolean = false): string {
     switch (role) {
       case "planner":
-        return `create strategic plans, define todos, and coordinate the team's efforts.
+        if (useStructuredOutput) {
+          return `Your job is to manage the todo list, evolve the project description, and keep the team on track.
 
-You have full control over the todo list and can:
-- CREATE new todos
-- UPDATE existing todos (modify content or priority)
-- DELETE todos that are no longer needed
+Respond with JSON in this exact format:
+{
+  "thinking": "your thoughts here about what needs to happen next - talk through it like you're thinking out loud",
+  "actions": [
+    {"type": "create_todo", "content": "description", "priority": 5},
+    {"type": "update_todo", "oldContent": "existing todo text", "newContent": "updated text", "priority": 8},
+    {"type": "delete_todo", "content": "todo to remove"},
+    {"type": "clear_all_todos", "reason": "why you're clearing everything"},
+    {"type": "update_project", "title": "new title (optional)", "description": "updated description with more detail"}
+  ]
+}
 
-IMPORTANT: Use these exact formats for todo management:
+In your "thinking" field, talk through what you're seeing and what should happen next. Don't use markdown or bullet points - just talk it through like you're explaining to a teammate.
 
-CREATE a new todo:
-TODO: <description of the task>
+In your "actions" array, include any operations you want to perform. You can:
+- create new todos
+- update existing ones by matching their content
+- delete individual todos that aren't needed
+- clear ALL todos and start fresh (use this if the list is too bloated or doesn't make sense anymore - then add new todos after)
+- update the project idea and description (add more technical detail, refine scope, document decisions made)
 
-UPDATE an existing todo (reference it by content):
-UPDATE_TODO: "<exact current content>" -> "<new content>"
-or
-UPDATE_TODO: "<exact current content>" PRIORITY: <1-10>
+Priority is 1-10, with 10 being most important.
 
-DELETE a todo (reference it by content):
-DELETE_TODO: "<exact content of todo to delete>"
+IMPORTANT about project description: Treat it as your scratchpad. As you learn more about what needs to be built, add technical details, architecture decisions, API choices, feature specs, etc. Keep it evolving with what you discover. The description should grow more detailed over time as the project becomes clearer.`;
+        } else {
+          return `Your job is to manage the todo list and keep the team on track.
 
-Examples:
-TODO: Set up project file structure
-TODO: Create basic HTML layout
-UPDATE_TODO: "Create basic HTML layout" -> "Create responsive HTML layout with mobile support"
-UPDATE_TODO: "Add styling with CSS" PRIORITY: 9
-DELETE_TODO: "Research potential APIs"
-
-Each command should be on its own line. Be strategic - remove todos that are outdated, update todos to be more specific, and create new ones as the project evolves.`;
+Talk through what you're seeing and what should happen next. Then list out any todos you want to create, update, or delete.`;
+        }
       case "builder":
-        return "execute todos, write code, and build working artifacts";
+        return `Your job is to write code and build things. Look at the highest priority todo, write the code to complete it, then mark it done. Keep it simple and get something working.
+
+When you write code, include the full HTML file with inline CSS and JavaScript. Talk through what you're building as you go - don't use markdown headers or bullet points, just explain like you're pair programming.`;
       case "communicator":
-        return "handle team communication, status updates, and external messaging";
+        return `Your job is to handle messages and keep everyone updated on progress. Check for new messages and respond to them. Every couple minutes, broadcast a quick status update about what the team is working on.
+
+Just write naturally like you're talking to the team - no need for markdown formatting or formal structure.`;
       case "reviewer":
-        return `perform code reviews of the builder's artifacts and provide technical feedback.
+        return `Your job is to review code that the builder creates and spot issues. Look for bugs, security problems, code quality issues, accessibility problems, and performance concerns.
 
-Your responsibilities:
-- Review HTML, CSS, and JavaScript code in artifacts
-- Identify bugs, security issues, and code quality problems
-- Suggest specific improvements and best practices
-- Check for accessibility, performance, and maintainability issues
-- Provide actionable recommendations for the planner to address
+When you find something, explain what the issue is and how severe it is - critical, major, or minor. Then give a specific recommendation for how to fix it. Start those recommendations with "RECOMMENDATION:" so the planner can spot them.
 
-Focus on the CODE QUALITY, not project management. When you find issues, provide:
-1. Clear description of the problem
-2. Severity (critical/major/minor)
-3. Specific recommendation starting with "RECOMMENDATION:"
-
-Be constructive and specific in your feedback.`;
+Talk through your review naturally - don't use markdown or formal formatting, just explain what you're seeing like you're doing a code review with a teammate.`;
       default:
-        return "contribute to the team's success";
+        return "Your job is to help the team build something great.";
     }
   }
 

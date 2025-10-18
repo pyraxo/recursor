@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 
 // Create a new project idea
 export const create = mutation({
@@ -80,5 +80,38 @@ export const update = mutation({
     if (args.status) updates.status = args.status;
 
     await ctx.db.patch(args.ideaId, updates);
+  },
+});
+
+// Internal: Update project idea for a stack (used by agents)
+export const internalUpdate = internalMutation({
+  args: {
+    stack_id: v.id("agent_stacks"),
+    title: v.optional(v.string()),
+    description: v.optional(v.string()),
+    status: v.optional(v.string()),
+  },
+  handler: async (ctx: any, args: any) => {
+    // Get the current project idea for this stack
+    const projectIdea = await ctx.db
+      .query("project_ideas")
+      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stack_id))
+      .order("desc")
+      .first();
+
+    if (!projectIdea) {
+      throw new Error(`No project idea found for stack ${args.stack_id}`);
+    }
+
+    const updates: any = {};
+    if (args.title) updates.title = args.title;
+    if (args.description) updates.description = args.description;
+    if (args.status) updates.status = args.status;
+
+    if (Object.keys(updates).length > 0) {
+      await ctx.db.patch(projectIdea._id, updates);
+    }
+
+    return projectIdea._id;
   },
 });
