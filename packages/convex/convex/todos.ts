@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query, internalMutation } from "./_generated/server";
+import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
 
 // Create a new todo
 export const create = mutation({
@@ -193,6 +193,19 @@ export const internalClearAll = internalMutation({
 
 // Query: Get todos by stack ID (for use in agent adapters)
 export const getByStackId = query({
+  args: {
+    stackId: v.id("agent_stacks"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("todos")
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+      .order("desc")
+      .collect();
+  },
+});
+
+export const internalList = internalQuery({
   args: {
     stackId: v.id("agent_stacks"),
   },

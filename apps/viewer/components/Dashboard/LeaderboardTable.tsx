@@ -29,52 +29,57 @@ interface TeamScore {
 }
 
 export function LeaderboardTable() {
-  const stacks = useQuery(api.agents.listStacks);
+  const hasJudgingAPI = api && 'judging' in api;
+  const leaderboard = hasJudgingAPI ? useQuery(api.judging.getLeaderboard) : null;
 
   const teamScores = useMemo(() => {
-    if (!stacks) return [];
+    if (!leaderboard) return [];
 
-    const scores: TeamScore[] = stacks.map((stack) => {
-      const technical = Math.floor(Math.random() * 40 + 60);
-      const execution = Math.floor(Math.random() * 40 + 60);
-      const polish = Math.floor(Math.random() * 40 + 60);
-      const wow = Math.floor(Math.random() * 40 + 60);
-      const overall = Math.floor((technical + execution + polish + wow) / 4);
+    const scores: TeamScore[] = leaderboard.map((entry: any) => ({
+      name: entry.name,
+      overall: Math.floor(entry.total_score / 4),
+      technical: entry.technical_merit,
+      execution: entry.execution,
+      polish: entry.polish,
+      wow: entry.wow_factor,
+    }));
 
-      return {
-        name: stack.participant_name,
-        overall,
-        technical,
-        execution,
-        polish,
-        wow,
-      };
-    });
+    return scores;
+  }, [leaderboard]);
 
-    return scores.sort((a, b) => b.overall - a.overall);
-  }, [stacks]);
-
-  if (!stacks) {
+  if (!hasJudgingAPI || leaderboard === undefined || leaderboard === null) {
     return (
-      <Card>
-        <CardContent>
-          <div className="text-muted-foreground text-center py-8">
-            Loading leaderboard...
+      <div className="pixel-panel">
+        <div className="text-center py-12">
+          <div className="text-[var(--foreground)] font-mono text-lg mb-4">
+            ⏱️ Judging System Initializing
           </div>
-        </CardContent>
-      </Card>
+          <div className="text-[var(--foreground)]/60 font-mono text-sm">
+            Judges will begin evaluating teams soon.
+          </div>
+          <div className="text-[var(--foreground)]/40 font-mono text-xs mt-2">
+            Auto-judging runs every 5 minutes
+          </div>
+        </div>
+      </div>
     );
   }
 
   if (teamScores.length === 0) {
     return (
-      <Card>
-        <CardContent>
-          <div className="text-muted-foreground text-center py-8">
-            No teams to display yet
+      <div className="pixel-panel">
+        <div className="text-center py-12">
+          <div className="text-[var(--foreground)] font-mono text-lg mb-4">
+            📊 Waiting for Teams to Build
           </div>
-        </CardContent>
-      </Card>
+          <div className="text-[var(--foreground)]/60 font-mono text-sm">
+            No teams have artifacts to judge yet.
+          </div>
+          <div className="text-[var(--foreground)]/40 font-mono text-xs mt-2">
+            Teams need to create artifacts before judging can begin
+          </div>
+        </div>
+      </div>
     );
   }
 

@@ -27,38 +27,34 @@ export function MetricsBar() {
 
   const activeAgents = stacks ? stacks.length * 4 : 0;
 
-  const mockIterations = stacks
-    ? stacks.length * Math.floor(Math.random() * 50 + 20)
-    : 0;
-
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <Card>
-        <CardHeader>
-          <CardDescription>Elapsed Time</CardDescription>
-          <CardTitle className="text-3xl tabular-nums">
-            {elapsedTime()}
-          </CardTitle>
-        </CardHeader>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardDescription>Total Iterations</CardDescription>
-          <CardTitle className="text-3xl tabular-nums">
-            {mockIterations}
-          </CardTitle>
-        </CardHeader>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardDescription>Active Agents</CardDescription>
-          <CardTitle className="text-3xl tabular-nums">
-            {activeAgents}
-          </CardTitle>
-        </CardHeader>
-      </Card>
+    <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="pixel-panel text-center">
+        <div className="text-sm text-[var(--foreground)]/70 mb-1 font-mono uppercase">
+          Elapsed Time
+        </div>
+        <div className="text-3xl font-mono font-bold text-[var(--accent-primary)] tabular-nums">
+          {elapsedTime()}
+        </div>
+      </div>
+      
+      <div className="pixel-panel text-center">
+        <div className="text-sm text-[var(--foreground)]/70 mb-1 font-mono uppercase">
+          Total Iterations
+        </div>
+        <div className="text-3xl font-mono font-bold text-[var(--accent-secondary)] tabular-nums">
+          0
+        </div>
+      </div>
+      
+      <div className="pixel-panel text-center">
+        <div className="text-sm text-[var(--foreground)]/70 mb-1 font-mono uppercase">
+          Active Agents
+        </div>
+        <div className="text-3xl font-mono font-bold text-[var(--accent-quaternary)] tabular-nums">
+          {activeAgents}
+        </div>
+      </div>
     </div>
   );
 }
