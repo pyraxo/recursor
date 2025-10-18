@@ -2,7 +2,11 @@
 import { useQuery } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
 import { Card, CardContent } from "@repo/ui/card";
+import { Badge } from "@repo/ui/badge";
+import { Separator } from "@repo/ui/separator";
+import { ScrollArea } from "@repo/ui/scroll-area";
 import { useEffect, useRef } from "react";
+import { Clock, User, Zap, Activity } from "lucide-react";
 
 export function LiveFeed() {
   const traces = useQuery(api.traces.getRecent, { limit: 100 });
@@ -29,6 +33,7 @@ export function LiveFeed() {
       <Card>
         <CardContent className="p-6">
           <div className="text-center space-y-2">
+            <Activity className="w-12 h-12 mx-auto text-muted-foreground opacity-50" />
             <div className="text-sm text-muted-foreground">
               No agent activity yet
             </div>
@@ -46,55 +51,85 @@ export function LiveFeed() {
     return stack?.participant_name || "Unknown";
   };
 
+  const getAgentBadgeColor = (agentType: string) => {
+    switch (agentType) {
+      case "planner":
+        return "bg-blue-900/50 text-blue-400 border-blue-800";
+      case "builder":
+        return "bg-purple-900/50 text-purple-400 border-purple-800";
+      case "communicator":
+        return "bg-green-900/50 text-green-400 border-green-800";
+      case "reviewer":
+        return "bg-orange-900/50 text-orange-400 border-orange-800";
+      default:
+        return "bg-gray-800 text-gray-400 border-gray-700";
+    }
+  };
+
   return (
-    <div
-      ref={containerRef}
-      className="space-y-2 max-h-[calc(100vh-220px)] overflow-y-auto pr-2"
-    >
-      {traces.map((t: any) => (
-        <Card key={t._id} className="hover:bg-accent/30 transition-colors">
-          <CardContent className="p-3">
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">
-                    {new Date(t.timestamp).toLocaleTimeString()}
-                  </span>
-                  <span className="text-muted-foreground">•</span>
-                  <span className="font-semibold text-primary">
-                    {getStackName(t.stack_id)}
-                  </span>
+    <ScrollArea className="h-[calc(100vh-220px)]">
+      <div ref={containerRef} className="space-y-2 pr-4">
+        {traces.map((t: any) => (
+          <Card key={t._id} className="hover:bg-accent/30 transition-colors">
+            <CardContent className="p-4">
+              <div className="space-y-3">
+                {/* Header */}
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Clock className="w-3 h-3" />
+                    <span>{new Date(t.timestamp).toLocaleTimeString()}</span>
+                    <Separator orientation="vertical" className="h-3" />
+                    <User className="w-3 h-3" />
+                    <span className="font-semibold text-primary">
+                      {getStackName(t.stack_id)}
+                    </span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={`capitalize ${getAgentBadgeColor(t.agent_type)}`}
+                  >
+                    {t.agent_type}
+                  </Badge>
                 </div>
-                <span className="font-medium text-accent-foreground bg-accent px-2 py-0.5 rounded">
-                  {t.agent_type}
-                </span>
-              </div>
 
-              <div className="text-sm text-foreground leading-relaxed">
-                {t.thought}
-              </div>
+                <Separator />
 
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-muted-foreground">Action:</span>
-                <span className="font-mono text-primary">{t.action}</span>
-              </div>
+                {/* Thought */}
+                <div className="text-sm text-foreground leading-relaxed">
+                  {t.thought}
+                </div>
 
-              {t.result && (
-                <details className="text-xs mt-1">
-                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                    View result
-                  </summary>
-                  <pre className="mt-1 p-2 bg-secondary rounded text-xs overflow-x-auto">
-                    {typeof t.result === "string"
-                      ? t.result
-                      : JSON.stringify(t.result, null, 2)}
-                  </pre>
-                </details>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+                {/* Action */}
+                <div className="flex items-start gap-2 text-xs">
+                  <Zap className="w-3 h-3 mt-0.5 text-primary" />
+                  <div className="flex-1">
+                    <span className="text-muted-foreground">Action: </span>
+                    <Badge variant="secondary" className="font-mono text-xs">
+                      {t.action}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Result */}
+                {t.result && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
+                      View result
+                    </summary>
+                    <div className="mt-2 p-3 bg-secondary rounded-md">
+                      <pre className="text-xs overflow-x-auto">
+                        {typeof t.result === "string"
+                          ? t.result
+                          : JSON.stringify(t.result, null, 2)}
+                      </pre>
+                    </div>
+                  </details>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </ScrollArea>
   );
 }
