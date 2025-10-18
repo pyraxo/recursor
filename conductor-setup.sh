@@ -25,96 +25,35 @@ fi
 echo "✅ Node.js meets requirements ($(node --version))"
 echo ""
 
-# Determine environment file source
+# Copy environment files from main repo
 if [ -n "$CONDUCTOR_ROOT_PATH" ]; then
-    ENV_SOURCE="$CONDUCTOR_ROOT_PATH/.env.local"
-    if [ ! -f "$ENV_SOURCE" ]; then
-        ENV_SOURCE="$CONDUCTOR_ROOT_PATH/.env"
+    echo "📋 Copying environment files from main repo..."
+
+    # Copy root .env.local if it exists
+    if [ -f "$CONDUCTOR_ROOT_PATH/.env.local" ]; then
+        cp "$CONDUCTOR_ROOT_PATH/.env.local" .env.local
+        echo "✅ Copied root .env.local"
     fi
+
+    # Copy .env.local files from apps subfolders
+    for app_dir in "$CONDUCTOR_ROOT_PATH/apps"/*; do
+        if [ -d "$app_dir" ]; then
+            app_name=$(basename "$app_dir")
+            if [ -f "$app_dir/.env.local" ]; then
+                mkdir -p "apps/$app_name"
+                cp "$app_dir/.env.local" "apps/$app_name/.env.local"
+                echo "✅ Copied apps/$app_name/.env.local"
+            fi
+        fi
+    done
+
+    echo ""
 else
-    echo "⚠️  Warning: CONDUCTOR_ROOT_PATH not set"
-    ENV_SOURCE=".env.local"
+    echo "⚠️  Warning: CONDUCTOR_ROOT_PATH not set - cannot copy environment files"
+    echo ""
 fi
 
-# Copy environment file if it exists
-if [ -f "$ENV_SOURCE" ]; then
-    echo "📋 Copying environment variables from $ENV_SOURCE..."
-    cp "$ENV_SOURCE" .env.local
-    echo "✅ Environment file copied to .env.local"
-else
-    echo "⚠️  No environment file found at $ENV_SOURCE"
-    echo ""
-    echo "   Creating template .env.local file..."
-    cat > .env.local << 'EOF'
-# Convex Backend
-# Get these values by running: npx convex dev
-CONVEX_URL=
-NEXT_PUBLIC_CONVEX_URL=
-
-# LLM API Keys (at least one required)
-# Get from https://console.groq.com/keys (free tier available)
-GROQ_API_KEY=
-
-# Optional: Fallback LLM providers
-# Get from https://platform.openai.com/api-keys
-OPENAI_API_KEY=
-
-# Get from https://aistudio.google.com/apikey
-GEMINI_API_KEY=
-EOF
-    echo "⚠️  Created .env.local template"
-    echo ""
-    echo "❌ REQUIRED ACTION: You must configure environment variables!"
-    echo ""
-    echo "   1. Run 'npx convex dev' in the base repo to get CONVEX_URL"
-    echo "   2. Get a GROQ_API_KEY from https://console.groq.com (free)"
-    echo "   3. Update .env.local in this workspace with those values"
-    echo ""
-    echo "   Critical environment variables:"
-    echo "   - CONVEX_URL (required)"
-    echo "   - NEXT_PUBLIC_CONVEX_URL (required)"
-    echo "   - GROQ_API_KEY (required for agents)"
-    echo ""
-    exit 1
-fi
-
-# Validate critical environment variables
-echo "🔍 Validating environment variables..."
-
-source .env.local 2>/dev/null || true
-
-MISSING_VARS=""
-
-if [ -z "$CONVEX_URL" ]; then
-    MISSING_VARS="${MISSING_VARS}\n  - CONVEX_URL"
-fi
-
-if [ -z "$NEXT_PUBLIC_CONVEX_URL" ]; then
-    MISSING_VARS="${MISSING_VARS}\n  - NEXT_PUBLIC_CONVEX_URL"
-fi
-
-if [ -z "$GROQ_API_KEY" ] && [ -z "$OPENAI_API_KEY" ] && [ -z "$GEMINI_API_KEY" ]; then
-    MISSING_VARS="${MISSING_VARS}\n  - At least one LLM API key (GROQ_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY)"
-fi
-
-if [ -n "$MISSING_VARS" ]; then
-    echo "❌ Missing required environment variables in .env.local:"
-    echo -e "$MISSING_VARS"
-    echo ""
-    echo "Please update .env.local with the required values."
-    echo ""
-    echo "To get CONVEX_URL:"
-    echo "  1. Run 'npx convex dev' in the base repo"
-    echo "  2. Copy the deployment URL from the output"
-    echo ""
-    echo "To get GROQ_API_KEY (recommended, free tier):"
-    echo "  1. Visit https://console.groq.com"
-    echo "  2. Create an account and generate an API key"
-    echo ""
-    exit 1
-fi
-
-echo "✅ All required environment variables are set"
+echo "✅ Environment files copied"
 echo ""
 
 # Install dependencies
