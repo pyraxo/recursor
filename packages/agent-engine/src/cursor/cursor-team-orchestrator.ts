@@ -347,7 +347,7 @@ export class CursorTeamOrchestrator implements IOrchestrator {
               repository: this.currentWorkspace.repoUrl,
               ref: this.currentWorkspace.branch,
             },
-            model: "claude-4.5-sonnet",
+            model: "claude-sonnet-4-5-20250929",
           });
 
           console.log(`[CursorOrchestrator] Agent creation response:`, JSON.stringify(agentResponse, null, 2));
@@ -457,7 +457,7 @@ export class CursorTeamOrchestrator implements IOrchestrator {
                 repository: this.currentWorkspace.repoUrl,
                 ref: this.currentWorkspace.branch,
               },
-              model: "claude-4.5-sonnet",
+              model: "claude-sonnet-4-5-20250929",
             });
 
             agentId = agentResponse.id;
@@ -529,7 +529,7 @@ export class CursorTeamOrchestrator implements IOrchestrator {
               repository: this.currentWorkspace.repoUrl,
               ref: this.currentWorkspace.branch,
             },
-            model: "claude-4.5-sonnet",
+            model: "claude-sonnet-4-5-20250929",
           });
 
           agentId = agentResponse.id;

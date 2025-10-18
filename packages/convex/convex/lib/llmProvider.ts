@@ -391,9 +391,9 @@ export class ConvexLLMProvider {
     // Use ONLY latest models: Claude 4.5 Sonnet and Gemini 2.5 Pro
     const providers = [
       {
-        name: "claude-4.5-sonnet",
+        name: "claude-sonnet-4-5-20250929",
         fn: callClaude,
-        model: "claude-4.5-sonnet", // Latest Claude 4.5 Sonnet (Sept 29, 2025)
+        model: "claude-sonnet-4-5-20250929", // Latest Claude 4.5 Sonnet (Sept 29, 2025)
       },
       {
         name: "gemini-2.5-pro",
@@ -450,9 +450,9 @@ export class ConvexLLMProvider {
     // Use latest models: Claude 4.5 Sonnet (excellent at code) and Gemini 2.5 Pro
     const providers = [
       {
-        name: "claude-4.5-sonnet",
+        name: "claude-sonnet-4-5-20250929",
         fn: callClaude,
-        model: "claude-4.5-sonnet", // Latest Claude 4.5 Sonnet (Sept 29, 2025)
+        model: "claude-sonnet-4-5-20250929", // Latest Claude 4.5 Sonnet (Sept 29, 2025)
       },
       {
         name: "gemini-2.5-pro",

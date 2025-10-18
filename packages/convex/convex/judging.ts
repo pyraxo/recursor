@@ -292,20 +292,49 @@ Provide your OBJECTIVE judgment as JSON only.`,
   ];
 
   console.log(`[Judge] Calling LLM for judgment`);
+
+  // Define the judgment schema for structured output
+  const judgmentSchema = {
+    type: "object",
+    properties: {
+      technical_merit: { type: "number", minimum: 1, maximum: 10 },
+      technical_merit_notes: { type: "string" },
+      polish: { type: "number", minimum: 1, maximum: 10 },
+      polish_notes: { type: "string" },
+      execution: { type: "number", minimum: 1, maximum: 10 },
+      execution_notes: { type: "string" },
+      wow_factor: { type: "number", minimum: 1, maximum: 10 },
+      wow_factor_notes: { type: "string" },
+      overall_assessment: { type: "string" },
+    },
+    required: [
+      "technical_merit",
+      "technical_merit_notes",
+      "polish",
+      "polish_notes",
+      "execution",
+      "execution_notes",
+      "wow_factor",
+      "wow_factor_notes",
+      "overall_assessment",
+    ],
+    additionalProperties: false,
+  };
+
   const response = await llmProvider.chat(messages, {
     temperature: 0.7,
     max_tokens: 1000,
+    structured: true,
+    schema: judgmentSchema,
   });
 
   let judgment;
   try {
-    const jsonMatch = response.content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("No JSON found in response");
-    }
-    judgment = JSON.parse(jsonMatch[0]);
+    // With structured output, the response should already be valid JSON
+    judgment = JSON.parse(response.content);
   } catch (error) {
     console.error(`[Judge] Failed to parse LLM response:`, error);
+    console.error(`[Judge] Response content:`, response.content?.substring(0, 500));
     judgment = {
       technical_merit: 5,
       technical_merit_notes: "Failed to parse judgment",

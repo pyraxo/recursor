@@ -60,7 +60,7 @@ export interface BackgroundAgentRequest {
   prompt: BackgroundAgentPrompt;
   /** Source repository configuration */
   source: BackgroundAgentSource;
-  /** AI model to use (e.g., "claude-4.5-sonnet") */
+  /** AI model to use (e.g., "claude-sonnet-4-5-20250929") */
   model?: string;
   /** Environment configuration */
   environment?: BackgroundAgentEnvironment;
