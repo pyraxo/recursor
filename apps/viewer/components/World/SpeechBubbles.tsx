@@ -1,7 +1,7 @@
 "use client";
 
-import { useQuery } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
+import { useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 
 interface SpeechBubblesProps {
@@ -15,7 +15,7 @@ interface BubbleState {
 }
 
 export function SpeechBubbles({ agentPositions }: SpeechBubblesProps) {
-  const stacks = useQuery(api.agents.listStacks);
+  const stacks = useQuery(api.agents.listStacksWithAgents);
   const recentTraces = useQuery(api.traces.getRecentAll, { limit: 100 });
   const [bubbles, setBubbles] = useState<BubbleState[]>([]);
 
@@ -55,7 +55,8 @@ export function SpeechBubbles({ agentPositions }: SpeechBubblesProps) {
 
       if (allAgents.length === 0) return;
 
-      const randomAgent = allAgents[Math.floor(Math.random() * allAgents.length)];
+      const randomAgent =
+        allAgents[Math.floor(Math.random() * allAgents.length)];
       if (!randomAgent) return;
 
       const [teamIndexStr, agentType, stackId] = randomAgent.split("-");
@@ -64,31 +65,41 @@ export function SpeechBubbles({ agentPositions }: SpeechBubblesProps) {
 
       if (recentTraces && recentTraces.length > 0) {
         const stackTraces = recentTraces.filter(
-          (t: any) => String(t.stack_id) === stackId && t.agent_type === agentType
+          (t: any) =>
+            String(t.stack_id) === stackId && t.agent_type === agentType
         );
 
         if (stackTraces.length > 0) {
           const recentTrace = stackTraces[0];
-          message = recentTrace.thought?.substring(0, 60) || recentTrace.action?.substring(0, 60) || "Working...";
+          message =
+            recentTrace.thought?.substring(0, 60) ||
+            recentTrace.action?.substring(0, 60) ||
+            "Working...";
           if (message.length > 57) message = message.substring(0, 57) + "...";
         } else {
-          const stackAgentStates = stacks.find((s) => String(s._id) === stackId)?.agents?.find(
-            (a: any) => a.agent_type === agentType
-          );
+          const stackAgentStates = stacks
+            .find((s) => String(s._id) === stackId)
+            ?.agents?.find((a: any) => a.agent_type === agentType);
           if (stackAgentStates?.current_context?.active_task) {
-            message = stackAgentStates.current_context.active_task.substring(0, 60);
+            message = stackAgentStates.current_context.active_task.substring(
+              0,
+              60
+            );
             if (message.length > 57) message = message.substring(0, 57) + "...";
           } else {
-            const messages = agentMessages[agentType as keyof typeof agentMessages];
+            const messages =
+              agentMessages[agentType as keyof typeof agentMessages];
             if (messages) {
-              message = messages[Math.floor(Math.random() * messages.length)];
+              message =
+                messages[Math.floor(Math.random() * messages.length)] ?? "...";
             }
           }
         }
       } else {
         const messages = agentMessages[agentType as keyof typeof agentMessages];
         if (messages) {
-          message = messages[Math.floor(Math.random() * messages.length)];
+          message =
+            messages[Math.floor(Math.random() * messages.length)] ?? "...";
         }
       }
 
@@ -117,9 +128,14 @@ export function SpeechBubbles({ agentPositions }: SpeechBubblesProps) {
   return (
     <>
       {bubbles.map((bubble) => {
-        const [teamIndexStr, agentType] = bubble.agentKey.split("-");
+        const [teamIndexStr = "0", agentType = ""] = bubble.agentKey.split("-");
         const teamIndex = parseInt(teamIndexStr);
-        const agentTypeIndex = ["planner", "builder", "reviewer", "communicator"].indexOf(agentType);
+        const agentTypeIndex = [
+          "planner",
+          "builder",
+          "reviewer",
+          "communicator",
+        ].indexOf(agentType);
         const posIndex = teamIndex * 4 + agentTypeIndex;
         const pos = agentPositions[posIndex];
 
@@ -128,10 +144,10 @@ export function SpeechBubbles({ agentPositions }: SpeechBubblesProps) {
         const mapWidth = 1024;
         const bubbleMaxWidth = 250;
         const padding = 20;
-        
+
         let leftPos = pos.x;
         let translateX = "-50%";
-        
+
         if (pos.x < bubbleMaxWidth / 2 + padding) {
           leftPos = padding;
           translateX = "0%";
@@ -165,7 +181,9 @@ export function SpeechBubbles({ agentPositions }: SpeechBubblesProps) {
                 overflowWrap: "break-word",
               }}
             >
-              <span style={{ color: "#000", fontWeight: "600" }}>{bubble.message}</span>
+              <span style={{ color: "#000", fontWeight: "600" }}>
+                {bubble.message}
+              </span>
 
               <div
                 className="absolute left-1/2 -translate-x-1/2"

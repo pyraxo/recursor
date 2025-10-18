@@ -1,5 +1,10 @@
 import { v } from "convex/values";
-import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "./_generated/server";
 
 // Create a new agent stack
 export const createStack = mutation({
@@ -73,6 +78,27 @@ export const listStacks = query({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query("agent_stacks").collect();
+  },
+});
+
+// Get all agent stacks with their agents
+export const listStacksWithAgents = query({
+  args: {},
+  handler: async (ctx) => {
+    const stacks = await ctx.db.query("agent_stacks").collect();
+
+    const stacksWithAgents = await Promise.all(
+      stacks.map(async (stack) => {
+        const agents = await ctx.db
+          .query("agent_states")
+          .withIndex("by_stack", (q) => q.eq("stack_id", stack._id))
+          .collect();
+
+        return { ...stack, agents };
+      })
+    );
+
+    return stacksWithAgents;
   },
 });
 
@@ -232,16 +258,16 @@ export const deleteStack = mutation({
 // Execution control mutations
 export const startExecution = mutation({
   args: {
-    stackId: v.id('agent_stacks'),
+    stackId: v.id("agent_stacks"),
   },
   handler: async (ctx, args) => {
     const stack = await ctx.db.get(args.stackId);
-    if (!stack) throw new Error('Stack not found');
+    if (!stack) throw new Error("Stack not found");
 
-    const wasStopped = stack.execution_state === 'stopped';
+    const wasStopped = stack.execution_state === "stopped";
 
     await ctx.db.patch(args.stackId, {
-      execution_state: 'running',
+      execution_state: "running",
       started_at: Date.now(),
       last_activity_at: Date.now(),
       paused_at: undefined,
@@ -268,18 +294,20 @@ export const startExecution = mutation({
 
 export const pauseExecution = mutation({
   args: {
-    stackId: v.id('agent_stacks'),
+    stackId: v.id("agent_stacks"),
   },
   handler: async (ctx, args) => {
     const stack = await ctx.db.get(args.stackId);
-    if (!stack) throw new Error('Stack not found');
+    if (!stack) throw new Error("Stack not found");
 
     await ctx.db.patch(args.stackId, {
-      execution_state: 'paused',
+      execution_state: "paused",
       paused_at: Date.now(),
     });
 
-    console.log(`[ExecutionControl] Paused stack ${args.stackId} (${stack.participant_name})`);
+    console.log(
+      `[ExecutionControl] Paused stack ${args.stackId} (${stack.participant_name})`
+    );
 
     return { success: true };
   },
@@ -287,14 +315,14 @@ export const pauseExecution = mutation({
 
 export const resumeExecution = mutation({
   args: {
-    stackId: v.id('agent_stacks'),
+    stackId: v.id("agent_stacks"),
   },
   handler: async (ctx, args) => {
     const stack = await ctx.db.get(args.stackId);
-    if (!stack) throw new Error('Stack not found');
+    if (!stack) throw new Error("Stack not found");
 
     await ctx.db.patch(args.stackId, {
-      execution_state: 'running',
+      execution_state: "running",
       paused_at: undefined,
       last_activity_at: Date.now(),
     });
@@ -305,19 +333,21 @@ export const resumeExecution = mutation({
 
 export const stopExecution = mutation({
   args: {
-    stackId: v.id('agent_stacks'),
+    stackId: v.id("agent_stacks"),
   },
   handler: async (ctx, args) => {
     const stack = await ctx.db.get(args.stackId);
-    if (!stack) throw new Error('Stack not found');
+    if (!stack) throw new Error("Stack not found");
 
     await ctx.db.patch(args.stackId, {
-      execution_state: 'stopped',
+      execution_state: "stopped",
       stopped_at: Date.now(),
       process_id: undefined,
     });
 
-    console.log(`[ExecutionControl] Stopped stack ${args.stackId} (${stack.participant_name}). State will be reset on next start.`);
+    console.log(
+      `[ExecutionControl] Stopped stack ${args.stackId} (${stack.participant_name}). State will be reset on next start.`
+    );
 
     return { success: true };
   },
@@ -325,7 +355,7 @@ export const stopExecution = mutation({
 
 export const updateActivityTimestamp = mutation({
   args: {
-    stackId: v.id('agent_stacks'),
+    stackId: v.id("agent_stacks"),
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.stackId, {
@@ -339,14 +369,14 @@ export const updateActivityTimestamp = mutation({
 // Execution status queries
 export const getExecutionStatus = query({
   args: {
-    stackId: v.id('agent_stacks'),
+    stackId: v.id("agent_stacks"),
   },
   handler: async (ctx, args) => {
     const stack = await ctx.db.get(args.stackId);
     if (!stack) return null;
 
     return {
-      execution_state: stack.execution_state || 'idle',
+      execution_state: stack.execution_state || "idle",
       last_activity_at: stack.last_activity_at,
       started_at: stack.started_at,
       paused_at: stack.paused_at,
@@ -359,11 +389,9 @@ export const getExecutionStatus = query({
 export const listRunningStacks = query({
   args: {},
   handler: async (ctx) => {
-    const stacks = await ctx.db
-      .query('agent_stacks')
-      .collect();
+    const stacks = await ctx.db.query("agent_stacks").collect();
 
-    return stacks.filter(stack => stack.execution_state === 'running');
+    return stacks.filter((stack) => stack.execution_state === "running");
   },
 });
 
@@ -509,7 +537,10 @@ export const getTotalIterations = query({
   args: {},
   handler: async (ctx) => {
     const stacks = await ctx.db.query("agent_stacks").collect();
-    const totalCycles = stacks.reduce((sum, stack) => sum + (stack.total_cycles || 0), 0);
+    const totalCycles = stacks.reduce(
+      (sum, stack) => sum + (stack.total_cycles || 0),
+      0
+    );
     return totalCycles;
   },
 });

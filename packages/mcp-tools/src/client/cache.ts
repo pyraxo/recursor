@@ -1,4 +1,4 @@
-import type { CacheEntry, ToolResult } from "../types/index.js";
+import type { CacheEntry, ToolResult } from "../types/index";
 
 /**
  * LRU (Least Recently Used) Cache for tool results

@@ -1,14 +1,14 @@
 import { z } from "zod";
 import type {
+  Context7ResolveParams,
+  Context7ResolveResult,
+  Context7SearchParams,
+  Context7SearchResult,
+  LibraryMatch,
   ToolExecutor,
   ToolResult,
   ToolSchema,
-  Context7SearchParams,
-  Context7SearchResult,
-  Context7ResolveParams,
-  Context7ResolveResult,
-  LibraryMatch,
-} from "../types/index.js";
+} from "../types/index";
 
 /**
  * Zod schema for Context7 search documentation parameters
@@ -221,8 +221,7 @@ export class Context7Executor implements ToolExecutor {
       };
     }
 
-    const errorMessage =
-      error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
 
     return {
       success: false,

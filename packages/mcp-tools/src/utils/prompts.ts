@@ -1,4 +1,4 @@
-import type { ToolSchema } from "../types/index.js";
+import type { ToolSchema } from "../types/index";
 
 /**
  * Generate a formatted description of a single tool
@@ -12,7 +12,8 @@ export function formatToolDescription(schema: ToolSchema): string {
         ? "**required**"
         : "optional";
       const description = def.description || "";
-      const defaultValue = def.default !== undefined ? ` (default: ${def.default})` : "";
+      const defaultValue =
+        def.default !== undefined ? ` (default: ${def.default})` : "";
       return `  - \`${name}\` (${required}): ${description}${defaultValue}`;
     })
     .join("\n");

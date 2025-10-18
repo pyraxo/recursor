@@ -1,14 +1,14 @@
 import Exa from "exa-js";
 import { z } from "zod";
 import type {
-  ToolExecutor,
-  ToolResult,
-  ToolSchema,
   ExaSearchParams,
   ExaSearchResult,
   ExaSimilarParams,
   ExaSimilarResult,
-} from "../types/index.js";
+  ToolExecutor,
+  ToolResult,
+  ToolSchema,
+} from "../types/index";
 
 /**
  * Zod schema for Exa web search parameters
@@ -68,9 +68,7 @@ export class ExaExecutor implements ToolExecutor {
    * @param params - URL and number of results
    * @returns Promise resolving to similar content results
    */
-  async findSimilar(
-    params: unknown
-  ): Promise<ToolResult<ExaSimilarResult>> {
+  async findSimilar(params: unknown): Promise<ToolResult<ExaSimilarResult>> {
     try {
       const validated = findSimilarSchema.parse(params);
       return await this.findSimilarContent(validated);
@@ -278,14 +276,14 @@ export class ExaExecutor implements ToolExecutor {
       };
     }
 
-    const errorMessage =
-      error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
 
     // Provide more helpful error messages for common issues
     if (errorMessage.includes("401") || errorMessage.includes("Unauthorized")) {
       return {
         success: false,
-        error: "Invalid Exa API key. Please check your EXA_API_KEY configuration.",
+        error:
+          "Invalid Exa API key. Please check your EXA_API_KEY configuration.",
       };
     }
 

@@ -1,4 +1,4 @@
-import type { ToolResult } from "../types/index.js";
+import type { ToolResult } from "../types/index";
 
 /**
  * Format a tool result for display or logging
