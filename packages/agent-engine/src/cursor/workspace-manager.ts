@@ -18,7 +18,7 @@
 
 import { Octokit } from "octokit";
 import simpleGit, { SimpleGit } from "simple-git";
-import { tmpdir as createTmpDir } from "tmp-promise";
+import { dir as createTmpDir } from "tmp-promise";
 import { writeFile, mkdir, readFile } from "fs/promises";
 import { join } from "path";
 import type { Id } from "@recursor/convex/_generated/dataModel";
