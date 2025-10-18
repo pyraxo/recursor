@@ -267,7 +267,7 @@ export class CursorTeamOrchestrator implements IOrchestrator {
 
         await this.updateCursorConfig({
           last_prompt_at: Date.now(),
-          total_prompts_sent: (cursorConfig.total_prompts_sent || 0) + 1,
+          total_prompts_sent: (cursorConfig?.total_prompts_sent || 0) + 1,
         });
 
         await this.logTrace(
@@ -380,10 +380,10 @@ export class CursorTeamOrchestrator implements IOrchestrator {
       stackId: this.stackId,
     });
 
-    const messages = await this.client.query(api.messages.getRecent, {
+    const allMessages = await this.client.query(api.messages.getTimeline, {
       stackId: this.stackId,
-      limit: 5,
     });
+    const messages = allMessages?.slice(-5) || [];
 
     // Consolidate all 4 agent roles into one comprehensive prompt
     return `
