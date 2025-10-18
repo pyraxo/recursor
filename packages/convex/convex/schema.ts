@@ -86,11 +86,12 @@ export default defineSchema({
     .index("by_stack", ["stack_id"])
     .index("by_status", ["stack_id", "status"]),
 
-  // Messages (for inter-agent communication)
+  // Messages (for inter-agent communication and user chat)
   messages: defineTable({
-    from_stack_id: v.id("agent_stacks"),
+    from_stack_id: v.optional(v.id("agent_stacks")), // Optional: null when message is from a user
     to_stack_id: v.optional(v.id("agent_stacks")), // null = broadcast to all
-    from_agent_type: v.string(),
+    from_agent_type: v.optional(v.string()), // Agent type or null for user messages
+    from_user_name: v.optional(v.string()), // User name for visitor messages
     content: v.string(),
     message_type: v.string(), // 'broadcast', 'direct', 'visitor'
     read_by: v.array(v.id("agent_stacks")), // array of stack_ids that have read

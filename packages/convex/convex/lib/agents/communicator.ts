@@ -57,13 +57,34 @@ export async function executeCommunicator(
 
   // Process unread messages
   if (hasUnreadMessages) {
-    const messagesSummary = messages
-      .map((m) => `From ${m.sender_id}: ${m.content}`)
-      .join("\n");
+    // Separate user messages from agent messages
+    const userMessages = messages.filter((m: any) => m.message_type === "visitor");
+    const agentMessages = messages.filter((m: any) => m.message_type !== "visitor");
+
+    let messagesSummary = "";
+
+    // Format user messages (these should be responded to directly)
+    if (userMessages.length > 0) {
+      const userMsgText = userMessages
+        .map((m: any) => `${m.from_user_name || "Visitor"}: ${m.content}`)
+        .join("\n");
+      messagesSummary += `User messages (respond to these directly, addressing the user):\n${userMsgText}\n\n`;
+    }
+
+    // Format agent messages (these are from other teams)
+    if (agentMessages.length > 0) {
+      const agentMsgText = agentMessages
+        .map((m: any) => {
+          const sender = m.from_agent_type || "someone";
+          return `From ${sender}: ${m.content}`;
+        })
+        .join("\n");
+      messagesSummary += `Messages from other participants:\n${agentMsgText}\n\n`;
+    }
 
     llmMessages.push({
       role: "user",
-      content: `Unread messages:\n${messagesSummary}\n\nPlease respond appropriately.`,
+      content: `${messagesSummary}Please respond appropriately to these messages.`,
     });
 
     // Mark messages as read

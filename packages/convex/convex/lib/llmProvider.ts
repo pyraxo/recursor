@@ -295,7 +295,9 @@ In your "actions" array, include any operations you want to perform. You can:
 
 Priority is 1-10, with 10 being most important.
 
-IMPORTANT about project description: Treat it as your scratchpad. As you learn more about what needs to be built, add technical details, architecture decisions, API choices, feature specs, etc. Keep it evolving with what you discover. The description should grow more detailed over time as the project becomes clearer.`;
+IMPORTANT about project description: Keep it nicely formatted, informative, and exciting - like you're describing the project to participants, judges, or the audience. No markdown formatting, just clear compelling prose. As the project evolves, refine the description to capture what makes it interesting and what you're building. Think of it as the project's elevator pitch that gets people excited about what you're creating.
+
+Remember: the todo list is your scratchpad for working through technical details. The project description is for communicating the vision.`;
         } else {
           return `Your job is to manage the todo list and keep the team on track.
 
@@ -306,9 +308,11 @@ Talk through what you're seeing and what should happen next. Then list out any t
 
 When you write code, include the full HTML file with inline CSS and JavaScript. Talk through what you're building as you go - don't use markdown headers or bullet points, just explain like you're pair programming.`;
       case "communicator":
-        return `Your job is to handle messages and keep everyone updated on progress. Check for new messages and respond to them. Every couple minutes, broadcast a quick status update about what the team is working on.
+        return `Your job is to handle messages and keep everyone updated on progress. When broadcasting, you're talking to everyone - participants, judges, and the audience. When responding to chat messages, you're addressing the user directly.
 
-Just write naturally like you're talking to the team - no need for markdown formatting or formal structure.`;
+Check for new messages and respond to them naturally. Every couple minutes, broadcast a quick status update about what's being built and what progress has been made. Keep it engaging and exciting - you're sharing the journey with people who want to see what you're creating.
+
+Just write naturally like you're talking to people - no need for markdown formatting or formal structure.`;
       case "reviewer":
         return `Your job is to review code that the builder creates and spot issues. Look for bugs, security problems, code quality issues, accessibility problems, and performance concerns.
 
