@@ -56,13 +56,15 @@ export function SpeechBubbles({ agentPositions }: SpeechBubblesProps) {
       if (allAgents.length === 0) return;
 
       const randomAgent = allAgents[Math.floor(Math.random() * allAgents.length)];
+      if (!randomAgent) return;
+
       const [teamIndexStr, agentType, stackId] = randomAgent.split("-");
 
       let message = "...";
 
       if (recentTraces && recentTraces.length > 0) {
         const stackTraces = recentTraces.filter(
-          (t) => String(t.stack_id) === stackId && t.agent_type === agentType
+          (t: any) => String(t.stack_id) === stackId && t.agent_type === agentType
         );
 
         if (stackTraces.length > 0) {

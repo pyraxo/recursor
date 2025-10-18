@@ -61,10 +61,6 @@ echo "📦 Installing dependencies..."
 pnpm install --frozen-lockfile
 
 echo ""
-echo "🔨 Building packages and workspace..."
-pnpm build
-
-echo ""
 echo "✅ Workspace setup complete!"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

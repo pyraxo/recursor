@@ -106,6 +106,30 @@ export const getTimeline = query({
   },
 });
 
+// Get ALL messages across all teams (for global Messages tab)
+export const getAllMessages = query({
+  args: {},
+  handler: async (ctx: any) => {
+    const messages = await ctx.db.query("messages").collect();
+
+    // Enrich messages with team names
+    const enriched = await Promise.all(
+      messages.map(async (msg: any) => {
+        const fromStack = await ctx.db.get(msg.from_stack_id);
+        const toStack = msg.to_stack_id ? await ctx.db.get(msg.to_stack_id) : null;
+
+        return {
+          ...msg,
+          from_team_name: fromStack?.participant_name || "Unknown",
+          to_team_name: toStack?.participant_name || null,
+        };
+      })
+    );
+
+    return enriched.sort((a: any, b: any) => a.created_at - b.created_at);
+  },
+});
+
 // ========= INTERNAL FUNCTIONS FOR AGENT ADAPTERS =========
 
 // Internal query: Get unread messages for a stack (both direct and broadcast)

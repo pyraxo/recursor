@@ -14,11 +14,13 @@ export function ProgressChart() {
   const stacks = useQuery(api.agents.listStacks);
 
   const chartData = useMemo(() => {
-    if (!stacks || stacks.length === 0) return [];
+    if (!stacks || stacks.length === 0) {
+      return { data: [], colors: [] };
+    }
 
     const timePoints = 10;
     const data: DataPoint[] = [];
-    
+
     const colors = [
       ACCENT_COLORS.primary,
       ACCENT_COLORS.secondary,
