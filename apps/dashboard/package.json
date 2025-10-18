@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev --port ${PORT:-3004}",
-    "dev:turbo": "next dev --turbopack --port ${PORT:-3004}",
+    "dev": "next dev --port 3001",
+    "dev:turbo": "next dev --turbopack --port 3001",
     "build": "next build",
     "start": "next start",
     "lint": "next lint --max-warnings 0",
