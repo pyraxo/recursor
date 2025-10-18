@@ -13,6 +13,7 @@ export const create = mutation({
     type: v.string(),
     content: v.optional(v.string()),
     url: v.optional(v.string()),
+    created_by: v.optional(v.string()),
     metadata: v.object({
       description: v.optional(v.string()),
       tech_stack: v.optional(v.array(v.string())),
@@ -35,6 +36,7 @@ export const create = mutation({
       version,
       content: args.content,
       url: args.url,
+      created_by: args.created_by || "unknown",
       metadata: args.metadata,
       created_at: Date.now(),
     });
@@ -111,18 +113,24 @@ export const internalCreate = internalMutation({
     created_by: v.string(),
   },
   handler: async (ctx: any, args: any) => {
-    return await ctx.db.insert("artifacts", {
+    const artifactData: any = {
       stack_id: args.stack_id,
       type: args.type,
       version: args.version,
       content: args.content,
       created_by: args.created_by,
       created_at: Date.now(),
-      url: null,
       metadata: {
         description: `Created by ${args.created_by}`,
       },
-    });
+    };
+
+    // Only add url if it's provided (don't set to null)
+    if (args.url) {
+      artifactData.url = args.url;
+    }
+
+    return await ctx.db.insert("artifacts", artifactData);
   },
 });
 

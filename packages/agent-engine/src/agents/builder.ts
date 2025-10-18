@@ -138,6 +138,7 @@ Respond with:
         type: "html_js",
         content: result.content,
         metadata: result.metadata,
+        created_by: "builder",
       });
 
       // Mark todo as completed
@@ -187,6 +188,7 @@ Respond with:
         type: "html_js",
         content: result.content,
         metadata: result.metadata,
+        created_by: "builder",
       });
 
       await this.logTrace(

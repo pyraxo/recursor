@@ -8,6 +8,7 @@ import { Button } from "@repo/ui/button";
 import { Badge } from "@repo/ui/badge";
 import { Separator } from "@repo/ui/separator";
 import { Card, CardContent } from "@repo/ui/card";
+import { useState } from "react";
 
 export function ExecutionControls({
   stackId,
@@ -16,6 +17,7 @@ export function ExecutionControls({
 }) {
   const stack = useQuery(api.agents.getStack, { stackId });
   const executionStatus = useQuery(api.agents.getExecutionStatus, { stackId });
+  const [isProcessingAction, setIsProcessingAction] = useState(false);
 
   const start = useMutation(api.agents.startExecution);
   const pause = useMutation(api.agents.pauseExecution);
@@ -23,18 +25,32 @@ export function ExecutionControls({
   const stop = useMutation(api.agents.stopExecution);
 
   const handlePlayPause = async () => {
-    if (executionStatus?.execution_state === "running") {
-      await pause({ stackId });
-    } else if (executionStatus?.execution_state === "paused") {
-      await resume({ stackId });
-    } else {
-      await start({ stackId });
+    setIsProcessingAction(true);
+    try {
+      if (executionStatus?.execution_state === "running") {
+        await pause({ stackId });
+      } else if (executionStatus?.execution_state === "paused") {
+        await resume({ stackId });
+      } else {
+        await start({ stackId });
+      }
+    } catch (error) {
+      console.error("Failed to change execution state:", error);
+    } finally {
+      setIsProcessingAction(false);
     }
   };
 
   const handleStop = async () => {
     if (confirm("Stop execution? This will permanently halt all agents.")) {
-      await stop({ stackId });
+      setIsProcessingAction(true);
+      try {
+        await stop({ stackId });
+      } catch (error) {
+        console.error("Failed to stop execution:", error);
+      } finally {
+        setIsProcessingAction(false);
+      }
     }
   };
 
@@ -80,21 +96,33 @@ export function ExecutionControls({
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           {/* Control Buttons */}
           <div className="flex gap-2">
-            {!isStopped && (
+            {!isActive && (
               <Button
                 onClick={handlePlayPause}
                 size="default"
+                disabled={isProcessingAction}
+                className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
+                title="Start execution"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Start</span>
+              </Button>
+            )}
+
+            {isActive && (
+              <Button
+                onClick={handlePlayPause}
+                size="default"
+                disabled={isProcessingAction}
                 className={
                   isRunning
-                    ? "bg-yellow-600 hover:bg-yellow-700 text-white"
-                    : "bg-green-600 hover:bg-green-700 text-white"
+                    ? "bg-yellow-600 hover:bg-yellow-700 text-white disabled:opacity-50"
+                    : "bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
                 }
                 title={
                   isRunning
                     ? "Pause execution"
-                    : isPaused
-                      ? "Resume execution"
-                      : "Start execution"
+                    : "Resume execution"
                 }
               >
                 {isRunning ? (
@@ -105,9 +133,7 @@ export function ExecutionControls({
                 ) : (
                   <>
                     <Play className="w-4 h-4 mr-2" />
-                    <span className="hidden sm:inline">
-                      {isPaused ? "Resume" : "Start"}
-                    </span>
+                    <span className="hidden sm:inline">Resume</span>
                   </>
                 )}
               </Button>
@@ -118,6 +144,7 @@ export function ExecutionControls({
                 onClick={handleStop}
                 variant="destructive"
                 size="default"
+                disabled={isProcessingAction}
                 title="Stop execution"
               >
                 <Square className="w-4 h-4 mr-2" />

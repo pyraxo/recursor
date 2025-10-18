@@ -70,6 +70,7 @@ export async function executeCommunicator(
     for (const msg of messages) {
       await ctx.runMutation(internal.messages.internalMarkAsRead, {
         messageId: msg._id,
+        stackId: stackId, // Add the current stack ID
       });
     }
   }

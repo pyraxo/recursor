@@ -1,12 +1,12 @@
 "use client";
-import { useQuery } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
-import { Card, CardContent } from "@repo/ui/card";
 import { Badge } from "@repo/ui/badge";
-import { Separator } from "@repo/ui/separator";
+import { Card, CardContent } from "@repo/ui/card";
 import { ScrollArea } from "@repo/ui/scroll-area";
+import { Separator } from "@repo/ui/separator";
+import { useQuery } from "convex/react";
+import { Activity, Clock, User, Zap } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { Clock, User, Zap, Activity } from "lucide-react";
 
 export function LiveFeed() {
   const traces = useQuery(api.traces.getRecent, { limit: 100 });
@@ -117,7 +117,7 @@ export function LiveFeed() {
                       View result
                     </summary>
                     <div className="mt-2 p-3 bg-secondary rounded-md">
-                      <pre className="text-xs overflow-x-auto">
+                      <pre className="text-xs overflow-x-auto max-w-full whitespace-pre-wrap break-words">
                         {typeof t.result === "string"
                           ? t.result
                           : JSON.stringify(t.result, null, 2)}

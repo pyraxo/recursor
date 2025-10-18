@@ -28,7 +28,8 @@
   --color-card: #0a0a0a;
   --color-card-foreground: #fafafa;
 
-  --font-family-mono: ui-monospace, "JetBrains Mono", "Fira Code", "Courier New", monospace;
+  --font-family-mono:
+    ui-monospace, "JetBrains Mono", "Fira Code", "Courier New", monospace;
 
   --border-radius-lg: 2px;
   --border-radius-md: 2px;
@@ -61,6 +62,12 @@
 @layer base {
   * {
     border-color: var(--color-border);
+  }
+  html,
+  body {
+    height: 100vh;
+    overflow: hidden;
+    overscroll-behavior: none;
   }
   body {
     background-color: var(--color-background);

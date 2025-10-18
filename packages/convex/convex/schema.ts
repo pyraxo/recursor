@@ -35,6 +35,8 @@ export default defineSchema({
       facts: v.array(v.string()),
       learnings: v.array(v.string()),
       recommendations: v.optional(v.array(v.string())),
+      recommendations_timestamp: v.optional(v.number()),
+      reviewer_recommendations: v.optional(v.array(v.string())),
 
       // Execution tracking for autonomous orchestrator
       execution_state: v.optional(
@@ -44,6 +46,7 @@ export default defineSchema({
       last_execution_update: v.optional(v.number()),
       last_review_time: v.optional(v.number()),
       last_planning_time: v.optional(v.number()),
+      last_broadcast_time: v.optional(v.number()),
     }),
     current_context: v.object({
       // Short-term working memory: current task, recent interactions
@@ -98,6 +101,7 @@ export default defineSchema({
     version: v.number(), // incremental version number
     content: v.optional(v.string()), // for HTML/JS: the actual code
     url: v.optional(v.string()), // for external links or hosted artifacts
+    created_by: v.string(), // which agent created this artifact
     metadata: v.object({
       description: v.optional(v.string()),
       tech_stack: v.optional(v.array(v.string())),

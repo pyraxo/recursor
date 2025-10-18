@@ -1,154 +1,303 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
 import { Id } from "@recursor/convex/_generated/dataModel";
-import { Button } from "@repo/ui/button";
 import { Badge } from "@repo/ui/badge";
-import { Separator } from "@repo/ui/separator";
-import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
+import { Button } from "@repo/ui/button";
+import { Card } from "@repo/ui/card";
+import { ScrollArea } from "@repo/ui/scroll-area";
+import { Skeleton } from "@repo/ui/skeleton";
+import { useQuery, useMutation } from "convex/react";
+import { Activity, Calendar, Clock, Trash2, Play, Square } from "lucide-react";
+import { useState } from "react";
 import { DeleteTeamDialog } from "./DeleteTeamDialog";
-import { Trash2, Play, Pause, Square, Circle, Clock, Calendar } from "lucide-react";
 
 export function TeamManagementList() {
   const stacks = useQuery(api.agents.listStacks);
+  const startExecution = useMutation(api.agents.startExecution);
+  const stopExecution = useMutation(api.agents.stopExecution);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedStack, setSelectedStack] = useState<{
     id: Id<"agent_stacks">;
     name: string;
   } | null>(null);
+  const [processingStacks, setProcessingStacks] = useState<Set<Id<"agent_stacks">>>(new Set());
 
-  if (!stacks) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Existing Teams</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-sm text-muted-foreground">Loading...</div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const handleStart = async (id: Id<"agent_stacks">, name: string) => {
+    setProcessingStacks(prev => new Set([...prev, id]));
+    try {
+      await startExecution({ stackId: id });
+    } catch (error) {
+      console.error(`Failed to start ${name}:`, error);
+    } finally {
+      setProcessingStacks(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
+
+  const handleStop = async (id: Id<"agent_stacks">, name: string) => {
+    const confirmed = confirm(`Stop execution for ${name}? This action cannot be undone.`);
+    if (!confirmed) return;
+
+    setProcessingStacks(prev => new Set([...prev, id]));
+    try {
+      await stopExecution({ stackId: id });
+    } catch (error) {
+      console.error(`Failed to stop ${name}:`, error);
+    } finally {
+      setProcessingStacks(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
 
   const handleDelete = (id: Id<"agent_stacks">, name: string) => {
     setSelectedStack({ id, name });
     setDeleteDialogOpen(true);
   };
 
-  const getStatusBadgeClass = (executionState: string) => {
+  const getStatusStyles = (executionState: string) => {
     switch (executionState) {
-      case 'running':
-        return "bg-green-900/50 text-green-400 border-green-800 hover:bg-green-900/70";
-      case 'paused':
-        return "bg-yellow-900/50 text-yellow-400 border-yellow-800 hover:bg-yellow-900/70";
-      case 'stopped':
-        return "bg-red-900/50 text-red-400 border-red-800 hover:bg-red-900/70";
+      case "running":
+        return {
+          container: "bg-green-500/10 border-green-500/20",
+          text: "text-green-500",
+          pulse: "bg-green-500",
+        };
+      case "paused":
+        return {
+          container: "bg-yellow-500/10 border-yellow-500/20",
+          text: "text-yellow-500",
+          pulse: "bg-yellow-500",
+        };
+      case "stopped":
+        return {
+          container: "bg-red-500/10 border-red-500/20",
+          text: "text-red-500",
+          pulse: "bg-red-500",
+        };
       default:
-        return "bg-gray-800 text-gray-400 border-gray-700";
+        return {
+          container: "bg-gray-500/10 border-gray-500/20",
+          text: "text-gray-500",
+          pulse: "bg-gray-400",
+        };
     }
   };
 
-  const getStatusIcon = (executionState: string) => {
-    switch (executionState) {
-      case 'running':
-        return <Play className="h-3 w-3" />;
-      case 'paused':
-        return <Pause className="h-3 w-3" />;
-      case 'stopped':
-        return <Square className="h-3 w-3" />;
+  const getPhaseStyles = (phase: string) => {
+    switch (phase) {
+      case "ideation":
+        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+      case "building":
+        return "bg-purple-500/10 text-purple-500 border-purple-500/20";
+      case "demo":
+        return "bg-orange-500/10 text-orange-500 border-orange-500/20";
+      case "completed":
+        return "bg-green-500/10 text-green-500 border-green-500/20";
       default:
-        return <Circle className="h-3 w-3" />;
+        return "bg-gray-500/10 text-gray-500 border-gray-500/20";
     }
   };
+
+  if (!stacks) {
+    return (
+      <Card className="border-border bg-card p-6">
+        <h3 className="font-mono text-sm font-semibold text-foreground mb-6">
+          Existing Teams
+        </h3>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-20 w-full" />
+          ))}
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Existing Teams</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {stacks.length === 0 ? (
-            <div className="text-sm text-muted-foreground">
+      <Card className="border-border bg-card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="font-mono text-sm font-semibold text-foreground">
+            Existing Teams
+          </h3>
+          {stacks.length > 0 && (
+            <Badge variant="secondary" className="font-mono text-xs">
+              {stacks.length} {stacks.length === 1 ? "team" : "teams"}
+            </Badge>
+          )}
+        </div>
+
+        {stacks.length === 0 ? (
+          <div className="py-8 text-center">
+            <p className="font-mono text-xs text-muted-foreground mb-2">
               No teams created yet
-            </div>
-          ) : (
-            <div className="space-y-2">
+            </p>
+            <p className="font-mono text-xs text-muted-foreground">
+              Create your first team to get started
+            </p>
+          </div>
+        ) : (
+          <ScrollArea className="h-[400px] pr-4">
+            <div className="space-y-3">
               {stacks.map((stack: any) => {
-                const executionState = stack.execution_state || 'idle';
+                const executionState = stack.execution_state || "idle";
+                const statusStyles = getStatusStyles(executionState);
+                const phaseStyles = getPhaseStyles(stack.phase);
 
                 return (
                   <div
                     key={stack._id}
-                    className="flex items-center justify-between p-3 border hover:bg-accent/50 transition-colors rounded-lg"
+                    className="group relative flex items-center justify-between p-4 rounded-lg border border-border bg-background hover:border-foreground/20 transition-all duration-200"
                   >
-                    <div className="flex-1 min-w-0 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <div className="font-medium truncate">
+                    <div className="flex-1 min-w-0">
+                      {/* Team Name and Status */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="font-mono text-sm font-semibold text-foreground truncate">
                           {stack.participant_name}
-                        </div>
+                        </span>
+
+                        {/* Execution Status Badge */}
                         <Badge
                           variant="outline"
-                          className={`uppercase tracking-wider ${getStatusBadgeClass(executionState)}`}
+                          className={`${statusStyles.container} ${statusStyles.text} border px-2 py-0.5`}
                         >
-                          <span className="flex items-center gap-1">
-                            {getStatusIcon(executionState)}
-                            {executionState}
+                          <span className="relative flex items-center gap-1.5">
+                            {executionState === "running" && (
+                              <span
+                                className={`absolute inline-flex h-full w-full rounded-full ${statusStyles.pulse} opacity-25 animate-ping`}
+                              ></span>
+                            )}
+                            <span
+                              className={`relative inline-flex h-1.5 w-1.5 rounded-full ${statusStyles.pulse}`}
+                            ></span>
+                            <span className="font-mono text-[10px] uppercase tracking-wider">
+                              {executionState}
+                            </span>
                           </span>
                         </Badge>
-                        <Badge variant="secondary" className="capitalize">
-                          {stack.phase}
+
+                        {/* Phase Badge */}
+                        <Badge
+                          variant="outline"
+                          className={`${phaseStyles} border px-2 py-0.5`}
+                        >
+                          <span className="font-mono text-[10px] uppercase tracking-wider">
+                            {stack.phase}
+                          </span>
                         </Badge>
                       </div>
 
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                        <div className="flex items-center gap-1">
+                      {/* Metadata */}
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
                           <Calendar className="h-3 w-3" />
-                          <span>{new Date(stack.created_at).toLocaleDateString()}</span>
+                          <span className="font-mono">
+                            {new Date(stack.created_at).toLocaleDateString()}
+                          </span>
                         </div>
 
-                        {stack.last_activity_at && executionState === 'running' && (
-                          <>
-                            <Separator orientation="vertical" className="h-3" />
-                            <div className="flex items-center gap-1 text-green-400">
-                              <Clock className="h-3 w-3" />
-                              <span>
-                                Active: {new Date(stack.last_activity_at).toLocaleTimeString()}
+                        {stack.last_activity_at &&
+                          executionState === "running" && (
+                            <div className="flex items-center gap-1.5">
+                              <Activity className="h-3 w-3 text-green-500" />
+                              <span className="font-mono text-green-500">
+                                Active{" "}
+                                {new Date(
+                                  stack.last_activity_at
+                                ).toLocaleTimeString()}
                               </span>
                             </div>
-                          </>
-                        )}
+                          )}
+
+                        {stack.last_activity_at &&
+                          executionState !== "running" && (
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="h-3 w-3" />
+                              <span className="font-mono">
+                                Last active{" "}
+                                {new Date(
+                                  stack.last_activity_at
+                                ).toLocaleTimeString()}
+                              </span>
+                            </div>
+                          )}
                       </div>
                     </div>
 
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() =>
-                        handleDelete(stack._id, stack.participant_name)
-                      }
-                      className="ml-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className={`flex items-center gap-2 transition-opacity duration-200 ${
+                      processingStacks.has(stack._id)
+                        ? 'opacity-100'
+                        : 'opacity-50 group-hover:opacity-100'
+                    }`}>
+                      {/* Start/Stop Button */}
+                      {executionState === "running" ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleStop(stack._id, stack.participant_name)}
+                          disabled={processingStacks.has(stack._id)}
+                          className="text-orange-500 hover:text-orange-600 hover:bg-orange-500/10"
+                          title="Stop execution"
+                        >
+                          <Square className="h-4 w-4" />
+                          <span className="sr-only">
+                            Stop {stack.participant_name}
+                          </span>
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleStart(stack._id, stack.participant_name)}
+                          disabled={processingStacks.has(stack._id)}
+                          className="text-green-500 hover:text-green-600 hover:bg-green-500/10"
+                          title="Start execution"
+                        >
+                          <Play className="h-4 w-4" />
+                          <span className="sr-only">
+                            Start {stack.participant_name}
+                          </span>
+                        </Button>
+                      )}
+
+                      {/* Delete Button */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() =>
+                          handleDelete(stack._id, stack.participant_name)
+                        }
+                        disabled={executionState === "running"}
+                        className="text-red-500 hover:text-red-600 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={executionState === "running" ? "Stop execution before deleting" : "Delete team"}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">
+                          Delete {stack.participant_name}
+                        </span>
+                      </Button>
+                    </div>
                   </div>
                 );
               })}
             </div>
-          )}
-        </CardContent>
+          </ScrollArea>
+        )}
       </Card>
 
-      {selectedStack && (
-        <DeleteTeamDialog
-          open={deleteDialogOpen}
-          onOpenChange={setDeleteDialogOpen}
-          stackId={selectedStack.id}
-          participantName={selectedStack.name}
-        />
-      )}
+      <DeleteTeamDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        stackId={selectedStack?.id || ("" as Id<"agent_stacks">)}
+        participantName={selectedStack?.name || ""}
+      />
     </>
   );
 }

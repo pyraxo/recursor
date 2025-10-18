@@ -353,7 +353,32 @@ export const updateAgentMemory = internalMutation({
   },
 });
 
-// Internal mutation: Clear reviewer recommendations
+// Internal mutation: Clear reviewer recommendations from planner's memory
+export const clearPlannerRecommendations = internalMutation({
+  args: {
+    stackId: v.id("agent_stacks"),
+  },
+  handler: async (ctx, args) => {
+    const plannerState = await ctx.db
+      .query("agent_states")
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+      .filter((q) => q.eq(q.field("agent_type"), "planner"))
+      .first();
+
+    if (plannerState && plannerState.memory?.reviewer_recommendations) {
+      await ctx.db.patch(plannerState._id, {
+        memory: {
+          ...plannerState.memory,
+          reviewer_recommendations: [],
+          recommendations_timestamp: undefined,
+        },
+        updated_at: Date.now(),
+      });
+    }
+  },
+});
+
+// Legacy - kept for compatibility but unused
 export const clearReviewerRecommendations = internalMutation({
   args: {
     stackId: v.id("agent_stacks"),

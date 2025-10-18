@@ -10,7 +10,7 @@ export async function executePlanner(
   console.log(`[Planner] Executing for stack ${stackId}`);
 
   // 1. Load context
-  const [stack, todos, projectIdea, agentState, reviewerState] =
+  const [stack, todos, projectIdea, agentState] =
     await Promise.all([
       ctx.runQuery(internal.agentExecution.getStackForExecution, { stackId }),
       ctx.runQuery(internal.agentExecution.getTodos, { stackId }),
@@ -18,10 +18,6 @@ export async function executePlanner(
       ctx.runQuery(internal.agentExecution.getAgentState, {
         stackId,
         agentType: "planner",
-      }),
-      ctx.runQuery(internal.agentExecution.getAgentState, {
-        stackId,
-        agentType: "reviewer",
       }),
     ]);
 
@@ -33,8 +29,7 @@ export async function executePlanner(
   const hasWork = checkPlannerHasWork(
     todos,
     projectIdea,
-    agentState,
-    reviewerState
+    agentState
   );
   if (!hasWork.hasWork) {
     console.log(`[Planner] No work available: ${hasWork.reason}`);
@@ -70,13 +65,17 @@ export async function executePlanner(
     });
   }
 
-  // Add reviewer recommendations if any
-  const reviewerRecommendations = reviewerState?.memory?.recommendations;
+  // Add reviewer recommendations if any (stored in planner's own memory)
+  const reviewerRecommendations = agentState?.memory?.reviewer_recommendations;
   if (reviewerRecommendations && reviewerRecommendations.length > 0) {
     const recommendations = reviewerRecommendations.join("\n");
+    const timestamp = agentState?.memory?.recommendations_timestamp;
+    const ageInMinutes = timestamp
+      ? Math.floor((Date.now() - timestamp) / 60000)
+      : null;
     messages.push({
       role: "user",
-      content: `Reviewer recommendations:\n${recommendations}`,
+      content: `Reviewer recommendations${ageInMinutes !== null ? ` (${ageInMinutes} minutes ago)` : ''}:\n${recommendations}`,
     });
   }
 
@@ -120,11 +119,11 @@ export async function executePlanner(
     thought: response.content,
   });
 
-  // Clear reviewer recommendations after processing
-  const hasRecommendations = reviewerState?.memory?.recommendations &&
-    reviewerState.memory.recommendations.length > 0;
+  // Clear reviewer recommendations from planner's memory after processing
+  const hasRecommendations = agentState?.memory?.reviewer_recommendations &&
+    agentState.memory.reviewer_recommendations.length > 0;
   if (hasRecommendations) {
-    await ctx.runMutation(internal.agents.clearReviewerRecommendations, {
+    await ctx.runMutation(internal.agents.clearPlannerRecommendations, {
       stackId,
     });
   }
@@ -149,8 +148,7 @@ export async function executePlanner(
 function checkPlannerHasWork(
   todos: any[],
   projectIdea: any,
-  agentState: any,
-  reviewerState: any
+  agentState: any
 ): { hasWork: boolean; reason: string; prompt?: string } {
   // Check if we need initial planning
   if (!projectIdea) {
@@ -182,8 +180,8 @@ function checkPlannerHasWork(
     };
   }
 
-  // Check for reviewer recommendations
-  if (reviewerState?.memory?.recommendations?.length > 0) {
+  // Check for reviewer recommendations in planner's memory
+  if (agentState?.memory?.reviewer_recommendations?.length > 0) {
     return {
       hasWork: true,
       reason: "Reviewer has recommendations",

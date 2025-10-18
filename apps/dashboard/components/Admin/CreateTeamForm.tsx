@@ -4,15 +4,16 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
 import { Button } from "@repo/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/card";
+import { Checkbox } from "@repo/ui/checkbox";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import { Textarea } from "@repo/ui/textarea";
-import { Checkbox } from "@repo/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
+import { Loader2, UserPlus, Lightbulb } from "lucide-react";
 
 export function CreateTeamForm() {
   const [participantName, setParticipantName] = useState("");
-  const [showProjectIdea, setShowProjectIdea] = useState(false);
+  const [provideIdea, setProvideIdea] = useState(false);
   const [projectTitle, setProjectTitle] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -30,12 +31,19 @@ export function CreateTeamForm() {
       });
 
       // TODO: Create initial project idea if provided
-      // This would require calling api.project_ideas.create after stack creation
+      // if (provideIdea && projectTitle) {
+      //   await createProjectIdea({
+      //     stackId,
+      //     title: projectTitle,
+      //     description: projectDescription
+      //   });
+      // }
 
+      // Reset form
       setParticipantName("");
+      setProvideIdea(false);
       setProjectTitle("");
       setProjectDescription("");
-      setShowProjectIdea(false);
     } catch (error) {
       console.error("Failed to create team:", error);
     } finally {
@@ -44,70 +52,125 @@ export function CreateTeamForm() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Create New Team</CardTitle>
+    <Card className="border-border bg-card h-fit">
+      <CardHeader className="pb-4">
+        <CardTitle className="font-mono text-sm font-semibold flex items-center gap-2">
+          <UserPlus className="h-4 w-4" />
+          Create New Team
+        </CardTitle>
+        <CardDescription className="font-mono text-xs text-muted-foreground">
+          Add a new participant to the hackathon
+        </CardDescription>
       </CardHeader>
+
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Participant Name Input */}
           <div className="space-y-2">
-            <Label htmlFor="participant">Participant Name *</Label>
+            <Label
+              htmlFor="team-name"
+              className="font-mono text-xs font-medium"
+            >
+              Participant Name
+              <span className="text-red-500 ml-1">*</span>
+            </Label>
             <Input
-              id="participant"
+              id="team-name"
               value={participantName}
               onChange={(e) => setParticipantName(e.target.value)}
               placeholder="Enter team name"
+              className="font-mono text-sm bg-background border-border focus:ring-1 focus:ring-foreground/10"
               required
+              disabled={isCreating}
             />
+            <p className="font-mono text-[10px] text-muted-foreground">
+              Choose a unique name for this agent team
+            </p>
           </div>
 
-          <div className="flex items-center space-x-2">
+          {/* Provide Initial Idea Checkbox */}
+          <div className="flex items-start space-x-3 p-3 rounded-lg bg-muted/20 border border-border">
             <Checkbox
-              id="show-project"
-              checked={showProjectIdea}
-              onCheckedChange={(checked) =>
-                setShowProjectIdea(checked as boolean)
-              }
+              id="provide-idea"
+              checked={provideIdea}
+              onCheckedChange={(checked) => setProvideIdea(checked as boolean)}
+              disabled={isCreating}
+              className="mt-0.5"
             />
-            <Label
-              htmlFor="show-project"
-              className="text-sm font-normal cursor-pointer"
-            >
-              Provide initial project idea
-            </Label>
+            <div className="space-y-1">
+              <Label
+                htmlFor="provide-idea"
+                className="font-mono text-xs cursor-pointer flex items-center gap-2"
+              >
+                <Lightbulb className="h-3 w-3" />
+                Provide initial project idea
+              </Label>
+              <p className="font-mono text-[10px] text-muted-foreground">
+                Give the team a starting direction (optional)
+              </p>
+            </div>
           </div>
 
-          {showProjectIdea && (
-            <>
+          {/* Project Idea Fields (Conditional) */}
+          {provideIdea && (
+            <div className="space-y-3 p-3 rounded-lg bg-muted/10 border border-dashed border-border animate-in fade-in slide-in-from-top-1 duration-200">
               <div className="space-y-2">
-                <Label htmlFor="title">Project Title</Label>
+                <Label
+                  htmlFor="project-title"
+                  className="font-mono text-xs font-medium"
+                >
+                  Project Title
+                </Label>
                 <Input
-                  id="title"
+                  id="project-title"
                   value={projectTitle}
                   onChange={(e) => setProjectTitle(e.target.value)}
-                  placeholder="Enter project title"
+                  placeholder="e.g., AI-powered task manager"
+                  className="font-mono text-sm bg-background border-border"
+                  disabled={isCreating}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Project Description</Label>
+                <Label
+                  htmlFor="project-description"
+                  className="font-mono text-xs font-medium"
+                >
+                  Project Description
+                </Label>
                 <Textarea
-                  id="description"
+                  id="project-description"
                   value={projectDescription}
                   onChange={(e) => setProjectDescription(e.target.value)}
-                  placeholder="Enter project description"
-                  rows={4}
+                  placeholder="Describe the project idea..."
+                  className="font-mono text-sm bg-background border-border resize-none"
+                  rows={3}
+                  disabled={isCreating}
                 />
               </div>
-            </>
+            </div>
           )}
 
-          <Button type="submit" disabled={isCreating} className="w-full">
-            {isCreating ? "Creating..." : "Create Team"}
+          {/* Submit Button */}
+          <Button
+            type="submit"
+            disabled={isCreating || !participantName.trim()}
+            className="w-full font-mono text-xs bg-foreground hover:bg-foreground/90 text-background"
+          >
+            {isCreating ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+                Creating Team...
+              </>
+            ) : (
+              <>
+                <UserPlus className="w-3.5 h-3.5 mr-2" />
+                Create Team
+              </>
+            )}
           </Button>
         </form>
       </CardContent>
     </Card>
   );
 }
-

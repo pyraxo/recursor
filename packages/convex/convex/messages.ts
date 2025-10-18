@@ -138,15 +138,20 @@ export const getUnreadForStack = internalQuery({
 export const internalMarkAsRead = internalMutation({
   args: {
     messageId: v.id("messages"),
+    stackId: v.id("agent_stacks"), // The stack that is reading the message
   },
   handler: async (ctx: any, args: any) => {
     const message = await ctx.db.get(args.messageId);
     if (!message) return;
 
-    // For now, just mark as read by adding a timestamp
-    await ctx.db.patch(args.messageId, {
-      read_at: Date.now(),
-    });
+    // Add the stack to the read_by array if not already there
+    const readBy = message.read_by || [];
+    if (!readBy.includes(args.stackId)) {
+      readBy.push(args.stackId);
+      await ctx.db.patch(args.messageId, {
+        read_by: readBy,
+      });
+    }
   },
 });
 
