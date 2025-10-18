@@ -1,4 +1,4 @@
-import { api, internal } from "@recursor/convex/_generated/api";
+import { api } from "@recursor/convex/_generated/api";
 import type { Id } from "@recursor/convex/_generated/dataModel";
 import { ConvexClient } from "convex/browser";
 import { BaseAgent } from "./agents/base-agent";
@@ -6,6 +6,7 @@ import { BuilderAgent } from "./agents/builder";
 import { CommunicatorAgent } from "./agents/communicator";
 import { PlannerAgent } from "./agents/planner";
 import { ReviewerAgent } from "./agents/reviewer";
+import { createLLMProviders, LLMProviders } from "./config";
 
 // Work detection types
 export interface WorkStatus {
@@ -68,6 +69,7 @@ export class AutonomousOrchestrator {
   private convexClient: ConvexClient;
   private stackId: Id<"agent_stacks">;
   private agentName: string;
+  private llm: LLMProviders;
 
   // Agent instances
   private agents: Map<string, BaseAgent>;
@@ -104,6 +106,7 @@ export class AutonomousOrchestrator {
     this.convexClient = new ConvexClient(convexUrl);
     this.stackId = stackId;
     this.agentName = agentName;
+    this.llm = createLLMProviders();
 
     if (config?.maxConcurrentAgents) {
       this.maxConcurrentAgents = config.maxConcurrentAgents;
@@ -113,12 +116,12 @@ export class AutonomousOrchestrator {
     }
 
     // Initialize agents
-    this.planner = new PlannerAgent(convexUrl, stackId, agentName);
-    this.builder = new BuilderAgent(convexUrl, stackId, agentName);
-    this.communicator = new CommunicatorAgent(convexUrl, stackId, agentName);
-    this.reviewer = new ReviewerAgent(convexUrl, stackId, agentName);
+    this.planner = new PlannerAgent(stackId, this.llm, convexUrl);
+    this.builder = new BuilderAgent(stackId, this.llm, convexUrl);
+    this.communicator = new CommunicatorAgent(stackId, this.llm, convexUrl);
+    this.reviewer = new ReviewerAgent(stackId, this.llm, convexUrl);
 
-    this.agents = new Map([
+    this.agents = new Map<string, BaseAgent>([
       ["planner", this.planner],
       ["builder", this.builder],
       ["communicator", this.communicator],
@@ -158,9 +161,8 @@ export class AutonomousOrchestrator {
     this.startExecutionProcessor();
 
     // Update stack state to running
-    await this.convexClient.mutation(api.agents.updateExecutionState, {
+    await this.convexClient.mutation(api.agents.startExecution, {
       stackId: this.stackId,
-      state: "running",
     });
 
     console.log(
@@ -202,9 +204,8 @@ export class AutonomousOrchestrator {
     }
 
     // Update stack state
-    await this.convexClient.mutation(api.agents.updateExecutionState, {
+    await this.convexClient.mutation(api.agents.stopExecution, {
       stackId: this.stackId,
-      state: "stopped",
     });
 
     console.log(`[${this.agentName}] Autonomous Orchestrator stopped`);
@@ -217,9 +218,8 @@ export class AutonomousOrchestrator {
     console.log(`[${this.agentName}] Pausing execution`);
     this.isPaused = true;
 
-    await this.convexClient.mutation(api.agents.updateExecutionState, {
+    await this.convexClient.mutation(api.agents.pauseExecution, {
       stackId: this.stackId,
-      state: "paused",
     });
   }
 
@@ -230,9 +230,8 @@ export class AutonomousOrchestrator {
     console.log(`[${this.agentName}] Resuming execution`);
     this.isPaused = false;
 
-    await this.convexClient.mutation(api.agents.updateExecutionState, {
+    await this.convexClient.mutation(api.agents.resumeExecution, {
       stackId: this.stackId,
-      state: "running",
     });
 
     // Trigger immediate work check
@@ -411,24 +410,10 @@ export class AutonomousOrchestrator {
    */
   private async checkPlannerWork(): Promise<WorkStatus> {
     try {
-      // Get todos and recommendations
-      const [todos, agentStates] = await Promise.all([
-        this.convexClient.query(api.todos.getByStackId, {
-          stackId: this.stackId,
-        }),
-        this.convexClient.query(api.agents.getAgentStates, {
-          stackId: this.stackId,
-        }),
-      ]);
-
-      const plannerState = agentStates.find((s) => s.agent_type === "planner");
-      const reviewerState = agentStates.find(
-        (s) => s.agent_type === "reviewer"
-      );
-
-      // Check for reviewer recommendations
-      const hasRecommendations =
-        reviewerState?.memory?.recommendations?.length > 0;
+      // Get todos
+      const todos = await this.convexClient.query(api.todos.getByStackId, {
+        stackId: this.stackId,
+      });
 
       // Check if we need initial planning
       const needsInitialPlanning = !todos || todos.length === 0;
@@ -439,8 +424,27 @@ export class AutonomousOrchestrator {
         todos.length > 0 &&
         todos.every((t) => t.status === "completed");
 
-      // Check time since last planning
-      const lastPlanned = plannerState?.memory?.last_planning_time || 0;
+      // Check for reviewer recommendations by querying full agent state
+      const reviewerFullState = await this.convexClient.query(
+        api.agents.getAgentState,
+        {
+          stackId: this.stackId,
+          agentType: "reviewer",
+        }
+      );
+      const hasRecommendations =
+        (reviewerFullState?.memory?.recommendations?.length ?? 0) > 0;
+
+      // Check time since last planning by querying full planner state
+      const plannerFullState = await this.convexClient.query(
+        api.agents.getAgentState,
+        {
+          stackId: this.stackId,
+          agentType: "planner",
+        }
+      );
+      const lastPlanned =
+        (plannerFullState?.memory as any)?.last_planning_time || 0;
       const timeSinceLastPlan = Date.now() - lastPlanned;
       const needsPeriodicPlanning = timeSinceLastPlan > 60000; // 1 minute
 
@@ -508,7 +512,10 @@ export class AutonomousOrchestrator {
       return {
         hasWork,
         type: "building",
-        workDescription: hasWork ? `Building: ${pendingTodos[0].title}` : "",
+        workDescription:
+          hasWork && pendingTodos[0]
+            ? `Building: ${pendingTodos[0].content}`
+            : "",
         priority: hasWork ? Math.min(highestPriority + 2, 10) : 0,
         metadata: { pendingCount: pendingTodos.length },
       };
@@ -538,16 +545,15 @@ export class AutonomousOrchestrator {
       const hasUnreadMessages = messages && messages.length > 0;
 
       // Check if it's time for periodic status update
-      const agentStates = await this.convexClient.query(
-        api.agents.getAgentStates,
+      const commFullState = await this.convexClient.query(
+        api.agents.getAgentState,
         {
           stackId: this.stackId,
+          agentType: "communicator",
         }
       );
-      const commState = agentStates.find(
-        (s) => s.agent_type === "communicator"
-      );
-      const lastBroadcast = commState?.memory?.last_broadcast_time || 0;
+      const lastBroadcast =
+        (commFullState?.memory as any)?.last_broadcast_time || 0;
       const timeSinceLastBroadcast = Date.now() - lastBroadcast;
       const needsStatusUpdate = timeSinceLastBroadcast > 120000; // 2 minutes
 
@@ -589,33 +595,31 @@ export class AutonomousOrchestrator {
    */
   private async checkReviewerWork(): Promise<WorkStatus> {
     try {
-      const [todos, artifacts, agentStates] = await Promise.all([
+      const [todos, artifacts, reviewerFullState] = await Promise.all([
         this.convexClient.query(api.todos.getByStackId, {
           stackId: this.stackId,
         }),
-        this.convexClient.query(api.artifacts.getByStackId, {
+        this.convexClient.query(api.artifacts.list, {
           stackId: this.stackId,
         }),
-        this.convexClient.query(api.agents.getAgentStates, {
+        this.convexClient.query(api.agents.getAgentState, {
           stackId: this.stackId,
+          agentType: "reviewer",
         }),
       ]);
 
-      const reviewerState = agentStates.find(
-        (s) => s.agent_type === "reviewer"
-      );
-
       // Check completed todos since last review
-      const lastReviewTime = reviewerState?.memory?.last_review_time || 0;
+      const lastReviewTime =
+        (reviewerFullState?.memory as any)?.last_review_time || 0;
       const completedSinceReview =
         todos?.filter(
-          (t) =>
+          (t: any) =>
             t.status === "completed" && (t.completed_at || 0) > lastReviewTime
         ) || [];
 
       // Check new artifacts
       const newArtifacts =
-        artifacts?.filter((a) => a.created_at > lastReviewTime) || [];
+        artifacts?.filter((a: any) => a.created_at > lastReviewTime) || [];
 
       // Check time since last review
       const timeSinceLastReview = Date.now() - lastReviewTime;
@@ -721,7 +725,7 @@ export class AutonomousOrchestrator {
     try {
       // Update agent state to executing
       await this.convexClient.mutation(
-        internal.agentExecution.updateAgentExecutionState,
+        api.agentExecution.updateExecutionState,
         {
           stackId: this.stackId,
           agentType: task.agentType,
@@ -737,7 +741,7 @@ export class AutonomousOrchestrator {
       }
 
       // Execute the agent's think method
-      const result = await agent.think();
+      await agent.think();
 
       // Special handling for reviewer -> planner communication
       if (task.agentType === "reviewer") {
@@ -758,7 +762,7 @@ export class AutonomousOrchestrator {
 
       // Update agent state to idle
       await this.convexClient.mutation(
-        internal.agentExecution.updateAgentExecutionState,
+        api.agentExecution.updateExecutionState,
         {
           stackId: this.stackId,
           agentType: task.agentType,
@@ -774,7 +778,7 @@ export class AutonomousOrchestrator {
 
       // Update agent state to error
       await this.convexClient.mutation(
-        internal.agentExecution.updateAgentExecutionState,
+        api.agentExecution.updateExecutionState,
         {
           stackId: this.stackId,
           agentType: task.agentType,
@@ -838,7 +842,7 @@ export class AutonomousOrchestrator {
       isPaused: this.isPaused,
       queueSize: this.executionQueue.size(),
       activeExecutions: this.activeExecutions.size,
-      agents: Array.from(this.agents.entries()).map(([type, _]) => ({
+      agents: Array.from(this.agents.entries()).map(([type]) => ({
         type,
         status: Array.from(this.activeExecutions.keys()).some((id) =>
           id.startsWith(type)

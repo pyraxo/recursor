@@ -9,12 +9,14 @@ export default defineSchema({
     created_at: v.number(),
 
     // Execution control fields
-    execution_state: v.optional(v.union(
-      v.literal('idle'),
-      v.literal('running'),
-      v.literal('paused'),
-      v.literal('stopped')
-    )),
+    execution_state: v.optional(
+      v.union(
+        v.literal("idle"),
+        v.literal("running"),
+        v.literal("paused"),
+        v.literal("stopped")
+      )
+    ),
     current_agent_index: v.optional(v.number()), // Which agent in cycle (0-3)
     last_executed_at: v.optional(v.number()), // Last successful execution
     last_activity_at: v.optional(v.number()),
@@ -32,6 +34,16 @@ export default defineSchema({
       // Long-term memory: learned facts, patterns, preferences
       facts: v.array(v.string()),
       learnings: v.array(v.string()),
+      recommendations: v.optional(v.array(v.string())),
+
+      // Execution tracking for autonomous orchestrator
+      execution_state: v.optional(
+        v.union(v.literal("idle"), v.literal("executing"), v.literal("error"))
+      ),
+      current_work: v.optional(v.union(v.string(), v.null())),
+      last_execution_update: v.optional(v.number()),
+      last_review_time: v.optional(v.number()),
+      last_planning_time: v.optional(v.number()),
     }),
     current_context: v.object({
       // Short-term working memory: current task, recent interactions

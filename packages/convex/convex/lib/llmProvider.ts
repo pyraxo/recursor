@@ -3,10 +3,15 @@
  *
  * This module provides LLM capabilities within Convex actions,
  * supporting multiple providers with automatic fallback.
+ *
+ * IMPORTANT: Environment variables must be set through Convex dashboard:
+ * npx convex env set GROQ_API_KEY <your-key>
+ * npx convex env set OPENAI_API_KEY <your-key>
+ * npx convex env set GEMINI_API_KEY <your-key>
  */
 
 export interface Message {
-  role: 'system' | 'user' | 'assistant';
+  role: "system" | "user" | "assistant";
   content: string;
 }
 
@@ -37,23 +42,26 @@ async function callGroq(
 ): Promise<LLMResponse> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    throw new Error('GROQ_API_KEY not configured');
+    throw new Error("GROQ_API_KEY not configured in Convex environment");
   }
 
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: options.model || 'llama-3.3-70b-versatile',
-      messages,
-      temperature: options.temperature || 0.7,
-      max_tokens: options.max_tokens || 2000,
-      stream: false, // Convex actions don't support streaming
-    }),
-  });
+  const response = await fetch(
+    "https://api.groq.com/openai/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: options.model || "llama-3.3-70b-versatile",
+        messages,
+        temperature: options.temperature ?? 0.7,
+        max_tokens: options.max_tokens || 2000,
+        stream: false, // Convex actions don't support streaming
+      }),
+    }
+  );
 
   if (!response.ok) {
     const error = await response.text();
@@ -63,10 +71,10 @@ async function callGroq(
   const data = await response.json();
 
   return {
-    content: data.choices[0]?.message?.content || '',
+    content: data.choices[0]?.message?.content || "",
     usage: data.usage,
     model: data.model,
-    provider: 'groq',
+    provider: "groq",
   };
 }
 
@@ -79,19 +87,19 @@ async function callOpenAI(
 ): Promise<LLMResponse> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error('OPENAI_API_KEY not configured');
+    throw new Error("OPENAI_API_KEY not configured in Convex environment");
   }
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: options.model || 'gpt-4o-mini',
+      model: options.model || "gpt-4o-mini",
       messages,
-      temperature: options.temperature || 0.7,
+      temperature: options.temperature ?? 0.7,
       max_tokens: options.max_tokens || 2000,
       stream: false,
     }),
@@ -105,10 +113,10 @@ async function callOpenAI(
   const data = await response.json();
 
   return {
-    content: data.choices[0]?.message?.content || '',
+    content: data.choices[0]?.message?.content || "",
     usage: data.usage,
     model: data.model,
-    provider: 'openai',
+    provider: "openai",
   };
 }
 
@@ -121,26 +129,26 @@ async function callGemini(
 ): Promise<LLMResponse> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error('GEMINI_API_KEY not configured');
+    throw new Error("GEMINI_API_KEY not configured in Convex environment");
   }
 
   // Convert messages to Gemini format
-  const contents = messages.map(msg => ({
-    role: msg.role === 'assistant' ? 'model' : 'user',
+  const contents = messages.map((msg) => ({
+    role: msg.role === "assistant" ? "model" : "user",
     parts: [{ text: msg.content }],
   }));
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
     {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         contents,
         generationConfig: {
-          temperature: options.temperature || 0.7,
+          temperature: options.temperature ?? 0.7,
           maxOutputTokens: options.max_tokens || 2000,
         },
       }),
@@ -155,9 +163,9 @@ async function callGemini(
   const data = await response.json();
 
   return {
-    content: data.candidates[0]?.content?.parts[0]?.text || '',
-    model: 'gemini-2.0-flash-exp',
-    provider: 'gemini',
+    content: data.candidates[0]?.content?.parts[0]?.text || "",
+    model: "gemini-2.0-flash-exp",
+    provider: "gemini",
   };
 }
 
@@ -173,9 +181,9 @@ export class ConvexLLMProvider {
     options: ChatOptions = {}
   ): Promise<LLMResponse> {
     const providers = [
-      { name: 'groq', fn: callGroq },
-      { name: 'openai', fn: callOpenAI },
-      { name: 'gemini', fn: callGemini },
+      { name: "groq", fn: callGroq },
+      { name: "openai", fn: callOpenAI },
+      { name: "gemini", fn: callGemini },
     ];
 
     let lastError: Error | null = null;
@@ -193,13 +201,17 @@ export class ConvexLLMProvider {
 
           // Wait before retry (except on last attempt)
           if (attempt < this.maxRetries - 1) {
-            await new Promise(resolve => setTimeout(resolve, this.retryDelay));
+            await new Promise((resolve) =>
+              setTimeout(resolve, this.retryDelay)
+            );
           }
         }
       }
     }
 
-    throw new Error(`All LLM providers failed. Last error: ${lastError?.message}`);
+    throw new Error(
+      `All LLM providers failed. Last error: ${lastError?.message}`
+    );
   }
 
   /**
@@ -207,14 +219,14 @@ export class ConvexLLMProvider {
    */
   buildSystemPrompt(role: string, context: any): Message {
     return {
-      role: 'system',
+      role: "system",
       content: `You are a ${role} agent in the Recursor hackathon simulation.
 
 Current context:
-- Project: ${context.projectTitle || 'Not yet defined'}
-- Phase: ${context.phase || 'Ideation'}
+- Project: ${context.projectTitle || "Not yet defined"}
+- Phase: ${context.phase || "Ideation"}
 - Todos: ${context.todoCount || 0} tasks
-- Team: ${context.teamName || 'Team'}
+- Team: ${context.teamName || "Team"}
 
 Your role is to ${this.getRoleDescription(role)}
 
@@ -228,16 +240,16 @@ Remember:
 
   private getRoleDescription(role: string): string {
     switch (role) {
-      case 'planner':
-        return 'create strategic plans, define todos, and coordinate the team\'s efforts';
-      case 'builder':
-        return 'execute todos, write code, and build working artifacts';
-      case 'communicator':
-        return 'handle team communication, status updates, and external messaging';
-      case 'reviewer':
-        return 'analyze progress, provide feedback, and suggest improvements';
+      case "planner":
+        return "create strategic plans, define todos, and coordinate the team's efforts";
+      case "builder":
+        return "execute todos, write code, and build working artifacts";
+      case "communicator":
+        return "handle team communication, status updates, and external messaging";
+      case "reviewer":
+        return "analyze progress, provide feedback, and suggest improvements";
       default:
-        return 'contribute to the team\'s success';
+        return "contribute to the team's success";
     }
   }
 
@@ -247,11 +259,11 @@ Remember:
   parseAgentResponse(response: string, agentType: string): any {
     // Extract JSON if present
     const jsonMatch = response.match(/```json\n?([\s\S]*?)\n?```/);
-    if (jsonMatch) {
+    if (jsonMatch?.[1]) {
       try {
         return JSON.parse(jsonMatch[1]);
       } catch (e) {
-        console.warn('Failed to parse JSON from response');
+        console.warn("Failed to parse JSON from response");
       }
     }
 
@@ -263,47 +275,52 @@ Remember:
 
     // Agent-specific parsing
     switch (agentType) {
-      case 'planner':
+      case "planner":
         // Look for todo creation patterns
         const todoMatches = response.matchAll(/(?:TODO|TASK|Create):\s*(.+)/gi);
         for (const match of todoMatches) {
-          actions.actions.push({
-            type: 'create_todo',
-            content: match[1].trim(),
-          });
-        }
-        break;
-
-      case 'builder':
-        // Look for artifact creation
-        if (response.includes('```html') || response.includes('<!DOCTYPE')) {
-          const htmlMatch = response.match(/```html\n?([\s\S]*?)\n?```/);
-          if (htmlMatch) {
+          if (match[1]) {
             actions.actions.push({
-              type: 'create_artifact',
-              content: htmlMatch[1],
-              format: 'html',
+              type: "create_todo",
+              content: match[1].trim(),
             });
           }
         }
         break;
 
-      case 'communicator':
+      case "builder":
+        // Look for artifact creation
+        if (response.includes("```html") || response.includes("<!DOCTYPE")) {
+          const htmlMatch = response.match(/```html\n?([\s\S]*?)\n?```/);
+          if (htmlMatch) {
+            actions.actions.push({
+              type: "create_artifact",
+              content: htmlMatch[1],
+              format: "html",
+            });
+          }
+        }
+        break;
+
+      case "communicator":
         // Look for message patterns
-        if (response.toLowerCase().includes('broadcast:') ||
-            response.toLowerCase().includes('message:')) {
+        if (
+          response.toLowerCase().includes("broadcast:") ||
+          response.toLowerCase().includes("message:")
+        ) {
           actions.actions.push({
-            type: 'send_message',
+            type: "send_message",
             content: response,
           });
         }
         break;
 
-      case 'reviewer':
+      case "reviewer":
         // Look for recommendations
-        const recommendations = response.split('\n')
-          .filter(line => line.match(/^[-*•]\s+/))
-          .map(line => line.replace(/^[-*•]\s+/, ''));
+        const recommendations = response
+          .split("\n")
+          .filter((line) => line.match(/^[-*•]\s+/))
+          .map((line) => line.replace(/^[-*•]\s+/, ""));
 
         if (recommendations.length > 0) {
           actions.recommendations = recommendations;

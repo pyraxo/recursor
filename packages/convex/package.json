@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "convex dev",
     "deploy": "convex deploy",
-    "clean": "rm -f convex/*.js convex/*.d.ts convex/*.d.ts.map"
+    "clean": "find convex -type f \\( -name '*.js' -o -name '*.d.ts' -o -name '*.js.map' \\) ! -path 'convex/_generated/*' -delete 2>/dev/null || true"
   },
   "dependencies": {
     "convex": "^1.28.0"

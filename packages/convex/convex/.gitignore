@@ -1,0 +1,9 @@
+# Ignore compiled JavaScript files (Convex compiles TypeScript internally)
+*.js
+*.d.ts
+*.js.map
+*.d.ts.map
+
+# Keep generated files
+!_generated/**
+

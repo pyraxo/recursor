@@ -3,15 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "exports": {
-    "./badge": "./src/badge.tsx",
-    "./button": "./src/button.tsx",
-    "./card": "./src/card.tsx",
-    "./checkbox": "./src/checkbox.tsx",
-    "./dialog": "./src/dialog.tsx",
-    "./input": "./src/input.tsx",
-    "./label": "./src/label.tsx",
-    "./textarea": "./src/textarea.tsx",
-    "./code": "./src/code.tsx"
+    "./*": "./src/*.tsx"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",

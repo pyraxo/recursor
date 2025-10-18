@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query, internalMutation } from "./_generated/server";
+import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
 
 // Log a trace
 export const log = mutation({
@@ -103,5 +103,22 @@ export const getByAgentType = query({
     }
 
     return filtered;
+  },
+});
+
+// ========= INTERNAL FUNCTIONS FOR AGENT ADAPTERS =========
+
+// Internal query: Get recent traces for a stack
+export const getRecentForStack = internalQuery({
+  args: {
+    stackId: v.id("agent_stacks"),
+    limit: v.number(),
+  },
+  handler: async (ctx: any, args: any) => {
+    return await ctx.db
+      .query("agent_traces")
+      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
+      .order("desc")
+      .take(args.limit);
   },
 });

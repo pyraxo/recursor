@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 
 // Create a new agent stack
 export const createStack = mutation({
@@ -325,5 +325,54 @@ export const listRunningStacks = query({
       .collect();
 
     return stacks.filter(stack => stack.execution_state === 'running');
+  },
+});
+
+// ========= INTERNAL FUNCTIONS FOR AGENT ADAPTERS =========
+
+// Internal mutation: Update agent memory (full replacement)
+export const updateAgentMemory = internalMutation({
+  args: {
+    stackId: v.id("agent_stacks"),
+    agentType: v.string(),
+    memory: v.any(),
+  },
+  handler: async (ctx, args) => {
+    const agentState = await ctx.db
+      .query("agent_states")
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+      .filter((q) => q.eq(q.field("agent_type"), args.agentType))
+      .first();
+
+    if (agentState) {
+      await ctx.db.patch(agentState._id, {
+        memory: args.memory,
+        updated_at: Date.now(),
+      });
+    }
+  },
+});
+
+// Internal mutation: Clear reviewer recommendations
+export const clearReviewerRecommendations = internalMutation({
+  args: {
+    stackId: v.id("agent_stacks"),
+  },
+  handler: async (ctx, args) => {
+    const reviewerState = await ctx.db
+      .query("agent_states")
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+      .filter((q) => q.eq(q.field("agent_type"), "reviewer"))
+      .first();
+
+    if (reviewerState && reviewerState.memory?.recommendations) {
+      await ctx.db.patch(reviewerState._id, {
+        memory: {
+          ...reviewerState.memory,
+          recommendations: [],
+        },
+        updated_at: Date.now(),
+      });
+    }
   },
 });

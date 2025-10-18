@@ -3,9 +3,40 @@ import {
   ExecutionController,
 } from "@recursor/agent-engine";
 import { createServer, IncomingMessage, ServerResponse } from "http";
+import fs from "node:fs";
+import path from "node:path";
 
 const PORT = process.env.PORT || 3003;
-const CONVEX_URL = process.env.CONVEX_URL || process.env.NEXT_PUBLIC_CONVEX_URL;
+
+// Best-effort load of CONVEX_URL from project root .env.local without adding deps
+function loadConvexUrlFromEnvFile(): string | undefined {
+  try {
+    const repoRoot = path.resolve(__dirname, "../../..");
+    const envPath = path.join(repoRoot, ".env.local");
+    if (!fs.existsSync(envPath)) return undefined;
+    const contents = fs.readFileSync(envPath, "utf8");
+    for (const line of contents.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eq = trimmed.indexOf("=");
+      if (eq === -1) continue;
+      const key = trimmed.slice(0, eq).trim();
+      const raw = trimmed.slice(eq + 1).trim();
+      const value = raw.replace(/^['\"]|['\"]$/g, "");
+      if (key === "CONVEX_URL" || key === "NEXT_PUBLIC_CONVEX_URL") {
+        if (value) return value;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return undefined;
+}
+
+const CONVEX_URL =
+  process.env.CONVEX_URL ||
+  process.env.NEXT_PUBLIC_CONVEX_URL ||
+  loadConvexUrlFromEnvFile();
 
 class AgentExecutionService {
   private controller: ExecutionController | null = null;

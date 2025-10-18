@@ -1,7 +1,10 @@
 import { v } from "convex/values";
-import { internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { Id } from "./_generated/dataModel";
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from "./_generated/server";
 import { executeAgentByType } from "./lib/agents";
 
 // This runs every 5 seconds to check for agent stacks that need execution
@@ -31,9 +34,13 @@ export const scheduledExecutor = internalMutation({
 
       if (shouldExecute) {
         // Schedule the agent tick action
-        await ctx.scheduler.runAfter(0, internal.agentExecution.executeAgentTick, {
-          stackId: stack._id,
-        });
+        await ctx.scheduler.runAfter(
+          0,
+          internal.agentExecution.executeAgentTick,
+          {
+            stackId: stack._id,
+          }
+        );
 
         // Record that we're starting execution
         await ctx.db.insert("agent_executions", {
@@ -58,9 +65,12 @@ export const executeAgentTick = internalAction({
 
     try {
       // Get stack details
-      const stack = await ctx.runQuery(internal.agentExecution.getStackForExecution, {
-        stackId,
-      });
+      const stack = await ctx.runQuery(
+        internal.agentExecution.getStackForExecution,
+        {
+          stackId,
+        }
+      );
 
       if (!stack || stack.execution_state !== "running") {
         return;
@@ -111,7 +121,7 @@ export const executeAgentTick = internalAction({
         action: "tick_failed",
         result: {
           success: false,
-          error: error instanceof Error ? error.message : "Unknown error"
+          error: error instanceof Error ? error.message : "Unknown error",
         },
       });
     }
@@ -268,7 +278,11 @@ export const updateAgentExecutionState = internalMutation({
   args: {
     stackId: v.id("agent_stacks"),
     agentType: v.string(),
-    state: v.union(v.literal("idle"), v.literal("executing"), v.literal("error")),
+    state: v.union(
+      v.literal("idle"),
+      v.literal("executing"),
+      v.literal("error")
+    ),
     currentWork: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args) => {
@@ -296,7 +310,7 @@ export const updateAgentExecutionState = internalMutation({
     });
 
     // Also update the last activity timestamp on the stack
-    if (args.state === 'executing') {
+    if (args.state === "executing") {
       await ctx.db.patch(args.stackId, {
         last_activity_at: Date.now(),
       });
@@ -346,5 +360,72 @@ export const signalWorkAvailable = internalMutation({
       result: { workType: args.workType, priority: args.priority || 5 },
       timestamp: Date.now(),
     });
+  },
+});
+
+// ========= PUBLIC WRAPPERS FOR AUTONOMOUS ORCHESTRATOR =========
+
+import { mutation, query } from "./_generated/server";
+
+// Public wrapper for updateAgentExecutionState
+export const updateExecutionState = mutation({
+  args: {
+    stackId: v.id("agent_stacks"),
+    agentType: v.string(),
+    state: v.union(
+      v.literal("idle"),
+      v.literal("executing"),
+      v.literal("error")
+    ),
+    currentWork: v.optional(v.union(v.string(), v.null())),
+  },
+  handler: async (ctx, args) => {
+    // Find the agent state
+    const agentState = await ctx.db
+      .query("agent_states")
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+      .filter((q) => q.eq(q.field("agent_type"), args.agentType))
+      .first();
+
+    if (!agentState) {
+      throw new Error(`Agent state not found for ${args.agentType}`);
+    }
+
+    // Update the agent state with execution info
+    const memory = agentState.memory || {};
+    await ctx.db.patch(agentState._id, {
+      memory: {
+        ...memory,
+        execution_state: args.state,
+        current_work: args.currentWork,
+        last_execution_update: Date.now(),
+      },
+      updated_at: Date.now(),
+    });
+
+    // Also update the last activity timestamp on the stack
+    if (args.state === "executing") {
+      await ctx.db.patch(args.stackId, {
+        last_activity_at: Date.now(),
+      });
+    }
+  },
+});
+
+// Public wrapper for getAgentExecutionStates
+export const getExecutionStates = query({
+  args: { stackId: v.id("agent_stacks") },
+  handler: async (ctx, args) => {
+    const agentStates = await ctx.db
+      .query("agent_states")
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+      .collect();
+
+    return agentStates.map((state) => ({
+      agentType: state.agent_type,
+      executionState: state.memory?.execution_state || "idle",
+      currentWork: state.memory?.current_work || null,
+      lastUpdate: state.memory?.last_execution_update || 0,
+    }));
   },
 });

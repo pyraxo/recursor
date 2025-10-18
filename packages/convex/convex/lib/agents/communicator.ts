@@ -1,7 +1,7 @@
+import { internal } from "../../_generated/api";
 import { Id } from "../../_generated/dataModel";
 import { ActionCtx } from "../../_generated/server";
-import { internal } from "../../_generated/api";
-import { llmProvider, Message } from "../llm-provider";
+import { llmProvider, Message } from "../llmProvider";
 
 export async function executeCommunicator(
   ctx: ActionCtx,
@@ -14,7 +14,10 @@ export async function executeCommunicator(
     ctx.runQuery(internal.agentExecution.getStackForExecution, { stackId }),
     ctx.runQuery(internal.messages.getUnreadForStack, { stackId }),
     ctx.runQuery(internal.agentExecution.getProjectIdea, { stackId }),
-    ctx.runQuery(internal.agentExecution.getAgentState, { stackId, agentType: 'communicator' }),
+    ctx.runQuery(internal.agentExecution.getAgentState, {
+      stackId,
+      agentType: "communicator",
+    }),
     ctx.runQuery(internal.agentExecution.getTodos, { stackId }),
   ]);
 
@@ -24,18 +27,19 @@ export async function executeCommunicator(
 
   // 2. Determine communication needs
   const hasUnreadMessages = messages && messages.length > 0;
-  const lastBroadcastTime = agentState?.memory?.last_broadcast_time || 0;
+  const lastBroadcastTime =
+    (agentState as any)?.memory?.last_broadcast_time || 0;
   const timeSinceLastBroadcast = Date.now() - lastBroadcastTime;
   const needsStatusUpdate = timeSinceLastBroadcast > 120000; // 2 minutes
 
   if (!hasUnreadMessages && !needsStatusUpdate) {
     console.log(`[Communicator] No communication needed`);
-    return 'Communicator idle: No messages to process or status updates needed';
+    return "Communicator idle: No messages to process or status updates needed";
   }
 
   // 3. Build conversation
   const llmMessages: Message[] = [
-    llmProvider.buildSystemPrompt('communicator', {
+    llmProvider.buildSystemPrompt("communicator", {
       projectTitle: projectIdea?.title,
       phase: stack.phase,
       todoCount: todos?.length || 0,
@@ -46,7 +50,7 @@ export async function executeCommunicator(
   // Add project context
   if (projectIdea) {
     llmMessages.push({
-      role: 'user',
+      role: "user",
       content: `Project: ${projectIdea.title}\n${projectIdea.description}`,
     });
   }
@@ -54,17 +58,17 @@ export async function executeCommunicator(
   // Process unread messages
   if (hasUnreadMessages) {
     const messagesSummary = messages
-      .map(m => `From ${m.sender_id}: ${m.content}`)
-      .join('\n');
+      .map((m) => `From ${m.sender_id}: ${m.content}`)
+      .join("\n");
 
     llmMessages.push({
-      role: 'user',
+      role: "user",
       content: `Unread messages:\n${messagesSummary}\n\nPlease respond appropriately.`,
     });
 
     // Mark messages as read
     for (const msg of messages) {
-      await ctx.runMutation(internal.messages.markAsRead, {
+      await ctx.runMutation(internal.messages.internalMarkAsRead, {
         messageId: msg._id,
       });
     }
@@ -72,11 +76,13 @@ export async function executeCommunicator(
 
   // Request status update if needed
   if (needsStatusUpdate) {
-    const completedTodos = todos?.filter(t => t.status === 'completed').length || 0;
-    const pendingTodos = todos?.filter(t => t.status === 'pending').length || 0;
+    const completedTodos =
+      todos?.filter((t) => t.status === "completed").length || 0;
+    const pendingTodos =
+      todos?.filter((t) => t.status === "pending").length || 0;
 
     llmMessages.push({
-      role: 'user',
+      role: "user",
       content: `Please provide a team status update. Progress: ${completedTodos} completed, ${pendingTodos} pending todos.`,
     });
   }
@@ -89,14 +95,20 @@ export async function executeCommunicator(
   });
 
   // 5. Parse response and handle communication
-  const parsed = llmProvider.parseAgentResponse(response.content, 'communicator');
+  const parsed = llmProvider.parseAgentResponse(
+    response.content,
+    "communicator"
+  );
 
   // Send broadcast message
   let messageSent = false;
-  if (needsStatusUpdate || parsed.actions.some(a => a.type === 'send_message')) {
+  if (
+    needsStatusUpdate ||
+    parsed.actions.some((a: any) => a.type === "send_message")
+  ) {
     await ctx.runMutation(internal.messages.internalSend, {
       sender_id: stackId,
-      message_type: 'broadcast',
+      message_type: "broadcast",
       content: response.content,
     });
     messageSent = true;
@@ -109,7 +121,7 @@ export async function executeCommunicator(
     };
     await ctx.runMutation(internal.agents.updateAgentMemory, {
       stackId,
-      agentType: 'communicator',
+      agentType: "communicator",
       memory: updatedMemory,
     });
   }
@@ -117,16 +129,16 @@ export async function executeCommunicator(
   // 6. Update communicator memory
   await ctx.runMutation(internal.agentExecution.updateAgentMemory, {
     stackId,
-    agentType: 'communicator',
+    agentType: "communicator",
     thought: response.content,
   });
 
   // 7. Log trace
   await ctx.runMutation(internal.traces.internalLog, {
     stack_id: stackId,
-    agent_type: 'communicator',
+    agent_type: "communicator",
     thought: response.content,
-    action: 'communicate',
+    action: "communicate",
     result: {
       messagesProcessed: messages?.length || 0,
       messageSent,

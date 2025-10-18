@@ -1,6 +1,6 @@
-import { ConvexClient } from "convex/browser";
 import { api } from "@recursor/convex/_generated/api";
 import type { Id } from "@recursor/convex/_generated/dataModel";
+import { ConvexClient } from "convex/browser";
 import { LLMProviders } from "../config";
 import { ConvexMemoryProvider } from "../memory/convex-memory";
 import { ConvexMessagingProvider } from "../messaging/convex-messages";
@@ -39,8 +39,15 @@ export abstract class BaseAgent {
   // Abstract method that each agent must implement
   abstract think(): Promise<string>;
 
-  // Abstract method for detecting available work
-  abstract hasWork(): Promise<WorkStatus>;
+  // Optional method for detecting available work; default none
+  async hasWork(): Promise<WorkStatus> {
+    return {
+      hasWork: false,
+      type: "none",
+      workDescription: "",
+      priority: 0,
+    };
+  }
 
   // Process work when available (override for custom behavior)
   async processWork(workStatus: WorkStatus): Promise<string> {

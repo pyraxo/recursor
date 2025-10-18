@@ -1,5 +1,10 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "./_generated/server";
 
 // Create a new artifact
 export const create = mutation({
@@ -77,5 +82,60 @@ export const getByVersion = query({
       .collect();
 
     return artifacts.find((a: any) => a.version === args.version);
+  },
+});
+
+// ========= INTERNAL FUNCTIONS FOR AGENT ADAPTERS =========
+
+// Internal query: Get latest artifact for a stack
+export const internalGetLatest = internalQuery({
+  args: {
+    stackId: v.id("agent_stacks"),
+  },
+  handler: async (ctx: any, args: any) => {
+    return await ctx.db
+      .query("artifacts")
+      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
+      .order("desc")
+      .first();
+  },
+});
+
+// Internal mutation: Create a new artifact
+export const internalCreate = internalMutation({
+  args: {
+    stack_id: v.id("agent_stacks"),
+    content: v.string(),
+    type: v.string(),
+    version: v.number(),
+    created_by: v.string(),
+  },
+  handler: async (ctx: any, args: any) => {
+    return await ctx.db.insert("artifacts", {
+      stack_id: args.stack_id,
+      type: args.type,
+      version: args.version,
+      content: args.content,
+      created_by: args.created_by,
+      created_at: Date.now(),
+      url: null,
+      metadata: {
+        description: `Created by ${args.created_by}`,
+      },
+    });
+  },
+});
+
+// Internal query: Get artifacts by stack ID
+export const getByStackId = internalQuery({
+  args: {
+    stackId: v.id("agent_stacks"),
+  },
+  handler: async (ctx: any, args: any) => {
+    return await ctx.db
+      .query("artifacts")
+      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
+      .order("desc")
+      .collect();
   },
 });
