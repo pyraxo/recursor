@@ -3,20 +3,24 @@
 ## Issues Fixed
 
 ### 1. ✅ Restored Tailwind Configuration
+
 **Problem**: `tailwind.config.ts` was accidentally deleted
 **Solution**: Recreated the file with the monotone monospace theme configuration
 
 **File**: `apps/dashboard/tailwind.config.ts`
+
 - Dark background (#0a0a0a)
 - Monospace font family
 - Grayscale color palette
 - Minimal border radius (2px)
 
 ### 2. ✅ Enhanced Live Feed
+
 **Problem**: Live observability feed wasn't showing team context and lacked features
 **Solution**: Completely rewrote LiveFeed component with:
 
 **New Features**:
+
 - **Team names** displayed alongside agent types
 - **Auto-scroll** to top when new traces arrive
 - **Result expansion** - Click "View result" to see trace results
@@ -25,6 +29,7 @@
 - **Hover effects** - Cards highlight on hover for better interactivity
 
 **File**: `apps/dashboard/components/Feed/LiveFeed.tsx`
+
 ```typescript
 // Key improvements:
 - Shows which team each trace belongs to
@@ -35,9 +40,11 @@
 ```
 
 ### 3. ✅ Verified Delete Button
+
 **Status**: Delete functionality is correctly implemented
 
 **Confirmed Working**:
+
 - Uses shadcn Button and Dialog components
 - Properly calls `api.agents.deleteStack` mutation
 - Includes cascade delete option with checkbox
@@ -48,6 +55,7 @@
 **File**: `apps/dashboard/components/Admin/DeleteTeamDialog.tsx`
 
 The delete button should work when:
+
 1. Convex dev is running (`pnpm convex:dev`)
 2. Dashboard is running (`cd apps/dashboard && pnpm dev`)
 3. Valid teams exist in the database
@@ -63,11 +71,13 @@ pnpm convex:dev
 ```
 
 **Expected Output**:
+
 - Shows Convex deployment URL
 - Lists all Convex functions
 - Shows "Waiting for file changes"
 
 **Convex Functions That Should Be Listed**:
+
 - `agents:createStack`
 - `agents:deleteStack` ← This is the delete mutation
 - `agents:listStacks`
@@ -86,6 +96,7 @@ pnpm dev
 ```
 
 **Expected Output**:
+
 - Compiles successfully
 - Server running on http://localhost:3002
 - No TypeScript errors
@@ -139,6 +150,7 @@ pnpm cli run <stack_id> 5 3000
 ```
 
 **While agents are running**, switch to Observability view and watch:
+
 - Live traces appear in the feed
 - Shows team name, agent type, timestamp
 - Displays agent thoughts and actions
@@ -150,6 +162,7 @@ pnpm cli run <stack_id> 5 3000
 All components properly use shadcn/ui from `@repo/ui`:
 
 ### Buttons
+
 ```tsx
 import { Button } from "@repo/ui/button";
 
@@ -160,6 +173,7 @@ import { Button } from "@repo/ui/button";
 ```
 
 ### Cards
+
 ```tsx
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 
@@ -167,15 +181,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
   <CardHeader>
     <CardTitle>Title</CardTitle>
   </CardHeader>
-  <CardContent>
-    Content here
-  </CardContent>
-</Card>
+  <CardContent>Content here</CardContent>
+</Card>;
 ```
 
 ### Dialog
+
 ```tsx
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@repo/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@repo/ui/dialog";
 
 <Dialog open={open} onOpenChange={setOpen}>
   <DialogContent>
@@ -188,10 +208,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
       <Button variant="destructive">Delete</Button>
     </DialogFooter>
   </DialogContent>
-</Dialog>
+</Dialog>;
 ```
 
 ### Forms
+
 ```tsx
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
@@ -214,7 +235,9 @@ import { Checkbox } from "@repo/ui/checkbox";
 **Symptoms**: Click trash icon, nothing happens
 
 **Checks**:
+
 1. Is Convex dev running?
+
    ```bash
    # Should show active process
    ps aux | grep "convex dev"
@@ -235,6 +258,7 @@ import { Checkbox } from "@repo/ui/checkbox";
    - Try deleting directly
 
 **Common Causes**:
+
 - Convex dev not running
 - Network connection issues
 - Invalid stack ID
@@ -245,7 +269,9 @@ import { Checkbox } from "@repo/ui/checkbox";
 **Symptoms**: Shows "No agent activity yet" even when agents are running
 
 **Checks**:
+
 1. Are agents actually running?
+
    ```bash
    cd packages/agent-engine
    pnpm cli list
@@ -270,6 +296,7 @@ import { Checkbox } from "@repo/ui/checkbox";
    - Live Feed is the middle column
 
 **Common Causes**:
+
 - No agents have run yet (create and run one!)
 - Switched away from Observability view
 - Convex query not connecting
@@ -280,17 +307,21 @@ import { Checkbox } from "@repo/ui/checkbox";
 **Symptoms**: Components have no styling, or wrong colors
 
 **Checks**:
+
 1. Verify `tailwind.config.ts` exists:
+
    ```bash
    ls -la apps/dashboard/tailwind.config.ts
    ```
 
 2. Check `postcss.config.mjs` exists:
+
    ```bash
    ls -la apps/dashboard/postcss.config.mjs
    ```
 
 3. Restart the dev server:
+
    ```bash
    # In dashboard terminal (Ctrl+C to stop)
    pnpm dev
@@ -354,4 +385,3 @@ Once everything is verified working:
 - Auto-scroll only triggers on new traces (not on every render)
 - Delete operations are atomic (all or nothing)
 - Stats update reactively (no manual refresh needed)
-
