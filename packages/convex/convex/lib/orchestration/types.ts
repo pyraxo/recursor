@@ -80,6 +80,7 @@ export interface WorkDetectionContext {
   agentStates: any[];
   projectIdea: any | null;
   stack: any;
+  userMessages: any[];
 }
 
 /**

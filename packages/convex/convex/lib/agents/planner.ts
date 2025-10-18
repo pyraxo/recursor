@@ -98,7 +98,7 @@ export async function executePlanner(
     });
   }
 
-  // Add user messages if any
+  // Add user messages if any (for strategic planning, not responding)
   if (userMessages && userMessages.length > 0) {
     const userMessagesSummary = userMessages
       .map((msg: any) => {
@@ -108,7 +108,7 @@ export async function executePlanner(
       .join("\n");
     messages.push({
       role: "user",
-      content: `User messages for the team:\n${userMessagesSummary}\n\nAnalyze these messages and decide if you need to:\n1. Create a todo for the Communicator to respond\n2. Incorporate feedback or suggestions into the project plan\n3. Adjust priorities based on user input`,
+      content: `User messages for the team:\n${userMessagesSummary}\n\nNOTE: The Communicator will respond to these messages directly - you don't need to create "respond to user" todos.\n\nYour job is to analyze if these messages require strategic changes:\n1. Do they request new features or changes to the project?\n2. Should priorities be adjusted based on user feedback?\n3. Is there a major announcement that should be broadcast to all participants?\n\nOnly create todos for strategic work, not for simple responses.`,
     });
   }
 

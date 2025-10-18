@@ -162,11 +162,15 @@ GEMINI_API_KEY=...
 
 **For Cursor Teams** (required only if using Cursor Background Agent teams):
 ```
-CURSOR_API_KEY=cur_...        # Get from https://cursor.com/settings (paid plan required)
-GITHUB_TOKEN=ghp_...           # Personal Access Token with 'repo' and 'delete_repo' scopes
+CURSOR_API_KEY=cur_...                    # Get from https://cursor.com/settings (paid plan required)
+GITHUB_TOKEN=github_pat_...               # Fine-grained PAT scoped to 'recursor-sandbox' org (recommended)
+# OR
+GITHUB_TOKEN=ghp_...                      # Classic PAT with 'repo' and 'delete_repo' scopes (legacy)
 ```
 
-See [`docs/CURSOR_TEAM_SETUP.md`](docs/CURSOR_TEAM_SETUP.md) for detailed setup instructions.
+**Important**: Cursor agents create temporary private repositories in the `recursor-sandbox` organization. Use a fine-grained Personal Access Token scoped only to this org for better security.
+
+See [`docs/guides/cursor-team-setup.md`](docs/guides/cursor-team-setup.md) for detailed setup instructions.
 
 ## Testing Infrastructure
 
