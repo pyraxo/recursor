@@ -5,6 +5,15 @@ import { LLMProviders } from "../config";
 import { ConvexMemoryProvider } from "../memory/convex-memory";
 import { ConvexMessagingProvider } from "../messaging/convex-messages";
 
+// Work detection interface
+export interface WorkStatus {
+  hasWork: boolean;
+  type: string;
+  workDescription: string;
+  priority: number;
+  metadata?: Record<string, any>;
+}
+
 export abstract class BaseAgent {
   protected stackId: Id<"agent_stacks">;
   protected agentType: string;
@@ -29,6 +38,21 @@ export abstract class BaseAgent {
 
   // Abstract method that each agent must implement
   abstract think(): Promise<string>;
+
+  // Abstract method for detecting available work
+  abstract hasWork(): Promise<WorkStatus>;
+
+  // Process work when available (override for custom behavior)
+  async processWork(workStatus: WorkStatus): Promise<string> {
+    // Default implementation just calls think()
+    return this.think();
+  }
+
+  // Handle no work situation (override for custom behavior)
+  protected handleNoWork(): string {
+    // Silent return, no LLM call, no trace
+    return `${this.agentType}: Idle`;
+  }
 
   // Log a trace for observability
   protected async logTrace(thought: string, action: string, result?: unknown) {

@@ -4,6 +4,7 @@ import { api } from "@recursor/convex/_generated/api";
 import type { Id } from "@recursor/convex/_generated/dataModel";
 import { createLLMProviders, LLMProviders } from "./config";
 import { AgentStackOrchestrator } from "./orchestrator";
+import { AutonomousOrchestrator } from "./autonomous-orchestrator";
 
 async function main() {
   const convexUrl =
@@ -81,7 +82,7 @@ async function runStack(
 
   if (!stackId) {
     console.error("Error: Stack ID required");
-    console.error("Usage: pnpm cli run <stack_id>");
+    console.error("Usage: pnpm cli run <stack_id> [--mode=autonomous|tick]");
     process.exit(1);
   }
 
@@ -96,34 +97,75 @@ async function runStack(
   console.log(`Participant: ${stack.participant_name}`);
   console.log(`Phase: ${stack.phase}\n`);
 
-  const orchestrator = new AgentStackOrchestrator(
-    stackId,
-    llm,
-    process.env.CONVEX_URL || process.env.NEXT_PUBLIC_CONVEX_URL || ""
-  );
+  // Check for mode flag (default to autonomous)
+  const modeArg = process.argv.find(arg => arg.startsWith('--mode='));
+  const mode = modeArg ? modeArg.split('=')[1] : 'autonomous';
+  const convexUrl = process.env.CONVEX_URL || process.env.NEXT_PUBLIC_CONVEX_URL || "";
 
-  // Initialize
-  await orchestrator.initialize();
+  if (mode === 'autonomous') {
+    // Use new autonomous orchestrator
+    console.log("🚀 Running in AUTONOMOUS mode (new system)");
+    console.log("Agents will execute independently based on work availability\n");
 
-  // Parse options
-  const maxTicks = parseInt(process.argv[4] || "10");
-  const intervalMs = parseInt(process.argv[5] || "5000");
+    const orchestrator = new AutonomousOrchestrator(
+      convexUrl,
+      stackId,
+      stack.participant_name || "Agent"
+    );
 
-  console.log(`Running for ${maxTicks} ticks with ${intervalMs}ms interval\n`);
+    // Handle graceful shutdown
+    process.on('SIGINT', async () => {
+      console.log('\n\nGracefully stopping orchestrator...');
+      await orchestrator.stop();
+      process.exit(0);
+    });
 
-  // Run continuous orchestration
-  await orchestrator.runContinuous(intervalMs, maxTicks);
+    // Start the autonomous orchestrator
+    await orchestrator.start();
 
-  // Show final status
-  const status = await orchestrator.getStatus();
-  console.log("\n=== Final Status ===");
-  console.log(`Phase: ${status.stack?.phase || "Unknown"}`);
-  console.log(`Project: ${status.projectIdea?.title}`);
-  console.log(
-    `Todos: ${status.todos.completed}/${status.todos.total} completed`
-  );
-  console.log(`Artifacts: ${status.artifacts.total} versions`);
-  console.log(`Ticks: ${status.tickCount}`);
+    // Monitor status
+    const monitorInterval = setInterval(() => {
+      const status = orchestrator.getStatus();
+      console.log(`\n📊 Status: Running=${status.isRunning}, Paused=${status.isPaused}, Queue=${status.queueSize}, Active=${status.activeExecutions}`);
+      console.log(`   Agents: ${status.agents.map(a => `${a.type}:${a.status}`).join(', ')}`);
+    }, 10000); // Status every 10 seconds
+
+    // Keep running until interrupted
+    await new Promise(() => {}); // Run forever until SIGINT
+
+  } else {
+    // Use original tick-based orchestrator
+    console.log("⏰ Running in TICK mode (legacy system)");
+
+    const orchestrator = new AgentStackOrchestrator(
+      stackId,
+      llm,
+      convexUrl
+    );
+
+    // Initialize
+    await orchestrator.initialize();
+
+    // Parse options
+    const maxTicks = parseInt(process.argv[4] || "10");
+    const intervalMs = parseInt(process.argv[5] || "5000");
+
+    console.log(`Running for ${maxTicks} ticks with ${intervalMs}ms interval\n`);
+
+    // Run continuous orchestration
+    await orchestrator.runContinuous(intervalMs, maxTicks);
+
+    // Show final status
+    const status = await orchestrator.getStatus();
+    console.log("\n=== Final Status ===");
+    console.log(`Phase: ${status.stack?.phase || "Unknown"}`);
+    console.log(`Project: ${status.projectIdea?.title}`);
+    console.log(
+      `Todos: ${status.todos.completed}/${status.todos.total} completed`
+    );
+    console.log(`Artifacts: ${status.artifacts.total} versions`);
+    console.log(`Ticks: ${status.tickCount}`);
+  }
 }
 
 async function showStatus(
@@ -166,12 +208,20 @@ function showHelp() {
   console.log("Commands:");
   console.log("  create [name]           Create a new team");
   console.log("  list                    List all teams");
-  console.log("  run <id> [ticks] [ms]   Run a team");
+  console.log("  run <id> [options]      Run a team");
   console.log("  status <id>             Show team status");
+  console.log("\nRun Options:");
+  console.log("  --mode=autonomous       Use autonomous execution (default, agents run when work available)");
+  console.log("  --mode=tick            Use tick-based execution (legacy, fixed intervals)");
+  console.log("\nFor tick mode only:");
+  console.log("  [ticks]                Number of ticks to run (default: 10)");
+  console.log("  [interval]             Interval in milliseconds (default: 5000)");
   console.log("\nExamples:");
   console.log("  pnpm cli create MyTeam");
   console.log("  pnpm cli list");
-  console.log("  pnpm cli run <stack_id> 20 3000");
+  console.log("  pnpm cli run <stack_id>                    # Autonomous mode (default)");
+  console.log("  pnpm cli run <stack_id> --mode=autonomous  # Explicit autonomous mode");
+  console.log("  pnpm cli run <stack_id> --mode=tick 20 3000  # Tick mode: 20 ticks, 3s interval");
   console.log("  pnpm cli status <stack_id>");
 }
 

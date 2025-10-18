@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
+import { executeAgentByType } from "./lib/agents";
 
 // This runs every 5 seconds to check for agent stacks that need execution
 export const scheduledExecutor = internalMutation({
@@ -69,35 +70,16 @@ export const executeAgentTick = internalAction({
       const currentAgentIndex = stack.current_agent_index || 0;
       currentAgent = agentOrder[currentAgentIndex % agentOrder.length]!;
 
-      // Get agent state
-      const agentState = await ctx.runQuery(internal.agentExecution.getAgentState, {
-        stackId,
-        agentType: currentAgent,
-      });
-
-      // Get project idea and todos
-      const projectIdea = await ctx.runQuery(internal.agentExecution.getProjectIdea, {
+      // Update last activity to show processing
+      await ctx.runMutation(internal.agentExecution.updateStackActivity, {
         stackId,
       });
 
-      const todos = await ctx.runQuery(internal.agentExecution.getTodos, { stackId });
+      // Execute the agent using the new adapters
+      console.log(`Executing ${currentAgent} agent for stack ${stackId}`);
+      const thought = await executeAgentByType(ctx, currentAgent, stackId);
 
-      // Here you would call the LLM with the agent's context
-      // For now, this is a placeholder - you'd integrate with your LLM providers
-      const thought = await executeAgentLogic({
-        agentType: currentAgent,
-        stack,
-        agentState,
-        projectIdea,
-        todos,
-      });
-
-      // Update agent's memory/context
-      await ctx.runMutation(internal.agentExecution.updateAgentMemory, {
-        stackId,
-        agentType: currentAgent,
-        thought,
-      });
+      // Note: Agent adapters handle their own memory updates and traces
 
       // Move to next agent
       const nextAgentIndex = (currentAgentIndex + 1) % agentOrder.length;
@@ -112,14 +94,8 @@ export const executeAgentTick = internalAction({
         stackId,
       });
 
-      // Log the execution
-      await ctx.runMutation(internal.traces.internalLog, {
-        stack_id: stackId,
-        agent_type: currentAgent,
-        thought,
-        action: "tick_completed",
-        result: { success: true },
-      });
+      // Note: Detailed traces are logged by agent adapters
+      console.log(`${currentAgent} agent completed for stack ${stackId}`);
     } catch (error) {
       // Mark execution as failed
       await ctx.runMutation(internal.agentExecution.markExecutionFailed, {
@@ -275,15 +251,100 @@ export const markExecutionFailed = internalMutation({
   },
 });
 
-// Placeholder for agent logic - this would integrate with your LLM providers
-async function executeAgentLogic(params: {
-  agentType: string;
-  stack: any;
-  agentState: any;
-  projectIdea: any;
-  todos: any[];
-}): Promise<string> {
-  // This is where you'd call your LLM (Groq, OpenAI, etc.)
-  // For now, return a placeholder thought
-  return `${params.agentType} agent thinking about ${params.projectIdea?.title || "project"}...`;
-}
+// Update stack activity timestamp
+export const updateStackActivity = internalMutation({
+  args: { stackId: v.id("agent_stacks") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.stackId, {
+      last_activity_at: Date.now(),
+    });
+  },
+});
+
+// ========= AUTONOMOUS EXECUTION MUTATIONS =========
+
+// Update individual agent execution state for autonomous orchestrator
+export const updateAgentExecutionState = internalMutation({
+  args: {
+    stackId: v.id("agent_stacks"),
+    agentType: v.string(),
+    state: v.union(v.literal("idle"), v.literal("executing"), v.literal("error")),
+    currentWork: v.optional(v.union(v.string(), v.null())),
+  },
+  handler: async (ctx, args) => {
+    // Find the agent state
+    const agentState = await ctx.db
+      .query("agent_states")
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+      .filter((q) => q.eq(q.field("agent_type"), args.agentType))
+      .first();
+
+    if (!agentState) {
+      throw new Error(`Agent state not found for ${args.agentType}`);
+    }
+
+    // Update the agent state with execution info
+    const memory = agentState.memory || {};
+    await ctx.db.patch(agentState._id, {
+      memory: {
+        ...memory,
+        execution_state: args.state,
+        current_work: args.currentWork,
+        last_execution_update: Date.now(),
+      },
+      updated_at: Date.now(),
+    });
+
+    // Also update the last activity timestamp on the stack
+    if (args.state === 'executing') {
+      await ctx.db.patch(args.stackId, {
+        last_activity_at: Date.now(),
+      });
+    }
+  },
+});
+
+// Get execution states for all agents in a stack
+export const getAgentExecutionStates = internalQuery({
+  args: { stackId: v.id("agent_stacks") },
+  handler: async (ctx, args) => {
+    const agentStates = await ctx.db
+      .query("agent_states")
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+      .collect();
+
+    return agentStates.map((state) => ({
+      agentType: state.agent_type,
+      executionState: state.memory?.execution_state || "idle",
+      currentWork: state.memory?.current_work || null,
+      lastUpdate: state.memory?.last_execution_update || 0,
+    }));
+  },
+});
+
+// Signal that work is available for an agent
+export const signalWorkAvailable = internalMutation({
+  args: {
+    stackId: v.id("agent_stacks"),
+    agentType: v.string(),
+    workType: v.string(),
+    priority: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    // For now, just update the stack's last activity to trigger checks
+    // In the future, this could insert into a work_signals table
+    await ctx.db.patch(args.stackId, {
+      last_activity_at: Date.now(),
+    });
+
+    // Log the work signal as a trace
+    await ctx.db.insert("agent_traces", {
+      stack_id: args.stackId,
+      agent_type: args.agentType,
+      thought: `Work available: ${args.workType}`,
+      action: "work_signal",
+      result: { workType: args.workType, priority: args.priority || 5 },
+      timestamp: Date.now(),
+    });
+  },
+});

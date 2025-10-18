@@ -1,7 +1,7 @@
 # Recursor Living Scratchpad
 
 **Last Updated**: 2025-10-18  
-**Current Phase**: Testing & Validation Ready → Frontend Development
+**Current Phase**: Autonomous Execution → Communication Systems → Judging & Leaderboards
 
 ---
 
@@ -12,10 +12,14 @@
 - **Deployment & Environment**: ✅ Complete
 - **Observability Dashboard**: ✅ Complete (needs play/pause controls)
 - **Autonomous Execution**: 🚨 CRITICAL - NOT STARTED (blocks everything else)
+- **Agent Communication System**: 🚨 CRITICAL - NOT STARTED (inter-agent + user chat)
 - **Live Event Frontend**: ❌ Not Started
+- **Judging System**: 🚨 CRITICAL - NOT STARTED (MUST DELIVER)
+- **Leaderboards**: 🚨 CRITICAL - NOT STARTED (MUST DELIVER)
+- **Admin Console**: 🚨 CRITICAL - NOT STARTED (MUST DELIVER)
+- **Voting System**: ❌ Not Started
 - **Discord Integration**: ❌ Not Started
 - **Video/Media**: ❌ Not Started
-- **Judging System**: ❌ Not Started
 
 ---
 
@@ -135,7 +139,184 @@
 - [ ] **TEST**: Verify agents execute autonomously
 - [ ] **TEST**: Verify play/pause works
 
-### 2. FRONTEND - Live Event Experience (High Priority)
+### 2. AGENT COMMUNICATION SYSTEM (CRITICAL - MUST DELIVER)
+
+**Why Critical**: Agents need to collaborate with each other AND respond to real users chatting with their team.
+
+#### Inter-Agent Communication
+
+- [ ] Enhance messaging system for multi-team collaboration
+  - [ ] Direct team-to-team messaging
+  - [ ] Broadcast channels for discovery/announcements
+  - [ ] Message routing and delivery tracking
+- [ ] Add communication triggers to agent logic
+  - [ ] When to reach out to other teams (collaboration, advice, feedback)
+  - [ ] How to respond to incoming messages from other agents
+  - [ ] Message priority and handling in tick cycle
+- [ ] Update schema if needed
+  - [ ] Ensure messages table supports team-to-team communication
+  - [ ] Track conversation threads and context
+
+#### Agent-to-User Chat
+
+- [ ] Real-time chat interface for users to talk to agent teams
+  - [ ] Chat UI component in project detail pages
+  - [ ] Message history display
+  - [ ] Typing indicators
+- [ ] Backend support for user messages
+  - [ ] Store user messages in messages table (with user_id/session_id)
+  - [ ] Queue user messages for agent processing
+  - [ ] Rate limiting per user/session
+- [ ] Agent response system
+  - [ ] Communicator agent processes user questions
+  - [ ] Context-aware responses (project state, current phase, etc.)
+  - [ ] Personality and tone consistency
+  - [ ] Response prioritization (user messages vs agent messages)
+- [ ] Moderation for user input
+  - [ ] Content filtering
+  - [ ] Spam detection
+  - [ ] Abuse prevention
+
+### 3. JUDGING SYSTEM (CRITICAL - MUST DELIVER)
+
+**Why Critical**: Core feature for hackathon simulation - cannot launch without judging.
+
+Per PRD sections 6 & Appendix:
+
+- [ ] Create judges table in Convex schema
+  - [ ] Judge profile (name, expertise, LLM config)
+  - [ ] Scoring history
+  - [ ] Calibration data
+- [ ] LLM-as-judge implementation
+  - [ ] Multiple judge personas (technical, design, product, etc.)
+  - [ ] Consistent scoring across all projects
+  - [ ] Detailed feedback generation
+- [ ] Rubric definition and configuration
+  - [ ] Problem fit (0-10)
+  - [ ] Execution quality (0-10)
+  - [ ] UX/Design (0-10)
+  - [ ] Originality (0-10)
+  - [ ] Potential impact (0-10)
+  - [ ] Weighted total score calculation
+- [ ] Scoring functions
+  - [ ] Numeric scores with confidence intervals
+  - [ ] Qualitative feedback per criterion
+  - [ ] Overall comments and highlights
+- [ ] Multiple judging rounds
+  - [ ] Checkpoint judging (mid-hackathon)
+  - [ ] Final judging (end of hackathon)
+  - [ ] Round-specific criteria adjustments
+- [ ] Store scores in database
+  - [ ] New judgments table or extend projects
+  - [ ] Track judge, project, round, scores, feedback
+  - [ ] Timestamp and version all judgments
+- [ ] Admin judging controls
+  - [ ] Trigger judging for specific projects or all
+  - [ ] View and compare judge scores
+  - [ ] Override or adjust scores if needed
+  - [ ] Re-run judging with updated rubrics
+
+### 4. LEADERBOARDS (CRITICAL - MUST DELIVER)
+
+**Why Critical**: Central engagement feature for public viewing experience.
+
+Per PRD section 6:
+
+- [ ] Real-time leaderboard calculation
+  - [ ] Combined score (judge scores + community votes)
+  - [ ] Configurable weights (e.g., 70% judge, 30% community)
+  - [ ] Recalculate on score/vote changes
+- [ ] Multiple leaderboard views
+  - [ ] Overall ranking (all projects)
+  - [ ] Track-specific rankings (if using sponsor tracks)
+  - [ ] "Rising stars" (momentum-based)
+  - [ ] "Community favorites" (pure vote count)
+- [ ] Display modes
+  - [ ] Toggle between judge-only, community-only, and blended
+  - [ ] Show score breakdowns (hover/click for details)
+  - [ ] Historical position tracking (up/down indicators)
+- [ ] Leaderboard UI components
+  - [ ] Main leaderboard page in `apps/web`
+  - [ ] Mini leaderboard widget (top 5) for landing page
+  - [ ] Project card showing rank badge
+- [ ] Real-time updates
+  - [ ] Live rank changes as votes/scores come in
+  - [ ] Smooth animations for position changes
+  - [ ] Highlight recent changes
+- [ ] Track-based filtering (if applicable)
+  - [ ] Filter by sponsor track
+  - [ ] Filter by project category/tags
+  - [ ] Combined track winners + overall winner
+
+### 5. VOTING SYSTEM (High Priority)
+
+Per PRD section 6:
+
+- [ ] Visitor voting API
+  - [ ] Vote endpoint (up/down or 1-5 stars)
+  - [ ] Rate limiting per IP/session
+  - [ ] Vote storage in database
+- [ ] IP-based anti-spam
+  - [ ] Track votes by IP address
+  - [ ] Limit votes per IP (e.g., 1 per project per IP)
+  - [ ] CAPTCHA for suspicious activity
+- [ ] Optional account sign-in for verified votes
+  - [ ] Higher vote weight for authenticated users
+  - [ ] GitHub/Google OAuth integration
+  - [ ] Persistent vote history
+- [ ] Vote weight system
+  - [ ] Anonymous votes: 1x weight
+  - [ ] Authenticated votes: 2x weight
+  - [ ] Judge scores: 10x weight (configured per rubric)
+- [ ] Vote UI components
+  - [ ] Vote button on project cards
+  - [ ] Vote count display
+  - [ ] User feedback after voting
+  - [ ] Indication if user already voted
+
+### 6. ADMIN CONSOLE (CRITICAL - MUST DELIVER)
+
+**Why Critical**: Need operational controls to run the live event successfully.
+
+Per PRD section 5:
+
+- [ ] Extend existing dashboard (`apps/dashboard`) with admin features
+  - [ ] Simulation controls
+    - [ ] Global phase control (force phase transitions)
+    - [ ] Tick rate adjustment (slow down/speed up)
+    - [ ] Emergency pause/resume all agents
+    - [ ] Kill switch for individual teams
+  - [ ] Discord import UI
+    - [ ] File upload or API connection
+    - [ ] Preview imported data
+    - [ ] Map Discord users to agent personas
+    - [ ] Batch create teams
+  - [ ] Agent batch generator
+    - [ ] Templates for different agent types
+    - [ ] Bulk create with CSV/JSON
+    - [ ] Assign random or specific project ideas
+  - [ ] Prompt & rubric editors
+    - [ ] Edit agent system prompts
+    - [ ] Edit judging rubric criteria
+    - [ ] Version control for prompts
+    - [ ] Test prompts before deploying
+  - [ ] Moderation dashboard
+    - [ ] Flagged messages queue
+    - [ ] Quick mute/ban actions
+    - [ ] Content review interface
+    - [ ] Appeal handling
+  - [ ] Cost & usage observability
+    - [ ] Real-time cost tracking (by LLM provider)
+    - [ ] Token usage per agent/stack
+    - [ ] Cost alerts and budget enforcement
+    - [ ] Export cost reports
+  - [ ] Judging administration
+    - [ ] Trigger judging rounds
+    - [ ] View all scores and feedback
+    - [ ] Adjust judge weights
+    - [ ] Override scores if needed
+
+### 7. FRONTEND - Live Event Experience (High Priority)
 
 Per PRD sections 5 & 6:
 
@@ -160,10 +341,6 @@ Per PRD sections 5 & 6:
   - [ ] Demo video player (placeholder for now)
   - [ ] Feedback thread (visitor ↔ agent chat)
   - [ ] Vote button (with anti-spam)
-- [ ] Leaderboard page:
-  - [ ] Overall rankings
-  - [ ] Track-specific rankings
-  - [ ] Toggle judge vs community vs blended
 
 #### Real-time Integration
 
@@ -172,7 +349,7 @@ Per PRD sections 5 & 6:
 - [ ] Optimistic UI updates
 - [ ] WebSocket/SSE fallback if needed
 
-### 3. OBSERVABILITY DASHBOARD ENHANCEMENTS (Low Priority)
+### 8. OBSERVABILITY DASHBOARD ENHANCEMENTS (Low Priority)
 
 Dashboard exists and works! Future enhancements:
 
@@ -186,7 +363,7 @@ Dashboard exists and works! Future enhancements:
 - [ ] Individual sub-agent views (Planner, Builder, Communicator, Reviewer)
 - [ ] Memory/context visualization (expand current state display)
 
-### 4. DISCORD DATA INGESTION (Medium Priority)
+### 9. DISCORD DATA INGESTION (Medium Priority)
 
 Per PRD section 6:
 
@@ -198,7 +375,7 @@ Per PRD section 6:
 - [ ] Batch agent creation from Discord data
 - [ ] Consent workflow (if using real handles)
 
-### 5. DEMO VIDEO GENERATION (Low Priority - MVP)
+### 10. DEMO VIDEO GENERATION (Low Priority - MVP)
 
 Per PRD section 6:
 
@@ -209,29 +386,7 @@ Per PRD section 6:
 - [ ] Store video URLs in artifacts table
 - [ ] Video player component in project pages
 
-### 6. JUDGING SYSTEM (Medium Priority)
-
-Per PRD sections 6 & Appendix:
-
-- [ ] LLM-as-judge implementation
-- [ ] Rubric definition (problem fit, execution, UX, originality, impact)
-- [ ] Scoring functions (numeric + qualitative feedback)
-- [ ] Multiple judging rounds (checkpoint, final)
-- [ ] Calibration tool (optional: train on real judge notes)
-- [ ] Store scores in database (new table or extend projects)
-
-### 7. VOTING & LEADERBOARDS (Medium Priority)
-
-Per PRD section 6:
-
-- [ ] Visitor voting API (rate limited)
-- [ ] IP-based anti-spam
-- [ ] Optional account sign-in for verified votes
-- [ ] Real-time leaderboard calculation
-- [ ] Vote weight system (community vs judge)
-- [ ] Track-based filtering
-
-### 8. MODERATION (Low Priority - MVP)
+### 11. MODERATION (Low Priority - MVP)
 
 Per PRD section 6:
 
@@ -240,17 +395,6 @@ Per PRD section 6:
 - [ ] Anti-spam cooldowns
 - [ ] Admin override controls (mute/ban)
 - [ ] Message flagging system
-
-### 9. ADMIN CONSOLE (Low Priority - Can Use CLI for Now)
-
-Per PRD section 5:
-
-- [ ] Discord import UI
-- [ ] Agent batch generator with templates
-- [ ] Simulation controls (phase, tick rate, pause/resume)
-- [ ] Prompt/rubric editors
-- [ ] Moderation dashboard
-- [ ] Cost/usage observability
 
 ---
 
@@ -331,33 +475,61 @@ Per PRD section 5:
 
 ## 🔑 CRITICAL PATH TO MVP LAUNCH
 
-1. **Deploy Convex & Test Agents** (1-2 days)
-   - Unblock testing with real deployment
-   - Validate agent behaviors
-   - Tune prompts and tick rates
+1. **Autonomous Execution System** (1-2 days) - BLOCKS EVERYTHING
+   - Convex scheduled functions for agent orchestration
+   - Play/pause controls in dashboard
+   - Validate agents run autonomously
+   - Essential for all subsequent testing
 
-2. **Build Live Event Frontend** (3-5 days)
-   - Landing + live dashboard + project pages
-   - Real-time Convex integration
-   - Basic voting (no auth)
+2. **Agent Communication System** (2-3 days) - MUST DELIVER
+   - Inter-agent messaging (team-to-team collaboration)
+   - Agent-to-user chat (real-time Q&A on project pages)
+   - Message routing and prioritization
+   - Core feature for engagement
 
-3. **Discord Ingestion** (2-3 days)
-   - Import real participant data
+3. **Judging System** (2-3 days) - MUST DELIVER
+   - LLM-as-judge with multiple personas
+   - Rubric implementation (5 criteria, weighted scoring)
+   - Multiple judging rounds (checkpoint + final)
+   - Store scores and feedback in database
+
+4. **Leaderboards** (1-2 days) - MUST DELIVER
+   - Real-time calculation (judge scores + community votes)
+   - Multiple views (overall, track-specific, rising stars)
+   - Live updates with animations
+   - Display in public frontend
+
+5. **Admin Console** (2-3 days) - MUST DELIVER
+   - Simulation controls (phase, tick rate, emergency pause)
+   - Judging administration (trigger rounds, view scores, override)
+   - Prompt/rubric editors
+   - Cost tracking and budget enforcement
+
+6. **Live Event Frontend** (3-5 days)
+   - Landing page with live stats
+   - Project cards and detail pages
+   - Embedded chat interface
+   - Vote buttons and leaderboard page
+
+7. **Voting System** (1-2 days)
+   - Vote API with rate limiting
+   - Anonymous + authenticated voting
+   - Weight system integration
+   - Anti-spam measures
+
+8. **Discord Ingestion** (2-3 days)
+   - Import participant data
    - Create 50-100 agent stacks
    - Pseudonymize by default
 
-4. **Judging System** (2-3 days)
-   - LLM judge with rubric
-   - Single scoring round
-   - Display on leaderboard
-
-5. **Polish & Test** (2-3 days)
+9. **Polish & Test** (2-3 days)
    - Load test with 100 agents
    - Visual refinements (no purple gradient!)
    - Performance optimization
    - Cost monitoring
+   - End-to-end validation
 
-**Estimated MVP Timeline**: 10-16 days
+**Estimated MVP Timeline**: 17-26 days (CRITICAL features cannot be cut)
 
 ---
 
@@ -376,6 +548,10 @@ Per PRD section 5:
   - Convex can easily handle 100+ agents with <5s latency
   - Bottleneck is LLM APIs (Groq), not orchestration
   - Mastra adds complexity without solving actual constraint
+- ✅ **Judging, Leaderboards, Admin Console, and Communication are MUST-DELIVER features**
+  - Cannot launch without these critical systems
+  - Reprioritized from "medium" to "critical"
+  - Timeline extended to accommodate (17-26 days vs 10-16 days)
 
 ### Key Technical Implementation Notes
 
@@ -421,6 +597,73 @@ export default {
 - States: `idle`, `running`, `paused`, `stopped`
 - Track: `last_activity_at`, `started_at`, `paused_at`
 
+**Schema Extensions Required**:
+
+```typescript
+// New tables needed for MUST-DELIVER features:
+
+// 1. Judges table
+judges: defineTable({
+  name: v.string(),
+  persona: v.string(), // "technical", "design", "product", etc.
+  expertise: v.array(v.string()),
+  llm_config: v.object({
+    model: v.string(),
+    temperature: v.number(),
+  }),
+  calibration_data: v.optional(v.any()),
+});
+
+// 2. Judgments table
+judgments: defineTable({
+  project_id: v.id("agent_stacks"),
+  judge_id: v.id("judges"),
+  round: v.string(), // "checkpoint", "final"
+  scores: v.object({
+    problem_fit: v.number(), // 0-10
+    execution: v.number(),
+    ux_design: v.number(),
+    originality: v.number(),
+    impact: v.number(),
+    total: v.number(), // weighted
+  }),
+  feedback: v.object({
+    problem_fit: v.string(),
+    execution: v.string(),
+    ux_design: v.string(),
+    originality: v.string(),
+    impact: v.string(),
+    overall: v.string(),
+  }),
+  confidence: v.optional(v.number()),
+})
+  .index("by_project", ["project_id"])
+  .index("by_round", ["round"]);
+
+// 3. Votes table
+votes: defineTable({
+  project_id: v.id("agent_stacks"),
+  voter_id: v.optional(v.string()), // IP hash or user ID
+  voter_type: v.string(), // "anonymous", "authenticated"
+  vote_value: v.number(), // 1-5 stars or +1
+  weight: v.number(), // vote multiplier
+  ip_hash: v.optional(v.string()),
+})
+  .index("by_project", ["project_id"])
+  .index("by_voter", ["voter_id"]);
+
+// 4. Extend messages table for user chat
+messages: defineTable({
+  // ... existing fields ...
+  sender_type: v.string(), // "agent", "user"
+  user_id: v.optional(v.string()), // session ID for anonymous users
+  session_id: v.optional(v.string()),
+  requires_response: v.optional(v.boolean()),
+  response_priority: v.optional(v.number()),
+  // ... existing fields ...
+});
+```
+
 ### Open Questions (from PRD section 14)
 
 - ❓ Discord server admin permission for data ingestion?
@@ -444,9 +687,9 @@ export default {
 
 ### Immediate (Today/Tomorrow) - CRITICAL PATH
 
-**Goal**: Make agents run autonomously when `pnpm dev` starts
+**Goal**: Complete autonomous execution, then build MUST-DELIVER features
 
-1. **Create Convex Orchestration System** (HIGHEST PRIORITY)
+1. **Create Convex Orchestration System** (HIGHEST PRIORITY - BLOCKS EVERYTHING)
    - Create `packages/convex/convex/orchestration.ts`
    - Use Convex scheduled functions (cron-like)
    - Query for `execution_state: 'running'` stacks
@@ -472,31 +715,61 @@ export default {
    - Verify todos, artifacts, messages are created
    - Test pause/resume functionality
 
-### Next (This Week)
+### Next (This Week) - MUST DELIVER FEATURES
 
-5. **Tune Agent Behavior**
-   - Monitor trace output quality
-   - Adjust prompts if needed
-   - Tune tick intervals (balance speed vs cost)
-   - Test with 5-10 agents running simultaneously
+5. **Agent Communication System** (CRITICAL)
+   - Inter-agent messaging (team-to-team)
+   - Agent-to-user chat interface
+   - Update Communicator agent to handle user messages
+   - Real-time chat UI in project pages
+   - Message routing and prioritization
 
-6. **Start Live Event Frontend** (`apps/web`)
+6. **Judging System** (CRITICAL)
+   - Create judges table in Convex
+   - LLM-as-judge implementation (multiple personas)
+   - Rubric definition (5 criteria)
+   - Scoring functions
+   - Store judgments in database
+   - Admin trigger controls
+
+7. **Leaderboards** (CRITICAL)
+   - Real-time calculation (judge + vote scores)
+   - Multiple views (overall, track, rising stars)
+   - Leaderboard UI components
+   - Live updates with animations
+
+8. **Admin Console Extensions** (CRITICAL)
+   - Simulation controls (phase, tick rate, emergency pause)
+   - Judging administration panel
+   - Prompt/rubric editors
+   - Cost tracking dashboard
+   - Budget enforcement
+
+### After Core Systems Work
+
+9. **Live Event Frontend** (`apps/web`)
    - Landing page with hero section
-   - Live activity feed (similar to dashboard)
-   - Basic agent/project cards
-   - Public-facing view (non-admin)
+   - Live activity feed
+   - Project cards and detail pages
+   - Chat interface integration
+   - Vote buttons
 
-### After Autonomous System Works
+10. **Voting System**
+    - Vote API with rate limiting
+    - Anonymous + authenticated voting
+    - Weight system
+    - Anti-spam measures
 
-7. **Scale Testing**
-   - Run 50 agents simultaneously
-   - Monitor performance and costs
-   - Load test Convex
-   - Optimize as needed
+11. **Discord Ingestion Tool**
+    - Import participant data
+    - Batch create agent stacks
+    - Pseudonymize by default
 
-8. **Discord Ingestion Tool**
-   - Import real participant data
-   - Batch create agent stacks
+12. **Scale Testing**
+    - Run 50-100 agents simultaneously
+    - Monitor performance and costs
+    - Load test Convex
+    - Optimize as needed
 
 ---
 
