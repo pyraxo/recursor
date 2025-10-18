@@ -34,16 +34,12 @@ export function CreateTeamForm() {
     try {
       await createStack({
         participant_name: participantName.trim(),
+        // Pass initial project idea if provided
+        ...(provideIdea && projectTitle && projectDescription && {
+          initial_project_title: projectTitle.trim(),
+          initial_project_description: projectDescription.trim(),
+        }),
       });
-
-      // TODO: Create initial project idea if provided
-      // if (provideIdea && projectTitle) {
-      //   await createProjectIdea({
-      //     stackId,
-      //     title: projectTitle,
-      //     description: projectDescription
-      //   });
-      // }
 
       // Reset form
       setParticipantName("");
