@@ -14,6 +14,7 @@
     "clean": "find convex -type f \\( -name '*.js' -o -name '*.d.ts' -o -name '*.js.map' \\) ! -path 'convex/_generated/*' -delete 2>/dev/null || true"
   },
   "dependencies": {
+    "@recursor/prompts": "workspace:*",
     "convex": "^1.28.0"
   },
   "devDependencies": {

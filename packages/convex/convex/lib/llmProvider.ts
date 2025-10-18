@@ -10,6 +10,8 @@
  * npx convex env set GEMINI_API_KEY <your-key>
  */
 
+import { prompts } from "@recursor/prompts";
+
 export interface Message {
   role: "system" | "user" | "assistant";
   content: string;
@@ -248,90 +250,55 @@ export class ConvexLLMProvider {
   }
 
   /**
-   * Helper method to build system prompts
+   * Helper method to build system prompts using centralized prompt management
    */
   buildSystemPrompt(role: string, context: any, useStructuredOutput: boolean = false): Message {
-    const roleDescription = this.getRoleDescription(role, useStructuredOutput);
+    // Map role to prompt accessor
+    const agentPromptMap: Record<string, any> = {
+      planner: prompts.agent.plannerAgent,
+      builder: prompts.agent.builderAgent,
+      communicator: prompts.agent.communicatorAgent,
+      reviewer: prompts.agent.reviewerAgent,
+    };
+
+    const promptAccessor = agentPromptMap[role];
+    if (!promptAccessor) {
+      throw new Error(`Unknown agent role: ${role}. Available roles: ${Object.keys(agentPromptMap).join(", ")}`);
+    }
+
+    // Prepare variables for rendering
+    const variables: Record<string, any> = {
+      teamName: context.teamName || "Team",
+      projectTitle: context.projectTitle || "figuring out what to build",
+      phase: context.phase || "ideation",
+      todoCount: context.todoCount || 0,
+    };
+
+    // Add useStructuredOutput for planner
+    if (role === "planner") {
+      variables.useStructuredOutput = useStructuredOutput;
+    }
+
+    // Render the prompt
+    const content = promptAccessor.render(variables);
 
     return {
       role: "system",
-      content: `You're the ${role} for team ${context.teamName || "Team"} in a hackathon simulation.
-
-Right now you're working on: ${context.projectTitle || "figuring out what to build"}.
-Phase: ${context.phase || "ideation"}. There are ${context.todoCount || 0} tasks on the board.
-
-${roleDescription}
-
-Keep it moving - be creative, work autonomously, and focus on building something that works. Make quick decisions and push forward.`,
+      content,
     };
   }
 
+  /**
+   * DEPRECATED: Legacy method - now using centralized prompt management
+   * Kept for reference during transition period
+   * @deprecated Use buildSystemPrompt() instead, which uses @recursor/prompts package
+   */
   private getRoleDescription(role: string, useStructuredOutput: boolean = false): string {
-    switch (role) {
-      case "planner":
-        if (useStructuredOutput) {
-          return `Your job is to manage the todo list, evolve the project description, and keep the team on track.
-
-Respond with JSON in this exact format:
-{
-  "thinking": "your thoughts here about what needs to happen next - talk through it like you're thinking out loud",
-  "actions": [
-    {"type": "create_todo", "content": "description", "priority": 5},
-    {"type": "update_todo", "oldContent": "existing todo text", "newContent": "updated text", "priority": 8},
-    {"type": "delete_todo", "content": "todo to remove"},
-    {"type": "clear_all_todos", "reason": "why you're clearing everything"},
-    {"type": "update_project", "title": "new title (optional)", "description": "updated description with more detail"}
-  ]
-}
-
-In your "thinking" field, talk through what you're seeing and what should happen next. Don't use markdown or bullet points - just talk it through like you're explaining to a teammate.
-
-In your "actions" array, include any operations you want to perform. You can:
-- create new todos for the Builder (technical work, features to implement)
-- update existing ones by matching their content
-- delete individual todos that aren't needed
-- clear ALL todos and start fresh (use this if the list is too bloated or doesn't make sense anymore - then add new todos after)
-- update the project idea and description (add more technical detail, refine scope, document decisions made)
-- create "broadcast" or "announce" todos ONLY for major milestones (the Communicator will handle these)
-
-Priority is 1-10, with 10 being most important.
-
-IMPORTANT ABOUT USER MESSAGES: The Communicator responds directly to user questions and messages - you don't need to create "respond to user" todos. Only get involved if a user message requires strategic changes to the project (like feature requests or major pivots).
-
-IMPORTANT ABOUT BROADCASTS: Only create broadcast todos for truly important announcements (major milestones, demo ready, big breakthroughs). Regular status updates are not needed - focus on the work, not announcements.
-
-IMPORTANT about project description: Keep it nicely formatted, informative, and exciting - like you're describing the project to participants, judges, or the audience. No markdown formatting, just clear compelling prose. As the project evolves, refine the description to capture what makes it interesting and what you're building. Think of it as the project's elevator pitch that gets people excited about what you're creating.
-
-Remember: the todo list is your scratchpad for working through technical details. The project description is for communicating the vision.`;
-        } else {
-          return `Your job is to manage the todo list and keep the team on track.
-
-Talk through what you're seeing and what should happen next. Then list out any todos you want to create, update, or delete.`;
-        }
-      case "builder":
-        return `Your job is to write code and build things. Look at the highest priority todo, write the code to complete it, then mark it done. Keep it simple and get something working.
-
-When you write code, include the full HTML file with inline CSS and JavaScript. Talk through what you're building as you go - don't use markdown headers or bullet points, just explain like you're pair programming.`;
-      case "communicator":
-        return `Your job is to respond to user messages and handle team communication.
-
-IMPORTANT GUIDELINES:
-1. USER MESSAGES: When you receive a user message, respond directly to that person. Keep it conversational, friendly, and concise (2-3 sentences). You're having a chat, not making an announcement.
-
-2. BROADCASTS: Only create broadcasts when the Planner specifically requests it (usually for major milestones or important announcements). Broadcasts go to everyone - participants, judges, and the audience.
-
-3. TEAM MESSAGES: If you receive messages from other participating teams, respond naturally and engage with them.
-
-Just write naturally like you're talking to people - no need for markdown formatting or formal structure.`;
-      case "reviewer":
-        return `Your job is to review code that the builder creates and spot issues. Look for bugs, security problems, code quality issues, accessibility problems, and performance concerns.
-
-When you find something, explain what the issue is and how severe it is - critical, major, or minor. Then give a specific recommendation for how to fix it. Start those recommendations with "RECOMMENDATION:" so the planner can spot them.
-
-Talk through your review naturally - don't use markdown or formal formatting, just explain what you're seeing like you're doing a code review with a teammate.`;
-      default:
-        return "Your job is to help the team build something great.";
-    }
+    // All role descriptions now managed in packages/prompts/prompts/agents/
+    throw new Error(
+      `getRoleDescription() is deprecated. Role prompts are now managed in @recursor/prompts package. ` +
+      `Use buildSystemPrompt() instead.`
+    );
   }
 
   /**

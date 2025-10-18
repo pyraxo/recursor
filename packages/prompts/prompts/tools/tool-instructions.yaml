@@ -1,0 +1,49 @@
+version: "1.0.0"
+name: "tool-instructions"
+description: "Instructions for agents on how to use external MCP tools"
+tags: ["tool", "mcp", "instructions"]
+
+variables:
+  toolDescriptions:
+    type: string
+    required: false
+    default: ""
+    description: "Formatted descriptions of available tools (generated dynamically)"
+
+template: |
+  {{#toolDescriptions}}
+  ## External Tools Available
+
+  You have access to external tools that can help you gather information and perform tasks.
+
+  ### How to Use Tools
+
+  To use a tool, include the following format in your response:
+
+  ```
+  TOOL_USE: <tool_name>
+  PARAMS: {"param1": "value1", "param2": "value2"}
+  ```
+
+  You will receive the tool result, which you can then use in your analysis or response.
+
+  ### Available Tools
+
+  {{toolDescriptions}}
+
+  ### Important Notes
+
+  - Only use tools when they provide value for the current task
+  - Ensure all required parameters are provided
+  - Tool results will be returned in a TOOL_RESULT block
+  - You can use multiple tools, but use them sequentially
+  {{/toolDescriptions}}
+
+metadata:
+  created_at: "2025-01-19"
+  updated_at: "2025-01-19"
+  author: "recursor-team"
+  changelog:
+    - version: "1.0.0"
+      date: "2025-01-19"
+      changes: "Initial version migrated from mcp-tools/src/utils/prompts.ts generateToolsPrompt()"
