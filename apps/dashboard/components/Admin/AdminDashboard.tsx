@@ -18,7 +18,11 @@ import { GlobalExecutionControls } from "../Controls/GlobalExecutionControls";
 import { CreateTeamForm } from "./CreateTeamForm";
 import { TeamManagementList } from "./TeamManagementList";
 
-export function AdminDashboard() {
+export function AdminDashboard({
+  onNavigateToTeam,
+}: {
+  onNavigateToTeam?: (stackId: string) => void;
+}) {
   const stacks = useQuery(api.agents.listStacks);
 
   const phaseDistribution = {
@@ -135,7 +139,7 @@ export function AdminDashboard() {
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="border-green-500/30 bg-green-500/5 p-6 hover:border-green-500/50 transition-colors">
-              <div className="flex items-center gap-3 mb-3">
+              <div className="flex items-center gap-3 mb-3 pl-2">
                 <PlayCircle className="h-4 w-4 text-green-500" />
                 <span className="font-mono text-xs text-green-500">
                   Running
@@ -189,7 +193,7 @@ export function AdminDashboard() {
           </h2>
           <div className="grid lg:grid-cols-[400px_1fr] gap-6">
             <CreateTeamForm />
-            <TeamManagementList />
+            <TeamManagementList onNavigateToTeam={onNavigateToTeam} />
           </div>
         </section>
       </div>

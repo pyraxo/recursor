@@ -99,20 +99,15 @@ export function DeleteTeamDialog({
         </div>
 
         <AlertDialogFooter>
-          <AlertDialogCancel
-            disabled={isDeleting}
-            className="font-mono text-xs"
-          >
-            Cancel
-          </AlertDialogCancel>
+          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
             disabled={isDeleting || !stackId}
-            className="font-mono text-xs bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
           >
             {isDeleting ? (
               <>
-                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Deleting...
               </>
             ) : (

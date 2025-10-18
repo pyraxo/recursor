@@ -40,17 +40,9 @@ export function AutonomousExecutionStatus({
   // Get overall execution state
   const executionStatus = useQuery(api.agents.getExecutionStatus, { stackId });
 
-  // Get agent states from memory
-  const agentStates = useQuery(api.agents.getAgentStates, { stackId });
-
-  // Extract execution states from agent memory
+  // Get agent execution states (already transformed by the query)
   const agentExecutionStates: AgentExecutionState[] =
-    agentStates?.map((state) => ({
-      agentType: state.agent_type,
-      executionState: state.memory?.execution_state || "idle",
-      currentWork: state.memory?.current_work || null,
-      lastUpdate: state.memory?.last_execution_update || 0,
-    })) || [];
+    useQuery(api.agentExecution.getExecutionStates, { stackId }) || [];
 
   // Determine overall system state
   const systemState = executionStatus?.execution_state || "idle";

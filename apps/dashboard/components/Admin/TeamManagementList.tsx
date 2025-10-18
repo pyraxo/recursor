@@ -12,7 +12,7 @@ import { Activity, Calendar, Clock, Trash2, Play, Square } from "lucide-react";
 import { useState } from "react";
 import { DeleteTeamDialog } from "./DeleteTeamDialog";
 
-export function TeamManagementList() {
+export function TeamManagementList({ onNavigateToTeam }: { onNavigateToTeam?: (stackId: string) => void }) {
   const stacks = useQuery(api.agents.listStacks);
   const startExecution = useMutation(api.agents.startExecution);
   const stopExecution = useMutation(api.agents.stopExecution);
@@ -154,7 +154,8 @@ export function TeamManagementList() {
                 return (
                   <div
                     key={stack._id}
-                    className="group relative flex items-center justify-between p-4 rounded-lg border border-border bg-background hover:border-foreground/20 transition-all duration-200"
+                    className="group relative flex items-center justify-between p-4 rounded-lg border border-border bg-background hover:border-foreground/20 transition-all duration-200 cursor-pointer"
+                    onClick={() => onNavigateToTeam?.(stack._id)}
                   >
                     <div className="flex-1 min-w-0">
                       {/* Team Name and Status */}
@@ -241,7 +242,10 @@ export function TeamManagementList() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleStop(stack._id, stack.participant_name)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStop(stack._id, stack.participant_name);
+                          }}
                           disabled={processingStacks.has(stack._id)}
                           className="text-orange-500 hover:text-orange-600 hover:bg-orange-500/10"
                           title="Stop execution"
@@ -255,7 +259,10 @@ export function TeamManagementList() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleStart(stack._id, stack.participant_name)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStart(stack._id, stack.participant_name);
+                          }}
                           disabled={processingStacks.has(stack._id)}
                           className="text-green-500 hover:text-green-600 hover:bg-green-500/10"
                           title="Start execution"
@@ -271,9 +278,10 @@ export function TeamManagementList() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() =>
-                          handleDelete(stack._id, stack.participant_name)
-                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(stack._id, stack.participant_name);
+                        }}
                         disabled={executionState === "running"}
                         className="text-red-500 hover:text-red-600 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
                         title={executionState === "running" ? "Stop execution before deleting" : "Delete team"}

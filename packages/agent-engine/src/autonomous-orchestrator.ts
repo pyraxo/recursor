@@ -743,17 +743,8 @@ export class AutonomousOrchestrator {
       // Execute the agent's think method
       await agent.think();
 
-      // Special handling for reviewer -> planner communication
-      if (task.agentType === "reviewer") {
-        const recommendations =
-          await this.reviewer.getRecommendationsForPlanner();
-        if (recommendations.length > 0) {
-          await this.planner.receiveAdvice(recommendations.join("\n"));
-          console.log(
-            `[${this.agentName}] Passed reviewer recommendations to planner`
-          );
-        }
-      }
+      // Inter-agent communication is now handled in the Convex backend
+      // No special handling needed here
 
       const duration = Date.now() - startTime;
       console.log(

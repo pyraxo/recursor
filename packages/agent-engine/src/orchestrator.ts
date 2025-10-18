@@ -60,9 +60,9 @@ export class AgentStackOrchestrator {
   }
 
   async initialize() {
-    // Initialize the planner with initial todos
-    await this.planner.initialize();
-    console.log(`Initialized agent stack ${this.stackId}`);
+    // Initialization is now handled by the Convex backend
+    // The planner will create initial project ideas and todos on first execution
+    console.log(`Agent stack ${this.stackId} ready - initialization handled by Convex backend`);
   }
 
   async tick(): Promise<OrchestrationResult> {
@@ -130,11 +130,8 @@ export class AgentStackOrchestrator {
     console.log("4. Reviewer analyzing...");
     results.reviewer = await this.reviewer.think();
 
-    // 5. Pass reviewer's recommendations to planner
-    const recommendations = await this.reviewer.getRecommendationsForPlanner();
-    if (recommendations.length > 0) {
-      await this.planner.receiveAdvice(recommendations.join("\n"));
-    }
+    // Inter-agent communication (reviewer -> planner) is now handled in the Convex backend
+    // No coordination needed here
   }
 
   async runContinuous(intervalMs: number = 5000, maxTicks?: number) {

@@ -11,10 +11,15 @@ export default function Page() {
   const [view, setView] = useState<"admin" | "observability">("admin");
   const [selected, setSelected] = useState<string | null>(null);
 
+  const navigateToTeam = (stackId: string) => {
+    setSelected(stackId);
+    setView("observability");
+  };
+
   return (
     <div className="h-screen bg-background dark overflow-hidden">
       {view === "admin" ? (
-        <AdminDashboard />
+        <AdminDashboard onNavigateToTeam={navigateToTeam} />
       ) : (
         <div className="p-6 h-full overflow-auto">
           <div className="max-w-[1800px] mx-auto space-y-6">
