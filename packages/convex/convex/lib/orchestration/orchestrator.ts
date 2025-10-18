@@ -59,6 +59,32 @@ export async function executeOrchestrator(
   console.log(`[Orchestrator] Starting cycle for stack ${stackId}`);
 
   try {
+    // Step 0: Check if stack exists and is in running state
+    const stack = await ctx.runQuery((await import("../../_generated/api")).api.agents.getStack, {
+      stackId,
+    });
+
+    if (!stack) {
+      console.log(
+        `[Orchestrator] Stack ${stackId} not found (likely deleted). Stopping orchestration.`
+      );
+      return {
+        action: "stop",
+        reason: "Stack deleted",
+      };
+    }
+
+    const executionState = stack.execution_state || "idle";
+    if (executionState !== "running") {
+      console.log(
+        `[Orchestrator] Stack ${stackId} is ${executionState}, not running. Stopping orchestration.`
+      );
+      return {
+        action: "stop",
+        reason: `Stack is ${executionState}`,
+      };
+    }
+
     // Step 1: Detect what work needs to be done
     console.log(`[Orchestrator] Detecting work...`);
     const workStatus = await detectWorkForAgents(ctx, stackId);

@@ -42,7 +42,11 @@ export function ExecutionControls({
   };
 
   const handleStop = async () => {
-    if (confirm("Stop execution? This will permanently halt all agents.")) {
+    if (
+      confirm(
+        "Stop execution? This will halt all agents and reset the team state when started again.\n\nTip: Use Pause if you want to resume from the current state."
+      )
+    ) {
       setIsProcessingAction(true);
       try {
         await stop({ stackId });
@@ -122,7 +126,11 @@ export function ExecutionControls({
                     ? "bg-yellow-600 hover:bg-yellow-700 text-white disabled:opacity-50"
                     : "bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
                 }
-                title={isRunning ? "Pause execution" : "Resume execution"}
+                title={
+                  isRunning
+                    ? "Pause execution - Can be resumed from current state"
+                    : "Resume execution from where it was paused"
+                }
               >
                 {isRunning ? (
                   <>
@@ -144,7 +152,7 @@ export function ExecutionControls({
                 variant="destructive"
                 size="default"
                 disabled={isProcessingAction}
-                title="Stop execution"
+                title="Stop execution - Starting again will reset the team state"
               >
                 <Square className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Stop</span>

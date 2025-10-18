@@ -220,14 +220,31 @@ export const startExecution = mutation({
     const stack = await ctx.db.get(args.stackId);
     if (!stack) throw new Error('Stack not found');
 
+    const wasStopped = stack.execution_state === 'stopped';
+
     await ctx.db.patch(args.stackId, {
       execution_state: 'running',
       started_at: Date.now(),
       last_activity_at: Date.now(),
       paused_at: undefined,
+      stopped_at: undefined,
+      // Reset cycle count if starting after stop
+      ...(wasStopped && { total_cycles: 0 }),
     });
 
-    return { success: true };
+    // If starting after stop, clear old work detection cache
+    if (wasStopped) {
+      const oldCache = await ctx.db
+        .query("work_detection_cache")
+        .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+        .collect();
+
+      for (const entry of oldCache) {
+        await ctx.db.delete(entry._id);
+      }
+    }
+
+    return { success: true, wasReset: wasStopped };
   },
 });
 
@@ -243,6 +260,8 @@ export const pauseExecution = mutation({
       execution_state: 'paused',
       paused_at: Date.now(),
     });
+
+    console.log(`[ExecutionControl] Paused stack ${args.stackId} (${stack.participant_name})`);
 
     return { success: true };
   },
@@ -279,6 +298,8 @@ export const stopExecution = mutation({
       stopped_at: Date.now(),
       process_id: undefined,
     });
+
+    console.log(`[ExecutionControl] Stopped stack ${args.stackId} (${stack.participant_name}). State will be reset on next start.`);
 
     return { success: true };
   },
