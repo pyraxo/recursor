@@ -2,8 +2,8 @@
 // TODO: Implement full MCP server with Smithery or @modelcontextprotocol/sdk
 // The client-side tool functionality is fully operational via MCPToolClient
 
-import { createMcpServer } from "./createServer.js";
 import dotenv from "dotenv";
+import { createMcpServer } from "./createServer";
 
 // Load environment variables
 dotenv.config();
@@ -15,7 +15,9 @@ dotenv.config();
 function startServer() {
   console.log("⚠️  MCP Server is not yet fully implemented");
   console.log("");
-  console.log("The @recursor/mcp-tools package provides full client-side functionality:");
+  console.log(
+    "The @recursor/mcp-tools package provides full client-side functionality:"
+  );
   console.log("  - MCPToolClient for tool execution");
   console.log("  - Context7 documentation search");
   console.log("  - Exa web search");
@@ -33,4 +35,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   startServer();
 }
 
-export { startServer, createMcpServer };
+export { createMcpServer, startServer };

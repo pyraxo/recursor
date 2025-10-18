@@ -6,12 +6,7 @@ import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { Separator } from "@repo/ui/components/separator";
 import { useQuery } from "convex/react";
 import { Activity, Clock, User, Zap } from "lucide-react";
-import {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-} from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 
 export interface LiveFeedRef {
   scrollToTop: () => void;
@@ -30,7 +25,9 @@ export const LiveFeed = forwardRef<LiveFeedRef>((props, ref) => {
       scrollAreaRef.current
     ) {
       // Find the actual scrollable element inside ScrollArea
-      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      const viewport = scrollAreaRef.current.querySelector(
+        "[data-radix-scroll-area-viewport]"
+      );
       if (viewport) {
         viewport.scrollTop = 0;
       }
@@ -41,7 +38,9 @@ export const LiveFeed = forwardRef<LiveFeedRef>((props, ref) => {
   const scrollToTop = () => {
     if (scrollAreaRef.current) {
       // Find the actual scrollable element inside ScrollArea
-      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      const viewport = scrollAreaRef.current.querySelector(
+        "[data-radix-scroll-area-viewport]"
+      );
       if (viewport) {
         viewport.scrollTop = 0;
       }
@@ -145,7 +144,7 @@ export const LiveFeed = forwardRef<LiveFeedRef>((props, ref) => {
                       <summary className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
                         View result
                       </summary>
-                      <div className="mt-2 p-3 bg-secondary rounded-md">
+                      <div className="mt-2 bg-secondary rounded-md">
                         <pre className="text-xs overflow-x-auto max-w-full whitespace-pre-wrap break-words">
                           {typeof t.result === "string"
                             ? t.result

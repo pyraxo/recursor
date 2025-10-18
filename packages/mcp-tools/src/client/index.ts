@@ -1,5 +1,2 @@
-export {
-  MCPToolClient,
-  createMCPToolClient,
-} from "./MCPToolClient.js";
-export { ToolCache, createToolCache } from "./cache.js";
+export { createToolCache, ToolCache } from "./cache";
+export { createMCPToolClient, MCPToolClient } from "./MCPToolClient";

@@ -1,12 +1,8 @@
 export {
-  validateToolParams,
-  validateEnvironment,
   sanitizeParams,
-} from "./validation.js";
+  validateEnvironment,
+  validateToolParams,
+} from "./validation";
 
-export type { ErrorResponse } from "./errorHandler.js";
-export {
-  createErrorResponse,
-  handleToolError,
-  logError,
-} from "./errorHandler.js";
+export { createErrorResponse, handleToolError, logError } from "./errorHandler";
+export type { ErrorResponse } from "./errorHandler";

@@ -1,50 +1,50 @@
 // Client exports
 export {
-  MCPToolClient,
   createMCPToolClient,
-  ToolCache,
   createToolCache,
-} from "./client/index.js";
+  MCPToolClient,
+  ToolCache,
+} from "./client/index";
 
 // Executor exports
 export {
   Context7Executor,
   createContext7Executor,
-  ExaExecutor,
   createExaExecutor,
-} from "./executors/index.js";
+  ExaExecutor,
+} from "./executors/index";
 
 // Type exports
 export type {
-  ToolSchema,
-  ToolResult,
-  ToolExecutor,
-  ToolClientConfig,
   CacheEntry,
-  Context7SearchParams,
-  LibraryMatch,
-  Context7SearchResult,
   Context7ResolveParams,
   Context7ResolveResult,
-  ExaSearchType,
+  Context7SearchParams,
+  Context7SearchResult,
   ExaCategory,
-  ExaSearchParams,
-  ExaSearchResultItem,
   ExaSearchMetadata,
+  ExaSearchParams,
   ExaSearchResult,
+  ExaSearchResultItem,
+  ExaSearchType,
   ExaSimilarParams,
-  ExaSimilarResultItem,
   ExaSimilarResult,
-} from "./types/index.js";
+  ExaSimilarResultItem,
+  LibraryMatch,
+  ToolClientConfig,
+  ToolExecutor,
+  ToolResult,
+  ToolSchema,
+} from "./types/index";
 
 // Utility exports
 export {
-  formatToolResult,
-  formatToolResultForLLM,
-  truncateText,
   formatJSON,
   formatToolDescription,
+  formatToolResult,
+  formatToolResultForLLM,
+  generateToolExample,
   generateToolsPrompt,
   parseToolUse,
-  generateToolExample,
-} from "./utils/index.js";
+  truncateText,
+} from "./utils/index";

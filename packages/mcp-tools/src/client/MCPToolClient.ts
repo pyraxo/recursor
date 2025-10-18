@@ -1,12 +1,12 @@
+import { Context7Executor } from "../executors/Context7Executor";
+import { ExaExecutor } from "../executors/ExaExecutor";
 import type {
+  ToolClientConfig,
   ToolExecutor,
   ToolResult,
   ToolSchema,
-  ToolClientConfig,
-} from "../types/index.js";
-import { Context7Executor } from "../executors/Context7Executor.js";
-import { ExaExecutor } from "../executors/ExaExecutor.js";
-import { ToolCache } from "./cache.js";
+} from "../types/index";
+import { ToolCache } from "./cache";
 
 /**
  * Main client for executing MCP tools
@@ -216,8 +216,6 @@ Use this information to enhance your response or decision-making.
  * Factory function to create an MCPToolClient instance
  * @param config - Tool client configuration
  */
-export function createMCPToolClient(
-  config?: ToolClientConfig
-): MCPToolClient {
+export function createMCPToolClient(config?: ToolClientConfig): MCPToolClient {
   return new MCPToolClient(config);
 }

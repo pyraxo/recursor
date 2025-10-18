@@ -1,27 +1,27 @@
 export type {
-  ToolSchema,
-  ToolResult,
-  ToolExecutor,
-  ToolClientConfig,
   CacheEntry,
-} from "./tools.js";
+  ToolClientConfig,
+  ToolExecutor,
+  ToolResult,
+  ToolSchema,
+} from "./tools";
 
 export type {
-  Context7SearchParams,
-  LibraryMatch,
-  Context7SearchResult,
   Context7ResolveParams,
   Context7ResolveResult,
-} from "./context7.js";
+  Context7SearchParams,
+  Context7SearchResult,
+  LibraryMatch,
+} from "./context7";
 
 export type {
-  ExaSearchType,
   ExaCategory,
-  ExaSearchParams,
-  ExaSearchResultItem,
   ExaSearchMetadata,
+  ExaSearchParams,
   ExaSearchResult,
+  ExaSearchResultItem,
+  ExaSearchType,
   ExaSimilarParams,
-  ExaSimilarResultItem,
   ExaSimilarResult,
-} from "./exa.js";
+  ExaSimilarResultItem,
+} from "./exa";

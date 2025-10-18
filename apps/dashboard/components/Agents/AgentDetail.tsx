@@ -19,7 +19,6 @@ import {
   TabsTrigger,
 } from "@repo/ui/components/tabs";
 import { useQuery } from "convex/react";
-import { useRef } from "react";
 import {
   Activity,
   ArrowDown,
@@ -32,6 +31,7 @@ import {
   MessageSquare,
   User,
 } from "lucide-react";
+import { useRef } from "react";
 import { ExecutionControls } from "../Controls/ExecutionControls";
 import { ChatPanel } from "./ChatPanel";
 import { OrchestrationMonitor } from "./OrchestrationMonitor";
@@ -71,7 +71,7 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 m-4">
+            <div className="flex items-center gap-3">
               <User className="w-6 h-6" />
               <div>
                 <CardTitle>{stack.participant_name}</CardTitle>
@@ -165,7 +165,7 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
 
         <TabsContent value="project" className="space-y-4">
           <Card>
-            <CardHeader className="m-4">
+            <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Lightbulb className="w-5 h-5" />
                 Project Idea

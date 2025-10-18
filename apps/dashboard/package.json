@@ -12,7 +12,6 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@recursor/agent-engine": "workspace:*",
     "@recursor/convex": "workspace:*",
     "@repo/ui": "workspace:*",
     "convex": "^1.28.0",

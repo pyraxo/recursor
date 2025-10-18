@@ -14,8 +14,10 @@
 
 export async function register() {
   // Only run on server-side (not in edge runtime or client)
-  if (process.env.NEXT_RUNTIME === 'nodejs') {
-    const { startExecutionController } = await import('./lib/execution-controller-service');
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { startExecutionController } = await import(
+      "./lib/execution-controller-service"
+    );
     await startExecutionController();
   }
 }

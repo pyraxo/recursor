@@ -2,7 +2,7 @@
  * Execution Controller Service
  *
  * This service manages the ExecutionController lifecycle for cursor teams.
- * It's automatically started when the dashboard app starts (via instrumentation.ts).
+ * It's automatically started when the viewer app starts (via instrumentation.ts).
  */
 
 import { ExecutionController, LLMProviders } from "@recursor/agent-engine";
@@ -23,7 +23,8 @@ export async function startExecutionController() {
     console.log("\n=== Starting Execution Controller ===\n");
 
     // Validate required environment variables
-    const convexUrl = process.env.CONVEX_URL || process.env.NEXT_PUBLIC_CONVEX_URL;
+    const convexUrl =
+      process.env.CONVEX_URL || process.env.NEXT_PUBLIC_CONVEX_URL;
     if (!convexUrl) {
       console.warn("⚠️  CONVEX_URL not set - ExecutionController disabled");
       console.warn("   Cursor teams will not work without this.");
@@ -37,11 +38,17 @@ export async function startExecutionController() {
 
     console.log("Environment check:");
     console.log(`  ✓ Convex URL: ${convexUrl.substring(0, 40)}...`);
-    console.log(`  ${hasCursorKey ? "✓" : "⚠"} Cursor API Key: ${hasCursorKey ? "Set" : "Not set"}`);
-    console.log(`  ${hasGitHubToken ? "✓" : "⚠"} GitHub Token: ${hasGitHubToken ? "Set" : "Not set"}`);
+    console.log(
+      `  ${hasCursorKey ? "✓" : "⚠"} Cursor API Key: ${hasCursorKey ? "Set" : "Not set"}`
+    );
+    console.log(
+      `  ${hasGitHubToken ? "✓" : "⚠"} GitHub Token: ${hasGitHubToken ? "Set" : "Not set"}`
+    );
 
     if (!hasCursorKey || !hasGitHubToken) {
-      console.log("\n⚠️  Note: Cursor teams require CURSOR_API_KEY and GITHUB_TOKEN");
+      console.log(
+        "\n⚠️  Note: Cursor teams require CURSOR_API_KEY and GITHUB_TOKEN"
+      );
       console.log("   Cursor teams will fail without these credentials.");
       console.log("   Standard teams will continue to work via Convex cron.\n");
     }
@@ -73,7 +80,6 @@ export async function startExecutionController() {
     process.on("SIGTERM", cleanup);
     process.on("SIGINT", cleanup);
     process.on("beforeExit", cleanup);
-
   } catch (error) {
     console.error("[ExecutionController] Failed to start:", error);
     controller = null;

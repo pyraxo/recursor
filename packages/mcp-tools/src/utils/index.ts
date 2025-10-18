@@ -1,13 +1,13 @@
 export {
+  formatJSON,
   formatToolResult,
   formatToolResultForLLM,
   truncateText,
-  formatJSON,
-} from "./formatting.js";
+} from "./formatting";
 
 export {
   formatToolDescription,
+  generateToolExample,
   generateToolsPrompt,
   parseToolUse,
-  generateToolExample,
-} from "./prompts.js";
+} from "./prompts";

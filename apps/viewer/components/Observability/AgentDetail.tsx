@@ -19,7 +19,6 @@ import {
   TabsTrigger,
 } from "@repo/ui/components/tabs";
 import { useQuery } from "convex/react";
-import { useRef } from "react";
 import {
   Activity,
   ArrowDown,
@@ -32,8 +31,9 @@ import {
   MessageSquare,
   User,
 } from "lucide-react";
-import { ExecutionControls } from "./ExecutionControls";
+import { useRef } from "react";
 import { ChatPanel } from "./ChatPanel";
+import { ExecutionControls } from "./ExecutionControls";
 import { OrchestrationMonitor } from "./OrchestrationMonitor";
 
 export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
@@ -46,7 +46,8 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
 
   const scrollToLatestMessage = () => {
     if (timelineScrollRef.current) {
-      timelineScrollRef.current.scrollTop = timelineScrollRef.current.scrollHeight;
+      timelineScrollRef.current.scrollTop =
+        timelineScrollRef.current.scrollHeight;
     }
   };
 
@@ -73,7 +74,7 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 m-4">
+            <div className="flex items-center gap-3">
               <User className="w-6 h-6" />
               <div>
                 <CardTitle>{stack.participant_name}</CardTitle>
@@ -167,13 +168,13 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
 
         <TabsContent value="project" className="space-y-4">
           <Card>
-            <CardHeader className="m-4">
+            <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Lightbulb className="w-5 h-5" />
                 Project Idea
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 m-4">
+            <CardContent className="space-y-3">
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Title</div>
                 <div className="font-medium">{idea?.title || "Not set"}</div>
