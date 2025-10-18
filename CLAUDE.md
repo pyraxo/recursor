@@ -88,7 +88,10 @@ pnpm build
 
 ## Agent System Architecture
 
-The core agent system operates on a tick-based loop where each Agent Stack executes 4 agents in sequence:
+Recursor supports **two team architectures**:
+
+### Standard Multi-Agent Teams (Default)
+The traditional system operates on a tick-based loop where each Agent Stack executes 4 agents in sequence:
 
 1. **PlannerAgent**: Evaluates state, creates/updates todos
 2. **BuilderAgent**: Executes todos, generates HTML/JS artifacts
@@ -100,6 +103,20 @@ Key components:
 - **Memory System**: Short-term (current_context) and long-term (memory) storage
 - **Messaging**: Broadcasts and direct messages between agents
 - **Artifact Builder**: Generates single-file HTML/JS applications
+
+### Cursor Background Agent Teams (Optional)
+Single autonomous agent with full IDE tooling in isolated VM:
+
+1. **Single Agent**: Unified role handling planning, building, communication, and review
+2. **GitHub Workspace**: Temporary repository per team for professional workflow
+3. **IDE Tooling**: grep, lint, test, git integration
+4. **Multi-file Projects**: Full project structure support (vs single HTML files)
+
+Key components:
+- **Orchestrator** (`packages/agent-engine/src/cursor/cursor-team-orchestrator.ts`): Manages single Cursor agent
+- **Workspace Manager**: GitHub repository lifecycle management
+- **Artifact Sync**: Bidirectional sync between Convex and Git
+- **Factory Pattern** (`packages/agent-engine/src/orchestrator-factory.ts`): Auto-selects orchestrator based on team type
 
 ## Backend Architecture (Convex)
 
@@ -137,11 +154,19 @@ NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
 GROQ_API_KEY=gsk_...
 ```
 
-Optional:
+Optional (for additional LLM providers):
 ```
 OPENAI_API_KEY=sk-...
 GEMINI_API_KEY=...
 ```
+
+**For Cursor Teams** (required only if using Cursor Background Agent teams):
+```
+CURSOR_API_KEY=cur_...        # Get from https://cursor.com/settings (paid plan required)
+GITHUB_TOKEN=ghp_...           # Personal Access Token with 'repo' and 'delete_repo' scopes
+```
+
+See [`docs/CURSOR_TEAM_SETUP.md`](docs/CURSOR_TEAM_SETUP.md) for detailed setup instructions.
 
 ## Testing Infrastructure
 

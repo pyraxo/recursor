@@ -8,6 +8,23 @@ export default defineSchema({
     phase: v.string(), // 'ideation', 'building', 'demo', etc.
     created_at: v.number(),
 
+    // Team type: standard (4-agent) or cursor (single background agent)
+    team_type: v.optional(
+      v.union(v.literal("standard"), v.literal("cursor"))
+    ), // Default: "standard" for backward compatibility
+
+    // Cursor-specific configuration (only for cursor teams)
+    cursor_config: v.optional(
+      v.object({
+        agent_id: v.optional(v.string()), // Current Cursor background agent ID
+        repository_url: v.optional(v.string()), // GitHub repo URL
+        repository_name: v.optional(v.string()), // GitHub repo name
+        workspace_branch: v.optional(v.string()), // Git branch for agent work
+        last_prompt_at: v.optional(v.number()), // Last time we sent a prompt
+        total_prompts_sent: v.optional(v.number()), // Total prompts sent to this agent
+      })
+    ),
+
     // Execution control fields
     execution_state: v.optional(
       v.union(

@@ -4,7 +4,7 @@ import type { Id } from "@recursor/convex/_generated/dataModel";
 import { ConvexClient } from "convex/browser";
 import { AutonomousOrchestrator } from "./autonomous-orchestrator";
 import { createLLMProviders, LLMProviders } from "./config";
-import { AgentStackOrchestrator } from "./orchestrator";
+import { OrchestratorFactory } from "./orchestrator-factory";
 
 async function main() {
   const convexUrl =
@@ -50,13 +50,42 @@ async function main() {
 
 async function createStack(client: ConvexClient) {
   const participantName = process.argv[3] || `Participant-${Date.now()}`;
+  const teamTypeArg = process.argv.find((arg) => arg.startsWith("--type="));
+  const teamType = teamTypeArg
+    ? (teamTypeArg.split("=")[1] as "standard" | "cursor")
+    : "standard";
+
+  if (teamType !== "standard" && teamType !== "cursor") {
+    console.error(
+      `Error: Invalid team type '${teamType}'. Must be 'standard' or 'cursor'`
+    );
+    process.exit(1);
+  }
+
+  // Validate cursor requirements
+  if (teamType === "cursor") {
+    if (!process.env.CURSOR_API_KEY) {
+      console.error(
+        "Error: CURSOR_API_KEY environment variable is required for cursor teams"
+      );
+      process.exit(1);
+    }
+    if (!process.env.GITHUB_TOKEN) {
+      console.error(
+        "Error: GITHUB_TOKEN environment variable is required for cursor teams"
+      );
+      process.exit(1);
+    }
+  }
 
   const stackId = await client.mutation(api.agents.createStack, {
     participant_name: participantName,
+    team_type: teamType,
   });
 
   console.log(`Created team: ${stackId}`);
   console.log(`Participant: ${participantName}`);
+  console.log(`Team Type: ${teamType}`);
   console.log(`\nRun with: pnpm cli run ${stackId}`);
 }
 
@@ -68,6 +97,7 @@ async function listStacks(client: ConvexClient) {
   for (const stack of stacks) {
     console.log(`ID: ${stack._id}`);
     console.log(`Participant: ${stack.participant_name}`);
+    console.log(`Team Type: ${stack.team_type || "standard"}`);
     console.log(`Phase: ${stack.phase}`);
     console.log(`Created: ${new Date(stack.created_at).toLocaleString()}`);
     console.log("---");
@@ -137,10 +167,16 @@ async function runStack(client: ConvexClient, llm: LLMProviders) {
     // Keep running until interrupted
     await new Promise(() => {}); // Run forever until SIGINT
   } else {
-    // Use original tick-based orchestrator
+    // Use original tick-based orchestrator with factory pattern
     console.log("⏰ Running in TICK mode (legacy system)");
+    console.log(`Team Type: ${stack.team_type || "standard"}\n`);
 
-    const orchestrator = new AgentStackOrchestrator(stackId, llm, convexUrl);
+    // Use factory to create appropriate orchestrator
+    const orchestrator = await OrchestratorFactory.create(
+      stackId,
+      llm,
+      convexUrl
+    );
 
     // Initialize
     await orchestrator.initialize();
@@ -160,12 +196,12 @@ async function runStack(client: ConvexClient, llm: LLMProviders) {
     const status = await orchestrator.getStatus();
     console.log("\n=== Final Status ===");
     console.log(`Phase: ${status.stack?.phase || "Unknown"}`);
-    console.log(`Project: ${status.projectIdea?.title}`);
+    console.log(`Project: ${status.projectIdea?.title || "Not set"}`);
     console.log(
-      `Todos: ${status.todos.completed}/${status.todos.total} completed`
+      `Todos: ${status.todos?.completed || 0}/${status.todos?.total || 0} completed`
     );
-    console.log(`Artifacts: ${status.artifacts.total} versions`);
-    console.log(`Ticks: ${status.tickCount}`);
+    console.log(`Artifacts: ${status.artifacts?.total || 0} versions`);
+    console.log(`Ticks: ${status.tickCount || 0}`);
   }
 }
 
@@ -178,36 +214,40 @@ async function showStatus(client: ConvexClient, llm: LLMProviders) {
     process.exit(1);
   }
 
-  const orchestrator = new AgentStackOrchestrator(
-    stackId,
-    llm,
-    process.env.CONVEX_URL || process.env.NEXT_PUBLIC_CONVEX_URL || ""
-  );
+  const convexUrl =
+    process.env.CONVEX_URL || process.env.NEXT_PUBLIC_CONVEX_URL || "";
+
+  // Use factory to create appropriate orchestrator
+  const orchestrator = await OrchestratorFactory.create(stackId, llm, convexUrl);
 
   const status = await orchestrator.getStatus();
 
   console.log("=== Agent Stack Status ===\n");
   console.log(`Participant: ${status.stack?.participant_name || "Unknown"}`);
+  console.log(`Team Type: ${status.stack?.team_type || "standard"}`);
   console.log(`Phase: ${status.stack?.phase || "Unknown"}`);
   console.log(`\nProject: ${status.projectIdea?.title || "Not set"}`);
   console.log(`Description: ${status.projectIdea?.description || "Not set"}`);
   console.log(`\nTodos:`);
-  console.log(`  Total: ${status.todos.total}`);
-  console.log(`  Completed: ${status.todos.completed}`);
-  console.log(`  Pending: ${status.todos.pending}`);
+  console.log(`  Total: ${status.todos?.total || 0}`);
+  console.log(`  Completed: ${status.todos?.completed || 0}`);
+  console.log(`  Pending: ${status.todos?.pending || 0}`);
   console.log(`\nArtifacts:`);
-  console.log(`  Total Versions: ${status.artifacts.total}`);
-  console.log(`  Latest Version: ${status.artifacts.latest_version}`);
-  console.log(`\nTicks Executed: ${status.tickCount}`);
+  console.log(`  Total Versions: ${status.artifacts?.total || 0}`);
+  console.log(`  Latest Version: ${status.artifacts?.latest_version || 0}`);
+  console.log(`\nTicks Executed: ${status.tickCount || 0}`);
 }
 
 function showHelp() {
   console.log("Usage: pnpm cli <command> [options]\n");
   console.log("Commands:");
-  console.log("  create [name]           Create a new team");
+  console.log("  create [name] [options] Create a new team");
   console.log("  list                    List all teams");
   console.log("  run <id> [options]      Run a team");
   console.log("  status <id>             Show team status");
+  console.log("\nCreate Options:");
+  console.log("  --type=standard         4-agent system (default)");
+  console.log("  --type=cursor           Single Cursor Background Agent");
   console.log("\nRun Options:");
   console.log(
     "  --mode=autonomous       Use autonomous execution (default, agents run when work available)"
@@ -222,6 +262,7 @@ function showHelp() {
   );
   console.log("\nExamples:");
   console.log("  pnpm cli create MyTeam");
+  console.log("  pnpm cli create MyTeam --type=cursor");
   console.log("  pnpm cli list");
   console.log(
     "  pnpm cli run <stack_id>                    # Autonomous mode (default)"
@@ -233,6 +274,10 @@ function showHelp() {
     "  pnpm cli run <stack_id> --mode=tick 20 3000  # Tick mode: 20 ticks, 3s interval"
   );
   console.log("  pnpm cli status <stack_id>");
+  console.log("\nEnvironment Variables:");
+  console.log("  CONVEX_URL              Required for all operations");
+  console.log("  CURSOR_API_KEY          Required for cursor teams");
+  console.log("  GITHUB_TOKEN            Required for cursor teams");
 }
 
 main().catch((error) => {
