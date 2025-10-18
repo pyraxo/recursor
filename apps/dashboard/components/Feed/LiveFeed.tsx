@@ -7,13 +7,18 @@ import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { Separator } from "@repo/ui/components/separator";
 import { useQuery } from "convex/react";
 import { Activity, Clock, User, Zap, ArrowUp } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, forwardRef, useImperativeHandle, useState } from "react";
 
-export function LiveFeed() {
+export interface LiveFeedRef {
+  scrollToTop: () => void;
+}
+
+export const LiveFeed = forwardRef<LiveFeedRef>((props, ref) => {
   const traces = useQuery(api.traces.getRecentAll, { limit: 100 });
   const stacks = useQuery(api.agents.listStacks);
   const containerRef = useRef<HTMLDivElement>(null);
   const prevLengthRef = useRef(0);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
     if (
@@ -25,6 +30,31 @@ export function LiveFeed() {
     }
     prevLengthRef.current = traces?.length || 0;
   }, [traces]);
+
+  // Track scroll position to show/hide the scroll-to-top button
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      // Show button if scrolled down more than 200px
+      setShowScrollTop(container.scrollTop > 200);
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = 0;
+    }
+  };
+
+  // Expose scrollToTop method to parent via ref
+  useImperativeHandle(ref, () => ({
+    scrollToTop,
+  }));
 
   if (!traces || !stacks)
     return <div className="text-muted-foreground text-sm">Loading...</div>;
@@ -67,25 +97,8 @@ export function LiveFeed() {
     }
   };
 
-  const scrollToTop = () => {
-    if (containerRef.current) {
-      containerRef.current.scrollTop = 0;
-    }
-  };
-
   return (
     <div className="relative">
-      <div className="absolute top-2 right-2 z-10">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={scrollToTop}
-          className="shadow-lg"
-        >
-          <ArrowUp className="w-4 h-4 mr-1" />
-          Top
-        </Button>
-      </div>
       <ScrollArea className="h-[calc(100vh-220px)]">
         <div ref={containerRef} className="space-y-2 pr-4">
         {traces.map((t: any) => (
@@ -150,6 +163,21 @@ export function LiveFeed() {
         ))}
         </div>
       </ScrollArea>
+
+      {/* Floating scroll-to-top button */}
+      {showScrollTop && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={scrollToTop}
+          className="absolute bottom-4 right-4 shadow-lg border-border bg-card hover:bg-accent transition-opacity"
+        >
+          <ArrowUp className="w-4 h-4 mr-1" />
+          Top
+        </Button>
+      )}
     </div>
   );
-}
+});
+
+LiveFeed.displayName = "LiveFeed";

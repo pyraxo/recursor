@@ -1,15 +1,17 @@
 "use client";
 
 import { Button } from "@repo/ui/components/button";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { AdminDashboard } from "../components/Admin/AdminDashboard";
 import { AgentDetail } from "../components/Agents/AgentDetail";
 import { AgentList } from "../components/Agents/AgentList";
-import { LiveFeed } from "../components/Feed/LiveFeed";
+import { LiveFeed, LiveFeedRef } from "../components/Feed/LiveFeed";
+import { ArrowUp } from "lucide-react";
 
 export default function Page() {
   const [view, setView] = useState<"admin" | "observability">("admin");
   const [selected, setSelected] = useState<string | null>(null);
+  const liveFeedRef = useRef<LiveFeedRef>(null);
 
   const navigateToTeam = (stackId: string) => {
     setSelected(stackId);
@@ -46,10 +48,20 @@ export default function Page() {
                 <AgentList onSelect={setSelected} />
               </div>
               <div>
-                <h2 className="font-mono text-sm font-semibold mb-4">
-                  Live Feed
-                </h2>
-                <LiveFeed />
+                <div className="flex items-center gap-2 mb-4">
+                  <h2 className="font-mono text-sm font-semibold">
+                    Live Feed
+                  </h2>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => liveFeedRef.current?.scrollToTop()}
+                  >
+                    <ArrowUp className="w-4 h-4 mr-1" />
+                    Top
+                  </Button>
+                </div>
+                <LiveFeed ref={liveFeedRef} />
               </div>
               <div>
                 <h2 className="font-mono text-sm font-semibold mb-4">Detail</h2>

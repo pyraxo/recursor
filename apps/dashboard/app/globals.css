@@ -1,67 +1,61 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-@theme {
-  --color-border: #262626;
-  --color-input: #262626;
-  --color-ring: #737373;
-  --color-background: #0a0a0a;
-  --color-foreground: #fafafa;
-
-  --color-primary: #e5e5e5;
-  --color-primary-foreground: #0a0a0a;
-
-  --color-secondary: #1a1a1a;
-  --color-secondary-foreground: #fafafa;
-
-  --color-destructive: #dc2626;
-  --color-destructive-foreground: #fafafa;
-
-  --color-muted: #1a1a1a;
-  --color-muted-foreground: #737373;
-
-  --color-accent: #262626;
-  --color-accent-foreground: #fafafa;
-
-  --color-popover: #0a0a0a;
-  --color-popover-foreground: #fafafa;
-
-  --color-card: #0a0a0a;
-  --color-card-foreground: #fafafa;
-
-  --font-family-mono:
-    ui-monospace, "JetBrains Mono", "Fira Code", "Courier New", monospace;
-
-  --border-radius-lg: 2px;
-  --border-radius-md: 2px;
-  --border-radius-sm: 1px;
-}
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: var(--color-background);
-  --foreground: var(--color-foreground);
-  --card: var(--color-card);
-  --card-foreground: var(--color-card-foreground);
-  --popover: var(--color-popover);
-  --popover-foreground: var(--color-popover-foreground);
-  --primary: var(--color-primary);
-  --primary-foreground: var(--color-primary-foreground);
-  --secondary: var(--color-secondary);
-  --secondary-foreground: var(--color-secondary-foreground);
-  --muted: var(--color-muted);
-  --muted-foreground: var(--color-muted-foreground);
-  --accent: var(--color-accent);
-  --accent-foreground: var(--color-accent-foreground);
-  --destructive: var(--color-destructive);
-  --destructive-foreground: var(--color-destructive-foreground);
-  --border: var(--color-border);
-  --input: var(--color-input);
-  --ring: var(--color-ring);
-  --radius: var(--border-radius-md);
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: #0a0a0a;
+  --card-foreground: #fafafa;
+  --popover: #0a0a0a;
+  --popover-foreground: #fafafa;
+  --primary: #e5e5e5;
+  --primary-foreground: #0a0a0a;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #fafafa;
+  --destructive: #dc2626;
+  --destructive-foreground: #fafafa;
+  --muted: #1a1a1a;
+  --muted-foreground: #737373;
+  --accent: #262626;
+  --accent-foreground: #fafafa;
+  --border: #262626;
+  --input: #262626;
+  --ring: #737373;
+}
+
+.dark {
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-lg: 2px;
+  --radius-md: 2px;
+  --radius-sm: 1px;
 }
 
 @layer base {
   * {
-    border-color: var(--color-border);
+    @apply border-border outline-ring/50;
   }
   html,
   body {
@@ -70,9 +64,9 @@
     overscroll-behavior: none;
   }
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-    font-family: var(--font-family-mono);
+    @apply bg-background text-foreground;
+    font-family:
+      ui-monospace, "JetBrains Mono", "Fira Code", "Courier New", monospace;
     font-feature-settings:
       "liga" 0,
       "calt" 0;
