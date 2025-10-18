@@ -32,18 +32,22 @@ export const scheduledOrchestrator = internalMutation({
   args: {},
   handler: async (ctx) => {
     // Find all running stacks
-    const stacks = await ctx.db
+    const allStacks = await ctx.db
       .query("agent_stacks")
       .filter((q) => q.eq(q.field("execution_state"), "running"))
       .collect();
 
+    // Filter out cursor teams - they're managed by ExecutionController, not cron
+    const stacks = allStacks.filter((s) => s.team_type !== "cursor");
+
     console.log(
-      `[ScheduledOrchestrator] Found ${stacks.length} running stacks`
+      `[ScheduledOrchestrator] Found ${allStacks.length} running stacks (${stacks.length} standard, ${allStacks.length - stacks.length} cursor)`
     );
 
+    // Handle standard teams with 4-agent orchestration
     for (const stack of stacks) {
       console.log(
-        `[ScheduledOrchestrator] Checking stack ${stack._id} (${stack.participant_name})`
+        `[ScheduledOrchestrator] Checking standard team ${stack._id} (${stack.participant_name})`
       );
 
       // Check if orchestrator is already running or needs to run
@@ -78,6 +82,9 @@ export const scheduledOrchestrator = internalMutation({
         );
       }
     }
+
+    // Cursor teams are handled by ExecutionController (runs in dashboard process)
+    // No action needed here - they're filtered out above
   },
 });
 

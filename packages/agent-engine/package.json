@@ -11,7 +11,8 @@
     "build": "tsc",
     "type-check": "tsc --noEmit",
     "cli": "tsx src/cli.ts",
-    "lint": "eslint . --max-warnings 0"
+    "lint": "eslint . --max-warnings 0",
+    "controller": "tsx src/run-execution-controller.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

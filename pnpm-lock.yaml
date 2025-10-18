@@ -50,6 +50,9 @@ importers:
 
   apps/dashboard:
     dependencies:
+      '@recursor/agent-engine':
+        specifier: workspace:*
+        version: link:../../packages/agent-engine
       '@recursor/convex':
         specifier: workspace:*
         version: link:../../packages/convex

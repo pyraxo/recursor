@@ -98,8 +98,10 @@ The traditional system operates on a tick-based loop where each Agent Stack exec
 3. **CommunicatorAgent**: Processes and responds to messages
 4. **ReviewerAgent**: Analyzes progress, provides strategic feedback
 
+**Execution**: Managed automatically by Convex cron (runs every 5 seconds)
+
 Key components:
-- **Orchestrator** (`packages/agent-engine/src/orchestrator.ts`): Manages the 4-agent cycle
+- **Orchestrator** (`packages/convex/convex/orchestration.ts`): Convex-based 4-agent orchestration
 - **Memory System**: Short-term (current_context) and long-term (memory) storage
 - **Messaging**: Broadcasts and direct messages between agents
 - **Artifact Builder**: Generates single-file HTML/JS applications
@@ -112,8 +114,12 @@ Single autonomous agent with full IDE tooling in isolated VM:
 3. **IDE Tooling**: grep, lint, test, git integration
 4. **Multi-file Projects**: Full project structure support (vs single HTML files)
 
+**Execution**: Automatically managed by dashboard app (starts when dashboard starts)
+
 Key components:
 - **Orchestrator** (`packages/agent-engine/src/cursor/cursor-team-orchestrator.ts`): Manages single Cursor agent
+- **ExecutionController** (`packages/agent-engine/src/execution-controller.ts`): Monitors and manages cursor teams
+- **Auto-start Service** (`apps/dashboard/instrumentation.ts`): Starts controller when dashboard launches
 - **Workspace Manager**: GitHub repository lifecycle management
 - **Artifact Sync**: Bidirectional sync between Convex and Git
 - **Factory Pattern** (`packages/agent-engine/src/orchestrator-factory.ts`): Auto-selects orchestrator based on team type
@@ -184,10 +190,12 @@ Test files co-located with source (`.test.ts` or `.test.tsx`).
 ## Development Workflow
 
 1. **Start Convex backend**: `pnpm convex:dev` (keep running)
-2. **Start dev servers**: `pnpm dev` (in new terminal)
-3. **Create agents**: Use CLI in `packages/agent-engine/`
-4. **Monitor**: Check Convex dashboard for real-time data
+2. **Start dev servers**: `pnpm dev` (in new terminal - auto-starts ExecutionController)
+3. **Create agents**: Use dashboard at http://localhost:3002
+4. **Monitor**: Check dashboard or Convex dashboard for real-time data
 5. **Test changes**: Run tests with `pnpm test:watch`
+
+**Note**: Both standard and cursor teams run automatically when the dashboard is running. Standard teams use Convex cron, cursor teams use the built-in ExecutionController.
 
 ## Key Files
 

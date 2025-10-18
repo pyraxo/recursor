@@ -60,7 +60,7 @@ export function ReadmeTab({ stackId }: ReadmeTabProps) {
           See the Project
           {artifact && <span className="text-xs text-[var(--foreground)]/60 ml-2">(v{artifact.version})</span>}
         </h4>
-        {artifact && artifact.type === "html_js" && artifact.content ? (
+        {artifact && (artifact.type === "html" || artifact.type === "html_js") && artifact.content ? (
           <div className="bg-white p-1 border-2 border-[var(--panel-border)] rounded">
             <iframe
               srcDoc={artifact.content}
@@ -75,6 +75,29 @@ export function ReadmeTab({ stackId }: ReadmeTabProps) {
                   | Tech: {artifact.metadata.tech_stack.join(", ")}
                 </span>
               )}
+            </div>
+          </div>
+        ) : artifact && artifact.type === "multi_file" && artifact.content ? (
+          <div className="bg-[var(--background)] border-2 border-[var(--panel-border)] rounded">
+            <div className="p-3 border-b-2 border-[var(--panel-border)] bg-[var(--background-elevated)]">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-[var(--accent-primary)] font-bold">
+                  📦 Multi-File Project
+                </span>
+                {artifact.metadata?.tech_stack && (
+                  <span className="text-xs text-[var(--foreground)]/60">
+                    {artifact.metadata.tech_stack.join(" • ")}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="p-3 max-h-96 overflow-y-auto">
+              <pre className="text-xs text-[var(--foreground)]/80 whitespace-pre-wrap font-mono">
+                {artifact.content}
+              </pre>
+            </div>
+            <div className="p-2 border-t-2 border-[var(--panel-border)] bg-[var(--background-elevated)] text-xs text-[var(--foreground)]/60">
+              💡 Multi-file project with full codebase structure
             </div>
           </div>
         ) : artifact && artifact.type === "external_link" ? (
