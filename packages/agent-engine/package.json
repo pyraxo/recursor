@@ -21,7 +21,10 @@
     "openai": "^4.67.3",
     "@google/generative-ai": "^0.21.0",
     "zod": "^3.23.8",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "@octokit/rest": "^20.0.2",
+    "simple-git": "^3.25.0",
+    "tmp-promise": "^3.0.3"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",

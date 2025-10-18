@@ -60,7 +60,7 @@ export function WorldMap({ selectedTeamId, onSelectTeam }: WorldMapProps) {
   ];
 
   return (
-    <div className="w-full h-full overflow-auto bg-[var(--background)] scrollbar-hide flex items-center justify-center p-8">
+    <div className="w-full min-h-full bg-[var(--background)] flex justify-center p-8">
       <div
         className="relative flex-shrink-0"
         style={{

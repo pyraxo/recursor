@@ -8,6 +8,23 @@ export default defineSchema({
     phase: v.string(), // 'ideation', 'building', 'demo', etc.
     created_at: v.number(),
 
+    // Team type: standard (4-agent) or cursor (single background agent)
+    team_type: v.optional(
+      v.union(v.literal("standard"), v.literal("cursor"))
+    ), // Default: "standard" for backward compatibility
+
+    // Cursor-specific configuration (only for cursor teams)
+    cursor_config: v.optional(
+      v.object({
+        agent_id: v.optional(v.string()), // Current Cursor background agent ID
+        repository_url: v.optional(v.string()), // GitHub repo URL
+        repository_name: v.optional(v.string()), // GitHub repo name
+        workspace_branch: v.optional(v.string()), // Git branch for agent work
+        last_prompt_at: v.optional(v.number()), // Last time we sent a prompt
+        total_prompts_sent: v.optional(v.number()), // Total prompts sent to this agent
+      })
+    ),
+
     // Execution control fields
     execution_state: v.optional(
       v.union(
@@ -48,8 +65,11 @@ export default defineSchema({
       current_work: v.optional(v.union(v.string(), v.null())),
       last_execution_update: v.optional(v.number()),
       last_review_time: v.optional(v.number()),
+      last_reviewed_version: v.optional(v.number()), // Track which artifact version was last reviewed
+      last_review_issues_count: v.optional(v.number()), // Number of issues found in last review
       last_planning_time: v.optional(v.number()),
       last_broadcast_time: v.optional(v.number()),
+      recommendations_type: v.optional(v.string()), // Type of recommendations (e.g., 'code_review', 'strategic')
     }),
     current_context: v.object({
       // Short-term working memory: current task, recent interactions
@@ -83,11 +103,12 @@ export default defineSchema({
     .index("by_stack", ["stack_id"])
     .index("by_status", ["stack_id", "status"]),
 
-  // Messages (for inter-agent communication)
+  // Messages (for inter-agent communication and user chat)
   messages: defineTable({
-    from_stack_id: v.id("agent_stacks"),
+    from_stack_id: v.optional(v.id("agent_stacks")), // Optional: null when message is from a user
     to_stack_id: v.optional(v.id("agent_stacks")), // null = broadcast to all
-    from_agent_type: v.string(),
+    from_agent_type: v.optional(v.string()), // Agent type or null for user messages
+    from_user_name: v.optional(v.string()), // User name for visitor messages
     content: v.string(),
     message_type: v.string(), // 'broadcast', 'direct', 'visitor'
     read_by: v.array(v.id("agent_stacks")), // array of stack_ids that have read

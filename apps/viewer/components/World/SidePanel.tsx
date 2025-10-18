@@ -17,7 +17,7 @@ export function SidePanel({ selectedTeamId }: SidePanelProps) {
 
   if (!selectedTeamId) {
     return (
-      <div className="w-full h-full p-6">
+      <div className="w-full h-full p-6 overflow-auto">
         <PixelPanel title="Welcome to Recursor">
           <div className="space-y-4 font-mono text-sm">
             <p className="text-[var(--foreground)]/80 leading-relaxed">
@@ -78,13 +78,15 @@ export function SidePanel({ selectedTeamId }: SidePanelProps) {
   }
 
   return (
-    <div className="w-full h-full p-6">
+    <div className="w-full h-full p-6 flex flex-col">
       <PixelPanel title="Team Details">
         <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
         
-        {activeTab === "readme" && <ReadmeTab stackId={selectedTeamId} />}
-        {activeTab === "chat" && <ChatTab stackId={selectedTeamId} />}
-        {activeTab === "livestream" && <LivestreamTab stackId={selectedTeamId} />}
+        <div className="flex-1 min-h-0">
+          {activeTab === "readme" && <ReadmeTab stackId={selectedTeamId} />}
+          {activeTab === "chat" && <ChatTab stackId={selectedTeamId} />}
+          {activeTab === "livestream" && <LivestreamTab stackId={selectedTeamId} />}
+        </div>
       </PixelPanel>
     </div>
   );

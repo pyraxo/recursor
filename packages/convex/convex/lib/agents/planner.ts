@@ -10,7 +10,7 @@ export async function executePlanner(
   console.log(`[Planner] Executing for stack ${stackId}`);
 
   // 1. Load context
-  const [stack, todos, projectIdea, agentState, userMessages] =
+  const [stack, initialTodos, projectIdea, agentState, userMessages] =
     await Promise.all([
       ctx.runQuery(internal.agentExecution.getStackForExecution, { stackId }),
       ctx.runQuery(internal.agentExecution.getTodos, { stackId }),
@@ -23,6 +23,9 @@ export async function executePlanner(
         team_id: stackId,
       }),
     ]);
+
+  // Use let so we can reassign after clear
+  let todos = initialTodos;
 
   if (!stack) {
     throw new Error(`Stack ${stackId} not found`);
@@ -40,14 +43,14 @@ export async function executePlanner(
     return `Planner idle: ${hasWork.reason}`;
   }
 
-  // 3. Build conversation
+  // 3. Build conversation with structured output
   const messages: Message[] = [
     llmProvider.buildSystemPrompt("planner", {
       projectTitle: projectIdea?.title,
       phase: stack.phase,
       todoCount: todos?.length || 0,
       teamName: stack.participant_name,
-    }),
+    }, true), // Request structured output
   ];
 
   // Add project context
@@ -61,11 +64,23 @@ export async function executePlanner(
   // Add current todos
   if (todos && todos.length > 0) {
     const todoSummary = todos
-      .map((t) => `- [${t.status}] ${t.content}`)
+      .map((t: any) => `- [${t.status}] ${t.content}`)
       .join("\n");
+
+    // Check if there are too many todos (threshold: 20)
+    const tooManyTodos = todos.length > 20;
+    const pendingTodos = todos.filter((t: any) => t.status === "pending");
+    const tooManyPending = pendingTodos.length > 15;
+
+    let todoMessage = `Current todos (${todos.length} total, ${pendingTodos.length} pending):\n${todoSummary}`;
+
+    if (tooManyTodos || tooManyPending) {
+      todoMessage += `\n\nWARNING: The todo list is getting bloated (${todos.length} total todos, ${pendingTodos.length} pending). Consider using clear_all_todos to restart with a clean slate, then create a focused set of high-priority todos.`;
+    }
+
     messages.push({
       role: "user",
-      content: `Current todos:\n${todoSummary}`,
+      content: todoMessage,
     });
   }
 
@@ -105,18 +120,71 @@ export async function executePlanner(
       "What should the team work on next? Create specific todos.",
   });
 
-  // 4. Call LLM
+  // 4. Call LLM with JSON mode
   console.log(`[Planner] Calling LLM with ${messages.length} messages`);
   const response = await llmProvider.chat(messages, {
     temperature: 0.8,
     max_tokens: 1500,
+    json_mode: true, // Request JSON output
   });
 
-  // 5. Parse response and execute actions
-  const parsed = llmProvider.parseAgentResponse(response.content, "planner");
-  console.log(`[Planner] Parsed ${parsed.actions.length} actions`);
+  // 5. Parse JSON response
+  console.log(`[Planner] LLM Response (first 500 chars):\n${response.content.substring(0, 500)}`);
 
-  // Execute todo creation actions
+  let parsed: { thinking: string; actions: any[] };
+  try {
+    const parsedJson = JSON.parse(response.content);
+    parsed = {
+      thinking: parsedJson.thinking || "",
+      actions: Array.isArray(parsedJson.actions) ? parsedJson.actions : []
+    };
+    console.log(`[Planner] Parsed JSON with ${parsed.actions.length} actions`);
+    console.log(`[Planner] Thinking: ${parsed.thinking.substring(0, 200)}...`);
+  } catch (error) {
+    console.error(`[Planner] Failed to parse JSON response:`, error);
+    console.error(`[Planner] Response:`, response.content);
+    // Fallback to empty actions
+    parsed = { thinking: response.content, actions: [] };
+  }
+
+  if (!parsed.actions || parsed.actions.length === 0) {
+    console.warn(
+      `[Planner] No actions in JSON response. This may indicate the LLM decided no changes are needed.`
+    );
+  }
+
+  // Execute actions (handle special actions first: clear todos and update project)
+  let todosCreated = 0;
+  let todosUpdated = 0;
+  let todosDeleted = 0;
+  let todosCleared = 0;
+  let projectUpdated = false;
+
+  // Check if there's a clear_all_todos action - handle it first
+  const clearAction = parsed.actions.find((a: any) => a.type === "clear_all_todos");
+  if (clearAction) {
+    const clearedCount = await ctx.runMutation(internal.todos.internalClearAll, {
+      stack_id: stackId,
+    });
+    todosCleared = clearedCount;
+    console.log(`[Planner] Cleared ${clearedCount} todos. Reason: ${clearAction.reason || "not specified"}`);
+    // Clear the local todos array since we just deleted everything
+    todos = [];
+  }
+
+  // Check if there's an update_project action
+  const updateProjectAction = parsed.actions.find((a: any) => a.type === "update_project");
+  if (updateProjectAction) {
+    await ctx.runMutation(internal.project_ideas.internalUpdate, {
+      stack_id: stackId,
+      title: updateProjectAction.title,
+      description: updateProjectAction.description,
+    });
+    projectUpdated = true;
+    console.log(`[Planner] Updated project${updateProjectAction.title ? ` title: "${updateProjectAction.title}"` : ""}${updateProjectAction.description ? ` with enhanced description (${updateProjectAction.description.length} chars)` : ""}`);
+  }
+
+  // Now execute other actions
   for (const action of parsed.actions) {
     if (action.type === "create_todo") {
       await ctx.runMutation(internal.todos.internalCreate, {
@@ -126,15 +194,57 @@ export async function executePlanner(
         assigned_by: "planner",
         priority: action.priority || 5,
       });
-      console.log(`[Planner] Created todo: ${action.content}`);
+      todosCreated++;
+      console.log(`[Planner] Created todo #${todosCreated}: ${action.content}`);
+    } else if (action.type === "update_todo") {
+      // Find the todo by matching content
+      const matchingTodo = todos?.find(
+        (t: any) => t.content === action.oldContent
+      );
+
+      if (matchingTodo) {
+        await ctx.runMutation(internal.todos.internalUpdate, {
+          todoId: matchingTodo._id,
+          content: action.newContent,
+          priority: action.priority,
+        });
+        todosUpdated++;
+        console.log(
+          `[Planner] Updated todo: "${action.oldContent}" -> "${action.newContent || "same"}"`
+        );
+      } else {
+        console.warn(
+          `[Planner] Could not find todo to update: "${action.oldContent}"`
+        );
+      }
+    } else if (action.type === "delete_todo") {
+      // Find the todo by matching content
+      const matchingTodo = todos?.find((t: any) => t.content === action.content);
+
+      if (matchingTodo) {
+        await ctx.runMutation(internal.todos.internalDelete, {
+          todoId: matchingTodo._id,
+        });
+        todosDeleted++;
+        console.log(`[Planner] Deleted todo: "${action.content}"`);
+      } else {
+        console.warn(
+          `[Planner] Could not find todo to delete: "${action.content}"`
+        );
+      }
     }
+    // clear_all_todos is already handled above
   }
 
-  // Update planner memory
+  console.log(
+    `[Planner] Summary: ${projectUpdated ? "Updated project, " : ""}${todosCleared > 0 ? `Cleared ${todosCleared}, ` : ""}Created ${todosCreated}, Updated ${todosUpdated}, Deleted ${todosDeleted} todos from ${parsed.actions.length} total actions`
+  );
+
+  // Update planner memory with the thinking (not the full JSON)
   await ctx.runMutation(internal.agentExecution.updateAgentMemory, {
     stackId,
     agentType: "planner",
-    thought: response.content,
+    thought: parsed.thinking || "Planning complete",
   });
 
   // Clear reviewer recommendations from planner's memory after processing
@@ -150,17 +260,21 @@ export async function executePlanner(
   await ctx.runMutation(internal.traces.internalLog, {
     stack_id: stackId,
     agent_type: "planner",
-    thought: response.content,
+    thought: parsed.thinking.substring(0, 1000), // Limit thought length in trace
     action: "planning",
     result: {
-      todosCreated: parsed.actions.filter((a: any) => a.type === "create_todo")
-        .length,
+      todosCreated,
+      todosUpdated,
+      todosDeleted,
+      todosCleared,
+      projectUpdated,
+      totalActions: parsed.actions.length,
       hasWork: hasWork.hasWork,
       reason: hasWork.reason,
     },
   });
 
-  return response.content;
+  return parsed.thinking || "Planning complete";
 }
 
 function checkPlannerHasWork(

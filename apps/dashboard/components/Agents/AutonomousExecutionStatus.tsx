@@ -2,14 +2,14 @@
 
 import { api } from "@recursor/convex/_generated/api";
 import { Id } from "@recursor/convex/_generated/dataModel";
-import { Badge } from "@repo/ui/badge";
+import { Badge } from "@repo/ui/components/badge";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@repo/ui/card";
+} from "@repo/ui/components/card";
 import { useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import {
