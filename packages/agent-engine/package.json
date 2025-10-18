@@ -16,6 +16,7 @@
   "dependencies": {
     "convex": "^1.28.0",
     "@recursor/convex": "workspace:*",
+    "@recursor/mcp-tools": "workspace:*",
     "groq-sdk": "^0.7.0",
     "openai": "^4.67.3",
     "@google/generative-ai": "^0.21.0",
