@@ -34,7 +34,7 @@ export function LeaderboardTable() {
   const teamScores = useMemo(() => {
     if (!leaderboard) return [];
 
-    const scores: TeamScore[] = leaderboard.map((entry: any) => ({
+    const scores: TeamScore[] = leaderboard.map((entry) => ({
       name: entry.name,
       overall: entry.technical_merit + entry.execution + entry.polish + entry.wow_factor,
       technical: entry.technical_merit,

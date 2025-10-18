@@ -67,7 +67,7 @@ export function ChatPanel({ stackId }: { stackId: Id<"agent_stacks"> }) {
             </div>
           ) : (
             <div className="space-y-4">
-              {chatHistory.map((msg: any) => (
+              {chatHistory.map((msg) => (
                 <div key={msg._id} className="space-y-2">
                   {/* User Message */}
                   <div className="flex items-start gap-3">

@@ -14,33 +14,33 @@ interface BubbleState {
   message: string;
 }
 
+const agentMessages = {
+  planner: [
+    "Planning next steps...",
+    "Analyzing requirements...",
+    "Creating tasks...",
+  ],
+  builder: [
+    "Building features...",
+    "Writing code...",
+    "Implementing design...",
+  ],
+  reviewer: [
+    "Reviewing progress...",
+    "Testing functionality...",
+    "Providing feedback...",
+  ],
+  communicator: [
+    "Coordinating with team...",
+    "Sharing updates...",
+    "Responding to messages...",
+  ],
+};
+
 export function SpeechBubbles({ agentPositions }: SpeechBubblesProps) {
   const stacks = useQuery(api.agents.listStacksWithAgents);
   const recentTraces = useQuery(api.traces.getRecentAll, { limit: 100 });
   const [bubbles, setBubbles] = useState<BubbleState[]>([]);
-
-  const agentMessages = {
-    planner: [
-      "Planning next steps...",
-      "Analyzing requirements...",
-      "Creating tasks...",
-    ],
-    builder: [
-      "Building features...",
-      "Writing code...",
-      "Implementing design...",
-    ],
-    reviewer: [
-      "Reviewing progress...",
-      "Testing functionality...",
-      "Providing feedback...",
-    ],
-    communicator: [
-      "Coordinating with team...",
-      "Sharing updates...",
-      "Responding to messages...",
-    ],
-  };
 
   useEffect(() => {
     if (!stacks || stacks.length === 0) return;
@@ -59,13 +59,13 @@ export function SpeechBubbles({ agentPositions }: SpeechBubblesProps) {
         allAgents[Math.floor(Math.random() * allAgents.length)];
       if (!randomAgent) return;
 
-      const [teamIndexStr, agentType, stackId] = randomAgent.split("-");
+      const [, agentType, stackId] = randomAgent.split("-");
 
       let message = "...";
 
       if (recentTraces && recentTraces.length > 0) {
         const stackTraces = recentTraces.filter(
-          (t: any) =>
+          (t: typeof recentTraces[number]) =>
             String(t.stack_id) === stackId && t.agent_type === agentType
         );
 
@@ -79,7 +79,7 @@ export function SpeechBubbles({ agentPositions }: SpeechBubblesProps) {
         } else {
           const stackAgentStates = stacks
             .find((s) => String(s._id) === stackId)
-            ?.agents?.find((a: any) => a.agent_type === agentType);
+            ?.agents?.find((a) => a.agent_type === agentType);
           if (stackAgentStates?.current_context?.active_task) {
             message = stackAgentStates.current_context.active_task.substring(
               0,

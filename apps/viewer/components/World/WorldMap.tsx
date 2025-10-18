@@ -84,7 +84,7 @@ export function WorldMap({ selectedTeamId, onSelectTeam }: WorldMapProps) {
         <FloatingParticles />
         <SpeechBubbles agentPositions={agentPositions} />
 
-        {stacks.slice(0, 5).map((stack: any, teamIndex: number) => {
+        {stacks.slice(0, 5).map((stack, teamIndex: number) => {
           const isSelected = selectedTeamId === stack._id;
           const isHovered = hoveredTeamId === stack._id;
 

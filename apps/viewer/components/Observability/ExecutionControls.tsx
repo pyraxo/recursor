@@ -15,7 +15,6 @@ export function ExecutionControls({
 }: {
   stackId: Id<"agent_stacks">;
 }) {
-  const stack = useQuery(api.agents.getStack, { stackId });
   const executionStatus = useQuery(api.agents.getExecutionStatus, { stackId });
   const [isProcessingAction, setIsProcessingAction] = useState(false);
 

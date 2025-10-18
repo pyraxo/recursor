@@ -217,7 +217,7 @@ export function TeamManagementList({
         ) : (
           <ScrollArea className="h-full pr-4">
             <div className="space-y-3">
-              {stacks.map((stack: any) => {
+              {stacks.map((stack) => {
                 const executionState = stack.execution_state || "idle";
                 const statusStyles = getStatusStyles(executionState);
                 const phaseStyles = getPhaseStyles(stack.phase);
@@ -503,7 +503,7 @@ export function TeamManagementList({
               This will permanently delete{" "}
               <span className="font-medium text-foreground">
                 {
-                  stacks.find((s: any) => s._id === deleteDialogOpen)
+                  stacks.find((s) => s._id === deleteDialogOpen)
                     ?.participant_name
                 }
               </span>

@@ -32,7 +32,7 @@ export function AgentList({
   return (
     <ScrollArea className="h-[calc(100vh-200px)]">
       <div className="space-y-2 pr-4">
-        {stacks.map((s: any) => {
+        {stacks.map((s) => {
           const executionState = s.execution_state || "idle";
           const teamType = s.team_type || "standard";
 

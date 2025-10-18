@@ -51,7 +51,7 @@ export function ProgressChart() {
     // Group judgments by team
     const teamJudgments = new Map<string, Array<{ time: number; score: number }>>();
 
-    judgmentHistory.forEach((j: any) => {
+    judgmentHistory.forEach((j) => {
       if (!teamJudgments.has(j.team_name)) {
         teamJudgments.set(j.team_name, []);
       }
@@ -65,7 +65,7 @@ export function ProgressChart() {
 
     // Find all unique timestamps across all teams
     const allTimestamps = new Set<number>();
-    judgmentHistory.forEach((j: any) => allTimestamps.add(j.judged_at));
+    judgmentHistory.forEach((j) => allTimestamps.add(j.judged_at));
     const sortedTimestamps = Array.from(allTimestamps).sort((a, b) => a - b);
 
     // If we have timestamps, use them; otherwise show single point
@@ -77,7 +77,7 @@ export function ProgressChart() {
       };
     }
 
-    const startTime = sortedTimestamps[0];
+    const startTime = sortedTimestamps[0]!; // Safe because we checked length > 0
 
     // Build data points from actual judgments
     const data: DataPoint[] = sortedTimestamps.map((timestamp, idx) => {
@@ -96,7 +96,7 @@ export function ProgressChart() {
 
         if (relevantJudgments.length > 0) {
           // Use the most recent judgment
-          const latestJudgment = relevantJudgments[relevantJudgments.length - 1];
+          const latestJudgment = relevantJudgments[relevantJudgments.length - 1]!; // Safe because we checked length > 0
           point.scores[teamName] = latestJudgment.score;
         } else {
           // No judgment yet for this team at this time

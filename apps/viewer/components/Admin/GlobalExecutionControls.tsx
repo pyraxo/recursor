@@ -27,28 +27,6 @@ export function GlobalExecutionControls() {
     ) || [];
   const resumableStacks = [...pausedStacks, ...stoppedStacks];
 
-  const handleStartAll = async () => {
-    if (stoppedStacks.length === 0) return;
-
-    const confirmed = confirm(
-      `Start execution for ${stoppedStacks.length} team(s)?`
-    );
-    if (!confirmed) return;
-
-    setIsProcessing(true);
-    try {
-      await Promise.all(
-        stoppedStacks.map((stack) =>
-          startExecution({ stackId: stack._id }).catch((err) =>
-            console.error(`Failed to start ${stack.participant_name}:`, err)
-          )
-        )
-      );
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const handlePauseAll = async () => {
     if (runningStacks.length === 0) return;
 

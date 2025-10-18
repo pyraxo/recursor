@@ -35,7 +35,7 @@ const findSimilarSchema = z.object({
  */
 export class ExaExecutor implements ToolExecutor {
   private readonly toolName = "web_search";
-  private exa: any | null = null;
+  private exa: Exa | null = null;
   private apiKey: string;
 
   /**
@@ -45,7 +45,7 @@ export class ExaExecutor implements ToolExecutor {
   constructor(apiKey: string) {
     this.apiKey = apiKey;
     if (apiKey && apiKey.trim()) {
-      this.exa = new (Exa as any)(apiKey);
+      this.exa = new Exa(apiKey);
     }
   }
 
@@ -155,7 +155,7 @@ export class ExaExecutor implements ToolExecutor {
       const searchStartTime = Date.now();
 
       // Prepare search options
-      const searchOptions: any = {
+      const searchOptions: Record<string, unknown> = {
         type: params.searchType,
         numResults: params.numResults,
       };
@@ -176,13 +176,13 @@ export class ExaExecutor implements ToolExecutor {
       const searchTime = Date.now() - searchStartTime;
 
       // Transform results to our format
-      const transformedResults = results.results.map((result: any) => ({
-        title: result.title || "Untitled",
-        url: result.url,
-        snippet: this.extractSnippet(result.text || result.snippet || ""),
-        content: params.includeContent ? result.text : undefined,
-        publishedDate: result.publishedDate,
-        score: result.score || 0,
+      const transformedResults = results.results.map((result: Record<string, unknown>) => ({
+        title: (result.title as string) || "Untitled",
+        url: result.url as string,
+        snippet: this.extractSnippet((result.text as string) || (result.snippet as string) || ""),
+        content: params.includeContent ? (result.text as string) : undefined,
+        publishedDate: result.publishedDate as string,
+        score: (result.score as number) || 0,
       }));
 
       return {
@@ -224,11 +224,11 @@ export class ExaExecutor implements ToolExecutor {
         numResults: params.numResults,
       });
 
-      const transformedResults = results.results.map((result: any) => ({
-        title: result.title || "Untitled",
-        url: result.url,
-        snippet: this.extractSnippet(result.text || result.snippet || ""),
-        similarity: result.score || 0,
+      const transformedResults = results.results.map((result: Record<string, unknown>) => ({
+        title: (result.title as string) || "Untitled",
+        url: result.url as string,
+        snippet: this.extractSnippet((result.text as string) || (result.snippet as string) || ""),
+        similarity: (result.score as number) || 0,
       }));
 
       return {

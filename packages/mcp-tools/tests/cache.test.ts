@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { ToolCache } from "../src/client/cache";
 import type { ToolResult } from "../src/types";
 

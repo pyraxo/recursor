@@ -1,12 +1,6 @@
 "use client";
 
 import { api } from "@recursor/convex/_generated/api";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@repo/ui/components/card";
 import { useQuery } from "convex/react";
 
 export function MetricsBar() {

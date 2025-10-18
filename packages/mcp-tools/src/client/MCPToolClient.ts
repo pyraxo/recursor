@@ -120,11 +120,12 @@ export class MCPToolClient {
     const toolDescriptions = tools
       .map((schema) => {
         const params = Object.entries(schema.parameters.properties || {})
-          .map(([name, def]: [string, any]) => {
+          .map(([name, def]) => {
+            const defObj = def as Record<string, unknown>;
             const required = schema.parameters.required?.includes(name)
               ? " (required)"
               : " (optional)";
-            const description = def.description || "";
+            const description = (defObj.description as string) || "";
             return `    - ${name}${required}: ${description}`;
           })
           .join("\n");

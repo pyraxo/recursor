@@ -74,7 +74,7 @@ export const LiveFeed = forwardRef<LiveFeedRef>((props, ref) => {
   }
 
   const getStackName = (stackId: string) => {
-    const stack = stacks.find((s: any) => s._id === stackId);
+    const stack = stacks.find((s) => s._id === stackId);
     return stack?.participant_name || "Unknown";
   };
 
@@ -97,7 +97,7 @@ export const LiveFeed = forwardRef<LiveFeedRef>((props, ref) => {
     <div className="relative">
       <ScrollArea ref={scrollAreaRef} className="h-[calc(100vh-220px)]">
         <div className="space-y-1.5 pr-4">
-          {traces.map((t: any) => (
+          {traces.map((t: typeof traces[number]) => (
             <Card key={t._id} className="hover:bg-accent/30 transition-colors">
               <CardContent className="p-2.5">
                 <div className="space-y-2">

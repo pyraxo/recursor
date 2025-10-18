@@ -75,7 +75,7 @@ export function MessagesTab() {
             </label>
             <select
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value as any)}
+              onChange={(e) => setFilterType(e.target.value as "all" | "visitor" | "agent" | "broadcast")}
               className="px-3 py-1 bg-background border-2 border-border text-foreground text-sm focus:border-primary focus:outline-none"
             >
               <option value="all">All Messages</option>

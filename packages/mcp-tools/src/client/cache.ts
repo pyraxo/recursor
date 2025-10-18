@@ -113,7 +113,7 @@ export class ToolCache {
     const now = Date.now();
     let expired = 0;
 
-    for (const [_, entry] of this.cache) {
+    for (const [, entry] of this.cache) {
       if (now - entry.timestamp > this.ttl) {
         expired++;
       }
@@ -175,12 +175,12 @@ export class ToolCache {
    * Helper to sort object keys for consistent cache key generation
    * This ensures that {a: 1, b: 2} and {b: 2, a: 1} produce the same key
    */
-  private sortObjectKeys(key: string, value: any): any {
+  private sortObjectKeys(key: string, value: unknown): unknown {
     if (value && typeof value === "object" && !Array.isArray(value)) {
       return Object.keys(value)
         .sort()
-        .reduce((sorted: any, key: string) => {
-          sorted[key] = value[key];
+        .reduce((sorted: Record<string, unknown>, key: string) => {
+          sorted[key] = (value as Record<string, unknown>)[key];
           return sorted;
         }, {});
     }

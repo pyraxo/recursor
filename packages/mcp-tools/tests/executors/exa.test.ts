@@ -176,7 +176,6 @@ describe("ExaExecutor", () => {
     it("should extract meaningful snippets", () => {
       // Access the private method through execution
       // This is a whitebox test of the snippet logic
-      const longText = "A".repeat(300);
       const executor = new ExaExecutor("test-key");
 
       // We can't directly test private method, but we can verify

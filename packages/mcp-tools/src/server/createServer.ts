@@ -11,11 +11,20 @@ export interface MCPServerConfig {
 }
 
 /**
+ * Placeholder server instance
+ */
+interface MCPServerInstance {
+  name: string;
+  version: string;
+  config: MCPServerConfig;
+}
+
+/**
  * Create and configure the MCP server with all tool handlers
  * @param config - Server configuration
  * @returns Configured MCP server instance (placeholder)
  */
-export function createMcpServer(config: MCPServerConfig): any {
+export function createMcpServer(config: MCPServerConfig): MCPServerInstance {
   console.warn("MCP Server is not yet fully implemented");
   console.warn("Tool client functionality is available via MCPToolClient");
 

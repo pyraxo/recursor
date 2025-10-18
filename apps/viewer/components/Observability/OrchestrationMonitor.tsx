@@ -11,7 +11,6 @@ import {
   CardTitle,
 } from "@repo/ui/components/card";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
-import { Separator } from "@repo/ui/components/separator";
 import { useQuery } from "convex/react";
 import {
   Activity,
@@ -20,7 +19,6 @@ import {
   Clock,
   GitBranch,
   Layers,
-  PauseCircle,
   TrendingUp,
   Zap,
 } from "lucide-react";
@@ -265,7 +263,7 @@ export function OrchestrationMonitor({
           ) : (
             <ScrollArea className="h-[300px]">
               <div className="space-y-2 pr-4">
-                {recentExecutions.map((exec: any) => (
+                {recentExecutions.map((exec) => (
                   <div
                     key={exec._id}
                     className="flex items-start gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors"

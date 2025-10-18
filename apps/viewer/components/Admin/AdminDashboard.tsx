@@ -27,22 +27,22 @@ export function AdminDashboard({
 
   const phaseDistribution = {
     total: stacks?.length || 0,
-    ideation: stacks?.filter((s: any) => s.phase === "ideation").length || 0,
-    building: stacks?.filter((s: any) => s.phase === "building").length || 0,
-    demo: stacks?.filter((s: any) => s.phase === "demo").length || 0,
-    completed: stacks?.filter((s: any) => s.phase === "completed").length || 0,
+    ideation: stacks?.filter((s) => s.phase === "ideation").length || 0,
+    building: stacks?.filter((s) => s.phase === "building").length || 0,
+    demo: stacks?.filter((s) => s.phase === "demo").length || 0,
+    completed: stacks?.filter((s) => s.phase === "completed").length || 0,
   };
 
   const executionStatus = {
     running:
-      stacks?.filter((s: any) => s.execution_state === "running").length || 0,
+      stacks?.filter((s) => s.execution_state === "running").length || 0,
     paused:
-      stacks?.filter((s: any) => s.execution_state === "paused").length || 0,
+      stacks?.filter((s) => s.execution_state === "paused").length || 0,
     stopped:
-      stacks?.filter((s: any) => s.execution_state === "stopped").length || 0,
+      stacks?.filter((s) => s.execution_state === "stopped").length || 0,
     idle:
       stacks?.filter(
-        (s: any) => !s.execution_state || s.execution_state === "idle"
+        (s) => !s.execution_state || s.execution_state === "idle"
       ).length || 0,
   };
 

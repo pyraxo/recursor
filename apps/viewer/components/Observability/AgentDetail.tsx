@@ -74,7 +74,7 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
   };
 
   const getTodoCount = (status: string) => {
-    return todos?.filter((t: any) => t.status === status).length || 0;
+    return todos?.filter((t) => t.status === status).length || 0;
   };
 
   return (
@@ -236,7 +236,7 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
               ) : (
                 <ScrollArea className="h-[400px]">
                   <div className="space-y-2 pr-4">
-                    {todos.map((t: any) => (
+                    {todos.map((t) => (
                       <div
                         key={t._id}
                         className="flex items-start gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors"
@@ -276,7 +276,7 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
               ) : (
                 <ScrollArea className="h-[400px]">
                   <div className="space-y-2 pr-4">
-                    {artifacts.map((a: any) => {
+                    {artifacts.map((a: typeof artifacts[number]) => {
                       const isHtmlArtifact = (a.type === "html" || a.type === "html_js") && a.content;
                       const isExternalLink = a.type === "external_link" && a.url;
 
@@ -346,7 +346,7 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
               ) : (
                 <ScrollArea className="h-[400px]">
                   <div ref={timelineScrollRef} className="space-y-3 pr-4">
-                    {timeline.map((m: any) => (
+                    {timeline.map((m) => (
                       <div
                         key={m._id}
                         className="border-l-2 border-primary pl-4 py-2 hover:bg-accent/30 transition-colors rounded-r"

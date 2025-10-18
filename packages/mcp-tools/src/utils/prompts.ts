@@ -7,13 +7,14 @@ import type { ToolSchema } from "../types/index";
  */
 export function formatToolDescription(schema: ToolSchema): string {
   const paramsList = Object.entries(schema.parameters.properties || {})
-    .map(([name, def]: [string, any]) => {
+    .map(([name, def]) => {
+      const defObj = def as Record<string, unknown>;
       const required = schema.parameters.required?.includes(name)
         ? "**required**"
         : "optional";
-      const description = def.description || "";
+      const description = (defObj.description as string) || "";
       const defaultValue =
-        def.default !== undefined ? ` (default: ${def.default})` : "";
+        defObj.default !== undefined ? ` (default: ${defObj.default})` : "";
       return `  - \`${name}\` (${required}): ${description}${defaultValue}`;
     })
     .join("\n");

@@ -197,10 +197,12 @@ export class Context7Executor implements ToolExecutor {
   private async fetchDocumentation(
     libraryId: string,
     topic?: string,
-    tokens: number = 3000
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _tokens: number = 3000
   ): Promise<{ content: string; snippets: number }> {
     // TODO: Implement actual MCP call to mcp__context7__get-library-docs
     // For now, returning a mock structure
+    // The _tokens parameter will be used when the actual MCP integration is implemented
 
     // Placeholder implementation
     // In production, this would call the MCP server
