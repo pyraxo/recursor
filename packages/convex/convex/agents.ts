@@ -5,6 +5,8 @@ import { mutation, query } from "./_generated/server";
 export const createStack = mutation({
   args: {
     participant_name: v.string(),
+    initial_project_title: v.optional(v.string()),
+    initial_project_description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const stackId = await ctx.db.insert("agent_stacks", {
@@ -29,6 +31,18 @@ export const createStack = mutation({
           focus: undefined,
         },
         updated_at: Date.now(),
+      });
+    }
+
+    // Create initial project idea if provided
+    if (args.initial_project_title && args.initial_project_description) {
+      await ctx.db.insert("project_ideas", {
+        stack_id: stackId,
+        title: args.initial_project_title,
+        description: args.initial_project_description,
+        status: "ideation",
+        created_by: "admin",
+        created_at: Date.now(),
       });
     }
 
@@ -123,5 +137,76 @@ export const updatePhase = mutation({
     await ctx.db.patch(args.stackId, {
       phase: args.phase,
     });
+  },
+});
+
+// Delete an agent stack
+export const deleteStack = mutation({
+  args: {
+    stackId: v.id("agent_stacks"),
+    cascadeDelete: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    if (args.cascadeDelete) {
+      // Delete all related data
+      const agentStates = await ctx.db
+        .query("agent_states")
+        .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+        .collect();
+      for (const state of agentStates) {
+        await ctx.db.delete(state._id);
+      }
+
+      const projectIdeas = await ctx.db
+        .query("project_ideas")
+        .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+        .collect();
+      for (const idea of projectIdeas) {
+        await ctx.db.delete(idea._id);
+      }
+
+      const todos = await ctx.db
+        .query("todos")
+        .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+        .collect();
+      for (const todo of todos) {
+        await ctx.db.delete(todo._id);
+      }
+
+      const artifacts = await ctx.db
+        .query("artifacts")
+        .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+        .collect();
+      for (const artifact of artifacts) {
+        await ctx.db.delete(artifact._id);
+      }
+
+      const traces = await ctx.db
+        .query("agent_traces")
+        .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
+        .collect();
+      for (const trace of traces) {
+        await ctx.db.delete(trace._id);
+      }
+
+      const sentMessages = await ctx.db
+        .query("messages")
+        .withIndex("by_sender", (q) => q.eq("from_stack_id", args.stackId))
+        .collect();
+      for (const msg of sentMessages) {
+        await ctx.db.delete(msg._id);
+      }
+
+      const receivedMessages = await ctx.db
+        .query("messages")
+        .withIndex("by_recipient", (q) => q.eq("to_stack_id", args.stackId))
+        .collect();
+      for (const msg of receivedMessages) {
+        await ctx.db.delete(msg._id);
+      }
+    }
+
+    // Delete the stack itself
+    await ctx.db.delete(args.stackId);
   },
 });

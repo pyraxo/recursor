@@ -1,10 +1,10 @@
-# Backend Recommendation: Convex vs Supabase for VibeHack
+# Backend Recommendation: Convex vs Supabase for Recursor
 
 ## Executive Summary
 
 **Recommendation: Use Convex as the primary backend**
 
-After analyzing the PRD for VibeHack (the live hackathon simulation), **Convex is the clear winner** for this project. The core requirements revolve around real-time interactions, live updates, and reactive data synchronization - all of which are Convex's primary strengths.
+After analyzing the PRD for Recursor (the live hackathon simulation), **Convex is the clear winner** for this project. The core requirements revolve around real-time interactions, live updates, and reactive data synchronization - all of which are Convex's primary strengths.
 
 ## Detailed Analysis
 
@@ -44,7 +44,7 @@ After analyzing the PRD for VibeHack (the live hackathon simulation), **Convex i
 | Type safety            | TypeScript-first            | Partial                      | ✅ Convex |
 | Developer velocity     | Instant hot-reload          | Slower iteration             | ✅ Convex |
 
-### Specific Advantages for VibeHack
+### Specific Advantages for Recursor
 
 #### 1. Real-time Agent Simulation
 
@@ -229,7 +229,7 @@ For a hackathon simulation:
 
 ## Final Recommendation
 
-**Use Convex immediately.** It's purpose-built for exactly what VibeHack needs:
+**Use Convex immediately.** It's purpose-built for exactly what Recursor needs:
 
 1. Real-time collaborative features
 2. Live reactive updates
@@ -260,6 +260,6 @@ You can ship the MVP in days, not weeks, and the real-time features will "just w
 
 ## Conclusion
 
-For VibeHack's requirements - especially the critical real-time simulation aspects with <1s latency requirements - Convex is the superior choice. It will enable you to build faster, with better real-time performance, and less complexity.
+For Recursor's requirements - especially the critical real-time simulation aspects with <1s latency requirements - Convex is the superior choice. It will enable you to build faster, with better real-time performance, and less complexity.
 
 The project is essentially a **massive real-time collaboration app**, which is exactly what Convex was designed to handle.

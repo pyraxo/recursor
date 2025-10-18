@@ -1,4 +1,4 @@
-import type { Id } from "../../../../convex/_generated/dataModel";
+import type { Id } from "@recursor/convex/_generated/dataModel";
 import { LLMProviders } from "../config";
 import { BaseAgent } from "./base-agent";
 

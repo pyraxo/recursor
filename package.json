@@ -11,8 +11,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
-    "convex:dev": "rm -f convex/*.js convex/*.d.ts convex/*.d.ts.map && npx convex dev",
-    "convex:clean": "rm -f convex/*.js convex/*.d.ts convex/*.d.ts.map"
+    "convex:dev": "cd packages/convex && pnpm run dev",
+    "convex:clean": "cd packages/convex && pnpm run clean",
+    "convex:deploy": "cd packages/convex && pnpm run deploy"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

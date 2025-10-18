@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { ConvexClient } from "convex/browser";
-import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
+import { api } from "@recursor/convex/_generated/api";
+import type { Id } from "@recursor/convex/_generated/dataModel";
 import { createLLMProviders, LLMProviders } from "./config";
 import { AgentStackOrchestrator } from "./orchestrator";
 
@@ -54,7 +54,7 @@ async function createStack(client: ConvexClient) {
     participant_name: participantName,
   });
 
-  console.log(`Created agent stack: ${stackId}`);
+  console.log(`Created team: ${stackId}`);
   console.log(`Participant: ${participantName}`);
   console.log(`\nRun with: pnpm cli run ${stackId}`);
 }
@@ -62,7 +62,7 @@ async function createStack(client: ConvexClient) {
 async function listStacks(client: ConvexClient) {
   const stacks = await client.query(api.agents.listStacks, {});
 
-  console.log(`Found ${stacks.length} agent stack(s):\n`);
+  console.log(`Found ${stacks.length} team(s):\n`);
 
   for (const stack of stacks) {
     console.log(`ID: ${stack._id}`);
@@ -92,7 +92,7 @@ async function runStack(
     process.exit(1);
   }
 
-  console.log(`Running agent stack: ${stackId}`);
+  console.log(`Running team: ${stackId}`);
   console.log(`Participant: ${stack.participant_name}`);
   console.log(`Phase: ${stack.phase}\n`);
 
@@ -164,12 +164,12 @@ async function showStatus(
 function showHelp() {
   console.log("Usage: pnpm cli <command> [options]\n");
   console.log("Commands:");
-  console.log("  create [name]           Create a new agent stack");
-  console.log("  list                    List all agent stacks");
-  console.log("  run <id> [ticks] [ms]   Run an agent stack");
-  console.log("  status <id>             Show agent stack status");
+  console.log("  create [name]           Create a new team");
+  console.log("  list                    List all teams");
+  console.log("  run <id> [ticks] [ms]   Run a team");
+  console.log("  status <id>             Show team status");
   console.log("\nExamples:");
-  console.log("  pnpm cli create MyAgent");
+  console.log("  pnpm cli create MyTeam");
   console.log("  pnpm cli list");
   console.log("  pnpm cli run <stack_id> 20 3000");
   console.log("  pnpm cli status <stack_id>");

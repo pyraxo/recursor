@@ -1,6 +1,6 @@
 import { ConvexClient } from "convex/browser";
-import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
+import { api } from "@recursor/convex/_generated/api";
+import type { Id } from "@recursor/convex/_generated/dataModel";
 import { BuilderAgent } from "./agents/builder";
 import { CommunicatorAgent } from "./agents/communicator";
 import { PlannerAgent } from "./agents/planner";

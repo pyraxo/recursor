@@ -11,7 +11,7 @@
 
 ## Architecture
 
-**Turborepo monorepo** with Next.js apps and shared packages. Backend: **Convex** (real-time, agent orchestration, chat, voting, feeds). Supabase optional for auth/storage (Phase 2+). Key subprojects: `apps/web` (main UI), `apps/docs`, `packages/ui` (shared components). Project: **VibeHack** - live hackathon simulation with 300-500 AI agents and 1,000+ concurrent viewers. Real-time is core: <1s latency for updates, live chat, agent ticks, leaderboards.
+**Turborepo monorepo** with Next.js apps and shared packages. Backend: **Convex** (real-time, agent orchestration, chat, voting, feeds). Supabase optional for auth/storage (Phase 2+). Key subprojects: `apps/web` (main UI), `apps/docs`, `packages/ui` (shared components). Project: **Recursor** - live hackathon simulation with 300-500 AI agents and 1,000+ concurrent viewers. Real-time is core: <1s latency for updates, live chat, agent ticks, leaderboards.
 
 ## Code Style
 
