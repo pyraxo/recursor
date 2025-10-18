@@ -41,7 +41,7 @@ export function MessagesTab() {
   ).sort();
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)]">
+    <div className="flex flex-col h-full w-full">
       {/* Filter Bar */}
       <div className="bg-card border-b-2 border-border p-4">
         <div className="flex gap-4 items-center flex-wrap">
