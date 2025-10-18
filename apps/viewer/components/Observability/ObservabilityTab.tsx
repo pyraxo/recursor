@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
 import { Id } from "@recursor/convex/_generated/dataModel";
@@ -21,12 +21,23 @@ import { AgentList } from "./AgentList";
 import { LiveFeed, LiveFeedRef } from "./LiveFeed";
 import { AgentDetail } from "./AgentDetail";
 
-export function ObservabilityTab() {
-  const [selected, setSelected] = useState<string | null>(null);
+export function ObservabilityTab({
+  selectedTeamId,
+}: {
+  selectedTeamId?: Id<"agent_stacks"> | null;
+}) {
+  const [selected, setSelected] = useState<string | null>(selectedTeamId || null);
   const [isDeleting, setIsDeleting] = useState(false);
   const liveFeedRef = useRef<LiveFeedRef>(null);
   const traces = useQuery(api.traces.getRecentAll, { limit: 100 });
   const deleteAllTraces = useMutation(api.traces.deleteAll);
+
+  // Sync external selectedTeamId prop with internal selected state
+  useEffect(() => {
+    if (selectedTeamId) {
+      setSelected(selectedTeamId);
+    }
+  }, [selectedTeamId]);
 
   const handleDeleteAll = async () => {
     setIsDeleting(true);
@@ -46,7 +57,7 @@ export function ObservabilityTab() {
             <div className="flex items-center gap-2 mb-4 h-9">
               <h2 className="font-mono text-sm font-semibold">Teams</h2>
             </div>
-            <AgentList onSelect={setSelected} />
+            <AgentList onSelect={setSelected} selectedId={selected} />
           </div>
 
           {/* Column 2: Live Feed */}

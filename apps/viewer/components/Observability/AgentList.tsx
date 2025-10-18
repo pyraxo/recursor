@@ -7,7 +7,13 @@ import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { useQuery } from "convex/react";
 import { ChevronRight, User, Users, Code2 } from "lucide-react";
 
-export function AgentList({ onSelect }: { onSelect: (id: string) => void }) {
+export function AgentList({
+  onSelect,
+  selectedId,
+}: {
+  onSelect: (id: string) => void;
+  selectedId?: string | null;
+}) {
   const stacks = useQuery(api.agents.listStacks);
 
   if (!stacks) {
@@ -63,12 +69,15 @@ export function AgentList({ onSelect }: { onSelect: (id: string) => void }) {
 
           const teamTypeStyles = getTeamTypeStyles();
           const TeamTypeIcon = teamTypeStyles.icon;
+          const isSelected = selectedId === s._id;
 
           return (
             <Button
               key={s._id}
               variant="outline"
-              className="w-full justify-start text-left h-auto py-4 px-4 hover:bg-accent/70 transition-all group"
+              className={`w-full justify-start text-left h-auto py-4 px-4 hover:bg-accent/70 transition-all group ${
+                isSelected ? "bg-accent border-primary ring-2 ring-primary/20" : ""
+              }`}
               onClick={() => onSelect(s._id)}
             >
               <div className="flex items-center gap-3 w-full">

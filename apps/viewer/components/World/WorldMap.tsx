@@ -133,7 +133,7 @@ export function WorldMap({ selectedTeamId, onSelectTeam }: WorldMapProps) {
               >
                 {(isSelected || isHovered) && (
                   <div
-                    className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[var(--panel-bg)] border-2 border-[var(--accent-primary)] px-3 py-1 rounded text-sm font-mono"
+                    className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white border-2 border-[var(--accent-primary)] px-3 py-1 rounded text-sm font-mono text-gray-900"
                     style={{ pointerEvents: "none" }}
                   >
                     {stack.participant_name}

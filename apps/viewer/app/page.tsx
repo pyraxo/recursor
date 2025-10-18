@@ -14,6 +14,11 @@ export default function WorldScreen() {
   const [selectedTeamId, setSelectedTeamId] = useState<Id<"agent_stacks"> | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("world");
 
+  const handleNavigateToTeam = (stackId: string) => {
+    setSelectedTeamId(stackId as Id<"agent_stacks">);
+    setActiveTab("observability");
+  };
+
   return (
     <div className="h-screen flex flex-col bg-[var(--background)]">
       <TopBar />
@@ -36,8 +41,8 @@ export default function WorldScreen() {
         )}
 
         {activeTab === "messages" && <MessagesTab />}
-        {activeTab === "admin" && <AdminTab />}
-        {activeTab === "observability" && <ObservabilityTab />}
+        {activeTab === "admin" && <AdminTab onNavigateToTeam={handleNavigateToTeam} />}
+        {activeTab === "observability" && <ObservabilityTab selectedTeamId={selectedTeamId} />}
       </div>
     </div>
   );

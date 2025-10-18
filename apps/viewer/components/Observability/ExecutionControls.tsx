@@ -149,9 +149,9 @@ export function ExecutionControls({
             {isActive && (
               <Button
                 onClick={handleStop}
-                variant="destructive"
                 size="default"
                 disabled={isProcessingAction}
+                className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
                 title="Stop execution - Starting again will reset the team state"
               >
                 <Square className="w-4 h-4 mr-2" />
