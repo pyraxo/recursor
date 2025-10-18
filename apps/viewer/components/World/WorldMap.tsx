@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
 import { Id } from "@recursor/convex/_generated/dataModel";
@@ -75,7 +75,7 @@ export function WorldMap({ selectedTeamId, onSelectTeam }: WorldMapProps) {
         <FloatingParticles />
         <SpeechBubbles agentPositions={agentPositions} />
         
-        {stacks.slice(0, 5).map((stack, teamIndex) => {
+        {stacks.slice(0, 5).map((stack: any, teamIndex: number) => {
           const isSelected = selectedTeamId === stack._id;
           const isHovered = hoveredTeamId === stack._id;
           
