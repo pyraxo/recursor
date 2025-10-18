@@ -1,0 +1,238 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0f0f23;
+  --foreground: #e0e0e0;
+  --accent-primary: #00ff41;
+  --accent-secondary: #00d4ff;
+  --accent-tertiary: #ff6b6b;
+  --accent-quaternary: #ffd700;
+  
+  --planner-color: #00d4ff;
+  --builder-color: #00ff41;
+  --reviewer-color: #ff6b6b;
+  --communicator-color: #ffd700;
+  
+  --gold: #ffd700;
+  --silver: #c0c0c0;
+  --bronze: #cd7f32;
+  
+  --panel-bg: #1a1a2e;
+  --panel-border: #2a2a3e;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: ui-monospace, "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", monospace;
+}
+
+body {
+  min-height: 100vh;
+}
+
+img {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.pixel-text {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  letter-spacing: 0.5px;
+}
+
+.pixel-border {
+  border: 2px solid var(--panel-border);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
+}
+
+.pixel-panel {
+  background-color: var(--panel-bg);
+  border: 2px solid var(--panel-border);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
+  padding: 16px;
+}
+
+.team-area {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.team-area:hover {
+  transform: scale(1.02);
+}
+
+.team-area.hovering {
+  animation: float 0.6s ease-in-out infinite;
+}
+
+.team-area:hover {
+  box-shadow: 0 0 20px var(--accent-primary);
+  animation: glow-pulse 1s ease-in-out infinite, float 0.6s ease-in-out infinite;
+}
+
+.team-area:hover .agent-sprite {
+  animation: sprite-bob 0.4s ease-in-out infinite;
+}
+
+.team-area:hover .agent-sprite:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.team-area:hover .agent-sprite:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.team-area:hover .agent-sprite:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.team-area:hover .agent-sprite:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) scale(1.02);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.02);
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 10px var(--accent-primary);
+  }
+  50% {
+    box-shadow: 0 0 20px var(--accent-primary), 0 0 30px var(--accent-primary);
+  }
+}
+
+@keyframes sprite-bob {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes float-particle {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.3;
+  }
+  90% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(100vh) translateX(20px);
+    opacity: 0;
+  }
+}
+
+@keyframes laptop-glow {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes laptop-glow-idle {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes speech-bubble-appear {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -80%) scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -100%) scale(1);
+  }
+}
+
+.chat-message {
+  padding: 8px 12px;
+  margin: 8px 0;
+  border-radius: 4px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+}
+
+.chat-message.agent {
+  border-left: 3px solid var(--accent-primary);
+}
+
+.chat-message.visitor {
+  border-left: 3px solid var(--accent-secondary);
+}
+
+.leaderboard-row-gold {
+  background: rgba(255, 215, 0, 0.1);
+  border-left: 3px solid var(--gold);
+}
+
+.leaderboard-row-silver {
+  background: rgba(192, 192, 192, 0.1);
+  border-left: 3px solid var(--silver);
+}
+
+.leaderboard-row-bronze {
+  background: rgba(205, 127, 50, 0.1);
+  border-left: 3px solid var(--bronze);
+}
+
+@keyframes border-flow {
+  0% {
+    border-color: var(--accent-primary);
+  }
+  33% {
+    border-color: var(--accent-secondary);
+  }
+  66% {
+    border-color: var(--accent-tertiary);
+  }
+  100% {
+    border-color: var(--accent-primary);
+  }
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
