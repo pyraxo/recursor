@@ -7,31 +7,49 @@ export const createStack = mutation({
     participant_name: v.string(),
     initial_project_title: v.optional(v.string()),
     initial_project_description: v.optional(v.string()),
+    team_type: v.optional(v.union(v.literal("standard"), v.literal("cursor"))),
   },
   handler: async (ctx, args) => {
+    const teamType = args.team_type || "standard";
+
     const stackId = await ctx.db.insert("agent_stacks", {
       participant_name: args.participant_name,
       phase: "ideation",
       created_at: Date.now(),
+      team_type: teamType,
+      // Initialize cursor_config for cursor teams
+      ...(teamType === "cursor" && {
+        cursor_config: {
+          agent_id: undefined,
+          repository_url: undefined,
+          repository_name: undefined,
+          workspace_branch: undefined,
+          last_prompt_at: undefined,
+          total_prompts_sent: 0,
+        },
+      }),
     });
 
-    // Initialize agent states for all 4 sub-agents
-    const agentTypes = ["planner", "builder", "communicator", "reviewer"];
-    for (const agentType of agentTypes) {
-      await ctx.db.insert("agent_states", {
-        stack_id: stackId,
-        agent_type: agentType,
-        memory: {
-          facts: [],
-          learnings: [],
-        },
-        current_context: {
-          active_task: undefined,
-          recent_messages: [],
-          focus: undefined,
-        },
-        updated_at: Date.now(),
-      });
+    // Only create agent_states for standard teams
+    // Cursor teams use a single background agent, no sub-agents needed
+    if (teamType === "standard") {
+      const agentTypes = ["planner", "builder", "communicator", "reviewer"];
+      for (const agentType of agentTypes) {
+        await ctx.db.insert("agent_states", {
+          stack_id: stackId,
+          agent_type: agentType,
+          memory: {
+            facts: [],
+            learnings: [],
+          },
+          current_context: {
+            active_task: undefined,
+            recent_messages: [],
+            focus: undefined,
+          },
+          updated_at: Date.now(),
+        });
+      }
     }
 
     // Create initial project idea if provided
@@ -41,7 +59,7 @@ export const createStack = mutation({
         title: args.initial_project_title,
         description: args.initial_project_description,
         status: "ideation",
-        created_by: "admin",
+        created_by: teamType === "cursor" ? "cursor-agent" : "admin",
         created_at: Date.now(),
       });
     }
@@ -420,5 +438,62 @@ export const clearReviewerRecommendations = internalMutation({
         updated_at: Date.now(),
       });
     }
+  },
+});
+
+// ========= CURSOR TEAM SUPPORT =========
+
+/**
+ * Update cursor configuration for a cursor-type agent stack
+ * Used by CursorTeamOrchestrator to track agent state
+ */
+export const updateCursorConfig = mutation({
+  args: {
+    stackId: v.id("agent_stacks"),
+    cursorConfig: v.object({
+      agent_id: v.optional(v.string()),
+      repository_url: v.optional(v.string()),
+      repository_name: v.optional(v.string()),
+      workspace_branch: v.optional(v.string()),
+      last_prompt_at: v.optional(v.number()),
+      total_prompts_sent: v.optional(v.number()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const stack = await ctx.db.get(args.stackId);
+    if (!stack) {
+      throw new Error(`Stack ${args.stackId} not found`);
+    }
+
+    if (stack.team_type !== "cursor") {
+      throw new Error(
+        `Cannot update cursor_config for non-cursor team (team_type: ${stack.team_type})`
+      );
+    }
+
+    await ctx.db.patch(args.stackId, {
+      cursor_config: args.cursorConfig,
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Get cursor configuration for a cursor-type agent stack
+ */
+export const getCursorConfig = query({
+  args: {
+    stackId: v.id("agent_stacks"),
+  },
+  handler: async (ctx, args) => {
+    const stack = await ctx.db.get(args.stackId);
+    if (!stack) return null;
+
+    if (stack.team_type !== "cursor") {
+      return null;
+    }
+
+    return stack.cursor_config || null;
   },
 });
