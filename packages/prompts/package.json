@@ -1,0 +1,46 @@
+{
+  "name": "@recursor/prompts",
+  "version": "0.1.0",
+  "description": "Centralized prompt management for Recursor multi-agent system",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm run generate && tsc",
+    "generate": "tsx scripts/generate-types.ts",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf dist generated",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0",
+    "mustache": "^4.2.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/mustache": "^4.2.5",
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "prompts",
+    "llm",
+    "agents",
+    "templates",
+    "versioning"
+  ],
+  "author": "Recursor Team",
+  "license": "MIT"
+}

@@ -1,0 +1,68 @@
+version: "1.0.0"
+name: "html-builder"
+description: "Prompt for building complete self-contained HTML applications"
+tags: ["builder", "html", "artifact"]
+
+variables:
+  title:
+    type: string
+    required: true
+    description: "Title of the project"
+
+  description:
+    type: string
+    required: true
+    description: "Description of what the project does"
+
+  requirements:
+    type: array
+    required: true
+    description: "List of functional requirements"
+    items:
+      type: string
+      required: true
+      description: "Individual requirement"
+
+  techStack:
+    type: array
+    required: false
+    description: "Preferred technology stack"
+    items:
+      type: string
+      required: true
+      description: "Technology name"
+
+template: |
+  Create a complete, self-contained HTML file for the following project:
+
+  Title: {{title}}
+  Description: {{description}}
+
+  Requirements:
+  {{#requirements}}
+  {{.}}
+  {{/requirements}}
+
+  {{#techStack}}
+  Tech Stack: {{#techStack}}{{.}}{{^@last}}, {{/@last}}{{/techStack}}
+  {{/techStack}}
+
+  Guidelines:
+  - Generate a SINGLE HTML file with inline CSS and JavaScript
+  - Make it visually appealing with modern design
+  - Include all necessary functionality
+  - Use semantic HTML
+  - Ensure responsive design
+  - Add appropriate comments
+  - Make it production-ready
+
+  Output ONLY the HTML code, wrapped in a code block.
+
+metadata:
+  created_at: "2025-01-19"
+  updated_at: "2025-01-19"
+  author: "recursor-team"
+  changelog:
+    - version: "1.0.0"
+      date: "2025-01-19"
+      changes: "Initial version migrated from artifacts/html-builder.ts createBuildPrompt()"
