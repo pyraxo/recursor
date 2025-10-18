@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 
 // Log a trace
 export const log = mutation({
@@ -10,28 +10,7 @@ export const log = mutation({
     action: v.string(),
     result: v.optional(v.any()),
   },
-  handler: async (ctx: any, args: any) => {
-    await ctx.db.insert("agent_traces", {
-      stack_id: args.stack_id,
-      agent_type: args.agent_type,
-      thought: args.thought,
-      action: args.action,
-      result: args.result,
-      timestamp: Date.now(),
-    });
-  },
-});
-
-// Internal version for system use
-export const internalLog = internalMutation({
-  args: {
-    stack_id: v.id("agent_stacks"),
-    agent_type: v.string(),
-    thought: v.string(),
-    action: v.string(),
-    result: v.optional(v.any()),
-  },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await ctx.db.insert("agent_traces", {
       stack_id: args.stack_id,
       agent_type: args.agent_type,
@@ -49,10 +28,10 @@ export const list = query({
     stackId: v.id("agent_stacks"),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const query = ctx.db
       .query("agent_traces")
-      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
       .order("desc");
 
     if (args.limit) {
@@ -68,7 +47,7 @@ export const getRecentAll = query({
   args: {
     limit: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const query = ctx.db
       .query("agent_traces")
       .withIndex("by_time")
@@ -109,36 +88,19 @@ export const getByAgentType = query({
     agentType: v.string(),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const traces = await ctx.db
       .query("agent_traces")
-      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
       .order("desc")
       .collect();
 
-    const filtered = traces.filter((t: any) => t.agent_type === args.agentType);
+    const filtered = traces.filter((t) => t.agent_type === args.agentType);
 
     if (args.limit) {
       return filtered.slice(0, args.limit);
     }
 
     return filtered;
-  },
-});
-
-// ========= INTERNAL FUNCTIONS FOR AGENT ADAPTERS =========
-
-// Internal query: Get recent traces for a stack
-export const getRecentForStack = internalQuery({
-  args: {
-    stackId: v.id("agent_stacks"),
-    limit: v.number(),
-  },
-  handler: async (ctx: any, args: any) => {
-    return await ctx.db
-      .query("agent_traces")
-      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
-      .order("desc")
-      .take(args.limit);
   },
 });

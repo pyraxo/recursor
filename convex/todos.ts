@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query, internalMutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 
 // Create a new todo
 export const create = mutation({
@@ -62,7 +62,7 @@ export const updateStatus = mutation({
     status: v.string(),
   },
   handler: async (ctx, args) => {
-    const updates: Record<string, any> = {
+    const updates: any = {
       status: args.status,
     };
 
@@ -81,61 +81,5 @@ export const remove = mutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.delete(args.todoId);
-  },
-});
-
-// ========= INTERNAL MUTATIONS FOR AGENTS =========
-
-// Internal: Create a new todo
-export const internalCreate = internalMutation({
-  args: {
-    stack_id: v.id("agent_stacks"),
-    content: v.string(),
-    status: v.optional(v.string()),
-    assigned_by: v.string(),
-    priority: v.number(),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db.insert("todos", {
-      stack_id: args.stack_id,
-      content: args.content,
-      status: args.status || "pending",
-      assigned_by: args.assigned_by,
-      priority: args.priority,
-      created_at: Date.now(),
-    });
-  },
-});
-
-// Internal: Update todo status
-export const internalUpdateStatus = internalMutation({
-  args: {
-    todoId: v.id("todos"),
-    status: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const updates: Record<string, any> = {
-      status: args.status,
-    };
-
-    if (args.status === "completed") {
-      updates.completed_at = Date.now();
-    }
-
-    await ctx.db.patch(args.todoId, updates);
-  },
-});
-
-// Query: Get todos by stack ID (for use in agent adapters)
-export const getByStackId = query({
-  args: {
-    stackId: v.id("agent_stacks"),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("todos")
-      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
-      .order("desc")
-      .collect();
   },
 });
