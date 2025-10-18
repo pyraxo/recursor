@@ -135,7 +135,7 @@ export class AgentStackOrchestrator implements IOrchestrator {
     // No coordination needed here
   }
 
-  async runContinuous(intervalMs: number = 5000, maxTicks?: number) {
+  async runContinuous(intervalMs: number = 15000, maxTicks?: number) {
     console.log(
       `Starting continuous orchestration with ${intervalMs}ms interval`
     );

@@ -24,13 +24,13 @@
  * @module cursor/cursor-team-orchestrator
  */
 
-import { ConvexClient } from "convex/browser";
 import { api } from "@recursor/convex/_generated/api";
 import type { Id } from "@recursor/convex/_generated/dataModel";
+import { ConvexClient } from "convex/browser";
 import type { IOrchestrator } from "../types";
 import { CursorAPIClient } from "./api-client";
-import { VirtualWorkspaceManager, VirtualWorkspace } from "./workspace-manager";
 import { ArtifactSyncService } from "./artifact-sync";
+import { VirtualWorkspace, VirtualWorkspaceManager } from "./workspace-manager";
 
 /**
  * Result of a Cursor orchestration tick
@@ -575,7 +575,7 @@ Create a working, demo-ready prototype. This is a hackathon - move fast but main
    * @param intervalMs - Time between ticks in milliseconds
    * @param maxTicks - Maximum number of ticks (optional)
    */
-  async runContinuous(intervalMs: number = 60000, maxTicks?: number) {
+  async runContinuous(intervalMs: number = 120000, maxTicks?: number) {
     console.log(
       `[CursorOrchestrator] Starting continuous orchestration (interval: ${intervalMs}ms)`
     );
