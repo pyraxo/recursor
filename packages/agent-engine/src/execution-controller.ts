@@ -148,7 +148,7 @@ export class ExecutionController {
       try {
         // Run the orchestrator continuously
         // It will handle pause/resume internally by checking execution state
-        await running.orchestrator.runContinuous(5000); // 5 second interval
+        await running.orchestrator.runContinuous(15000); // 15 second interval
 
         // If we get here, execution completed normally
         break;
