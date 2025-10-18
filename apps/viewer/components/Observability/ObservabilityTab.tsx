@@ -43,13 +43,15 @@ export function ObservabilityTab() {
         <div className="grid grid-cols-[280px_1fr_1fr] gap-4 items-start">
           {/* Column 1: Team List */}
           <div className="flex flex-col">
-            <h2 className="font-mono text-sm font-semibold mb-4">Teams</h2>
+            <div className="flex items-center gap-2 mb-4 h-9">
+              <h2 className="font-mono text-sm font-semibold">Teams</h2>
+            </div>
             <AgentList onSelect={setSelected} />
           </div>
 
           {/* Column 2: Live Feed */}
           <div className="flex flex-col">
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-4 h-9">
               <h2 className="font-mono text-sm font-semibold">Live Feed</h2>
               <Button
                 size="sm"
@@ -99,7 +101,9 @@ export function ObservabilityTab() {
 
           {/* Column 3: Team Detail */}
           <div className="flex flex-col">
-            <h2 className="font-mono text-sm font-semibold mb-4">Detail</h2>
+            <div className="flex items-center gap-2 mb-4 h-9">
+              <h2 className="font-mono text-sm font-semibold">Detail</h2>
+            </div>
             {selected ? (
               <AgentDetail stackId={selected as Id<"agent_stacks">} />
             ) : (
