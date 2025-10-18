@@ -12,13 +12,15 @@ import {
 import { Checkbox } from "@repo/ui/components/checkbox";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
+import { RadioGroup, RadioGroupItem } from "@repo/ui/components/radio-group";
 import { Textarea } from "@repo/ui/components/textarea";
 import { useMutation } from "convex/react";
-import { Lightbulb, Loader2, UserPlus } from "lucide-react";
+import { Bot, Code2, Lightbulb, Loader2, UserPlus, Users } from "lucide-react";
 import { useState } from "react";
 
 export function CreateTeamForm() {
   const [participantName, setParticipantName] = useState("");
+  const [teamType, setTeamType] = useState<"standard" | "cursor">("standard");
   const [provideIdea, setProvideIdea] = useState(false);
   const [projectTitle, setProjectTitle] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
@@ -34,6 +36,7 @@ export function CreateTeamForm() {
     try {
       await createStack({
         participant_name: participantName.trim(),
+        team_type: teamType,
         // Pass initial project idea if provided
         ...(provideIdea && projectTitle && projectDescription && {
           initial_project_title: projectTitle.trim(),
@@ -43,6 +46,7 @@ export function CreateTeamForm() {
 
       // Reset form
       setParticipantName("");
+      setTeamType("standard");
       setProvideIdea(false);
       setProjectTitle("");
       setProjectDescription("");
@@ -88,6 +92,54 @@ export function CreateTeamForm() {
             <p className="font-mono text-[10px] text-muted-foreground">
               Choose a unique name for this agent team
             </p>
+          </div>
+
+          {/* Team Type Selection */}
+          <div className="space-y-3">
+            <Label className="font-mono text-xs font-medium">
+              Team Architecture
+              <span className="text-red-500 ml-1">*</span>
+            </Label>
+            <RadioGroup
+              value={teamType}
+              onValueChange={(value) => setTeamType(value as "standard" | "cursor")}
+              disabled={isCreating}
+              className="space-y-2"
+            >
+              {/* Standard Multi-Agent Option */}
+              <div className="flex items-start space-x-3 p-3 rounded-lg border border-border hover:bg-muted/20 transition-colors">
+                <RadioGroupItem value="standard" id="standard" className="mt-0.5" />
+                <div className="space-y-1 flex-1">
+                  <Label
+                    htmlFor="standard"
+                    className="font-mono text-xs cursor-pointer flex items-center gap-2"
+                  >
+                    <Users className="h-3.5 w-3.5" />
+                    Standard Multi-Agent (4 agents)
+                  </Label>
+                  <p className="font-mono text-[10px] text-muted-foreground leading-relaxed">
+                    Traditional architecture with Planner, Builder, Communicator, and Reviewer agents working in coordination.
+                  </p>
+                </div>
+              </div>
+
+              {/* Cursor Background Agent Option */}
+              <div className="flex items-start space-x-3 p-3 rounded-lg border border-border hover:bg-muted/20 transition-colors">
+                <RadioGroupItem value="cursor" id="cursor" className="mt-0.5" />
+                <div className="space-y-1 flex-1">
+                  <Label
+                    htmlFor="cursor"
+                    className="font-mono text-xs cursor-pointer flex items-center gap-2"
+                  >
+                    <Code2 className="h-3.5 w-3.5" />
+                    Cursor Background Agent
+                  </Label>
+                  <p className="font-mono text-[10px] text-muted-foreground leading-relaxed">
+                    Single autonomous agent with full IDE tooling (grep, lint, test, git) working in an isolated VM with GitHub workspace.
+                  </p>
+                </div>
+              </div>
+            </RadioGroup>
           </div>
 
           {/* Provide Initial Idea Checkbox */}

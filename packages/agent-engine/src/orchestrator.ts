@@ -6,6 +6,7 @@ import { CommunicatorAgent } from "./agents/communicator";
 import { PlannerAgent } from "./agents/planner";
 import { ReviewerAgent } from "./agents/reviewer";
 import { LLMProviders } from "./config";
+import type { IOrchestrator } from "./types";
 
 export interface OrchestrationResult {
   stackId: Id<"agent_stacks">;
@@ -19,7 +20,7 @@ export interface OrchestrationResult {
   timestamp: number;
 }
 
-export class AgentStackOrchestrator {
+export class AgentStackOrchestrator implements IOrchestrator {
   private stackId: Id<"agent_stacks">;
   private planner: PlannerAgent;
   private builder: BuilderAgent;
