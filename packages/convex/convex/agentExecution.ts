@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { action, internalMutation, internalQuery } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 
@@ -45,11 +45,15 @@ export const scheduledExecutor = internalMutation({
   },
 });
 
-// Action that actually runs the agent logic
-export const executeAgentTick = action({
+// Internal action that actually runs the agent logic
+export const executeAgentTick = internalAction({
   args: { stackId: v.id("agent_stacks") },
   handler: async (ctx, args): Promise<void> => {
     const { stackId } = args;
+
+    // Define agent order and current agent outside try block for error handling
+    const agentOrder = ["planner", "builder", "communicator", "reviewer"];
+    let currentAgent: string = "unknown";
 
     try {
       // Get stack details
@@ -62,9 +66,8 @@ export const executeAgentTick = action({
       }
 
       // Get current phase to determine which agent to run
-      const agentOrder = ["planner", "builder", "communicator", "reviewer"];
       const currentAgentIndex = stack.current_agent_index || 0;
-      const currentAgent = agentOrder[currentAgentIndex];
+      currentAgent = agentOrder[currentAgentIndex % agentOrder.length]!;
 
       // Get agent state
       const agentState = await ctx.runQuery(internal.agentExecution.getAgentState, {
@@ -118,12 +121,22 @@ export const executeAgentTick = action({
         result: { success: true },
       });
     } catch (error) {
-      console.error(`Error executing agent tick for stack ${stackId}:`, error);
-
       // Mark execution as failed
       await ctx.runMutation(internal.agentExecution.markExecutionFailed, {
         stackId,
         error: error instanceof Error ? error.message : "Unknown error",
+      });
+
+      // Log the error through the traces system
+      await ctx.runMutation(internal.traces.internalLog, {
+        stack_id: stackId,
+        agent_type: currentAgent,
+        thought: "",
+        action: "tick_failed",
+        result: {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error"
+        },
       });
     }
   },
