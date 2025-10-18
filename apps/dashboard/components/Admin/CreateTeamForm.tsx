@@ -27,15 +27,10 @@ export function CreateTeamForm() {
     try {
       await createStack({
         participant_name: participantName.trim(),
-        initial_project_title:
-          showProjectIdea && projectTitle.trim()
-            ? projectTitle.trim()
-            : undefined,
-        initial_project_description:
-          showProjectIdea && projectDescription.trim()
-            ? projectDescription.trim()
-            : undefined,
       });
+
+      // TODO: Create initial project idea if provided
+      // This would require calling api.project_ideas.create after stack creation
 
       setParticipantName("");
       setProjectTitle("");

@@ -48,7 +48,7 @@ export function TeamManagementList() {
             </div>
           ) : (
             <div className="space-y-2">
-              {stacks.map((stack) => (
+              {stacks.map((stack: any) => (
                 <div
                   key={stack._id}
                   className="flex items-center justify-between p-3 border hover:bg-accent/50 transition-colors"
