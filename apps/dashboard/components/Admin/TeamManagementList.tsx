@@ -16,10 +16,16 @@ import {
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Card } from "@repo/ui/components/card";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@repo/ui/components/context-menu";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { useMutation, useQuery } from "convex/react";
-import { Activity, Calendar, Clock, Play, Square, Trash2 } from "lucide-react";
+import { Activity, Calendar, Clock, Pause, Play, Square, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 export function TeamManagementList({
@@ -29,11 +35,14 @@ export function TeamManagementList({
 }) {
   const stacks = useQuery(api.agents.listStacks);
   const startExecution = useMutation(api.agents.startExecution);
+  const pauseExecution = useMutation(api.agents.pauseExecution);
+  const resumeExecution = useMutation(api.agents.resumeExecution);
   const stopExecution = useMutation(api.agents.stopExecution);
   const deleteStack = useMutation(api.agents.deleteStack);
   const [processingStacks, setProcessingStacks] = useState<
     Set<Id<"agent_stacks">>
   >(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState<string | null>(null);
 
   const handleStart = async (id: Id<"agent_stacks">, name: string) => {
     setProcessingStacks((prev) => new Set([...prev, id]));
@@ -50,12 +59,37 @@ export function TeamManagementList({
     }
   };
 
-  const handleStop = async (id: Id<"agent_stacks">, name: string) => {
-    const confirmed = confirm(
-      `Stop execution for ${name}? This action cannot be undone.`
-    );
-    if (!confirmed) return;
+  const handlePause = async (id: Id<"agent_stacks">, name: string) => {
+    setProcessingStacks((prev) => new Set([...prev, id]));
+    try {
+      await pauseExecution({ stackId: id });
+    } catch (error) {
+      console.error(`Failed to pause ${name}:`, error);
+    } finally {
+      setProcessingStacks((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
 
+  const handleResume = async (id: Id<"agent_stacks">, name: string) => {
+    setProcessingStacks((prev) => new Set([...prev, id]));
+    try {
+      await resumeExecution({ stackId: id });
+    } catch (error) {
+      console.error(`Failed to resume ${name}:`, error);
+    } finally {
+      setProcessingStacks((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
+
+  const handleStop = async (id: Id<"agent_stacks">, name: string) => {
     setProcessingStacks((prev) => new Set([...prev, id]));
     try {
       await stopExecution({ stackId: id });
@@ -161,11 +195,12 @@ export function TeamManagementList({
                 const phaseStyles = getPhaseStyles(stack.phase);
 
                 return (
-                  <div
-                    key={stack._id}
-                    className="group relative flex items-center justify-between p-4 rounded-lg border border-border bg-background hover:border-foreground/20 transition-all duration-200 cursor-pointer"
-                    onClick={() => onNavigateToTeam?.(stack._id)}
-                  >
+                  <ContextMenu key={stack._id}>
+                    <ContextMenuTrigger asChild>
+                      <div
+                        className="group relative flex items-center justify-between p-4 rounded-lg border border-border bg-background hover:border-foreground/20 transition-all duration-200 cursor-pointer"
+                        onClick={() => onNavigateToTeam?.(stack._id)}
+                      >
                     <div className="flex-1 min-w-0">
                       {/* Team Name and Status */}
                       <div className="flex items-center gap-3 mb-3">
@@ -338,12 +373,111 @@ export function TeamManagementList({
                       </div>
                     </div>
                   </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent className="w-48">
+                      {executionState === "running" ? (
+                        <ContextMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePause(stack._id, stack.participant_name);
+                          }}
+                          disabled={processingStacks.has(stack._id)}
+                          className="font-mono text-xs"
+                        >
+                          <Pause className="mr-2 h-4 w-4" />
+                          Pause
+                        </ContextMenuItem>
+                      ) : executionState === "paused" ? (
+                        <ContextMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleResume(stack._id, stack.participant_name);
+                          }}
+                          disabled={processingStacks.has(stack._id)}
+                          className="font-mono text-xs"
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          Resume
+                        </ContextMenuItem>
+                      ) : (
+                        <ContextMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStart(stack._id, stack.participant_name);
+                          }}
+                          disabled={processingStacks.has(stack._id)}
+                          className="font-mono text-xs"
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          Start
+                        </ContextMenuItem>
+                      )}
+                      <ContextMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStop(stack._id, stack.participant_name);
+                        }}
+                        disabled={processingStacks.has(stack._id)}
+                        className="font-mono text-xs"
+                      >
+                        <Square className="mr-2 h-4 w-4" />
+                        Stop
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteDialogOpen(stack._id);
+                        }}
+                        disabled={executionState === "running"}
+                        className="font-mono text-xs text-red-500 focus:text-red-500"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
                 );
               })}
             </div>
           </ScrollArea>
         )}
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={deleteDialogOpen !== null}
+        onOpenChange={(open) => !open && setDeleteDialogOpen(null)}
+      >
+        <AlertDialogContent className="sm:max-w-[425px] !fixed !left-[50%] !top-[50%] !translate-x-[-50%] !translate-y-[-50%]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Team</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete{" "}
+              <span className="font-medium text-foreground">
+                {stacks.find((s: any) => s._id === deleteDialogOpen)
+                  ?.participant_name}
+              </span>
+              . This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteDialogOpen) {
+                  deleteStack({ stackId: deleteDialogOpen as Id<"agent_stacks"> });
+                  setDeleteDialogOpen(null);
+                }
+              }}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              Delete Team
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
