@@ -10,8 +10,8 @@ export function PixelPanel({ children, className = "", title }: PixelPanelProps)
   return (
     <div className={`pixel-panel ${className}`}>
       {title && (
-        <div className="mb-4 pb-2 border-b-2 border-[var(--panel-border)]">
-          <h2 className="text-lg font-mono text-[var(--accent-primary)] uppercase tracking-wider">
+        <div className="mb-4 pb-2 border-b-2 border-border">
+          <h2 className="text-lg text-primary uppercase tracking-wider font-bold">
             {title}
           </h2>
         </div>
