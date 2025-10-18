@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useMutation } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
 import { Id } from "@recursor/convex/_generated/dataModel";
+import { Button } from "@repo/ui/button";
+import { Checkbox } from "@repo/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -12,9 +12,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@repo/ui/dialog";
-import { Button } from "@repo/ui/button";
-import { Checkbox } from "@repo/ui/checkbox";
 import { Label } from "@repo/ui/label";
+import { useMutation } from "convex/react";
+import { useState } from "react";
 
 interface DeleteTeamDialogProps {
   open: boolean;
@@ -55,17 +55,12 @@ export function DeleteTeamDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Delete Team</DialogTitle>
-          <DialogDescription className="space-y-4">
-            <p>
-              Are you sure you want to delete{" "}
-              <span className="font-semibold text-foreground">
-                {participantName}
-              </span>
-              ?
-            </p>
-            <p className="text-destructive text-xs">
-              This action cannot be undone.
-            </p>
+          <DialogDescription>
+            Are you sure you want to delete{" "}
+            <span className="font-semibold text-foreground">
+              {participantName}
+            </span>
+            ? This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
 
@@ -108,4 +103,3 @@ export function DeleteTeamDialog({
     </Dialog>
   );
 }
-
