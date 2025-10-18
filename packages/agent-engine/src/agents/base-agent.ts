@@ -4,6 +4,11 @@ import { ConvexClient } from "convex/browser";
 import { LLMProviders } from "../config";
 import { ConvexMemoryProvider } from "../memory/convex-memory";
 import { ConvexMessagingProvider } from "../messaging/convex-messages";
+import {
+  MCPToolClient,
+  parseToolUse,
+  formatToolResultForLLM,
+} from "@recursor/mcp-tools";
 
 // Work detection interface
 export interface WorkStatus {
@@ -21,6 +26,7 @@ export abstract class BaseAgent {
   protected memory: ConvexMemoryProvider;
   protected messaging: ConvexMessagingProvider;
   protected client: ConvexClient;
+  protected tools: MCPToolClient;
 
   constructor(
     stackId: Id<"agent_stacks">,
@@ -34,6 +40,13 @@ export abstract class BaseAgent {
     this.memory = new ConvexMemoryProvider(convexUrl);
     this.messaging = new ConvexMessagingProvider(convexUrl);
     this.client = new ConvexClient(convexUrl);
+
+    // Initialize MCP tools
+    this.tools = new MCPToolClient({
+      exaApiKey: process.env.EXA_API_KEY,
+      cacheTTL: 1000 * 60 * 15, // 15 minutes
+      maxCacheSize: 1000,
+    });
   }
 
   // Abstract method that each agent must implement
@@ -154,11 +167,66 @@ Current Context:
 - Focus: ${context?.focus || "General"}
 - Recent Messages: ${context?.recent_messages.slice(-3).join(" | ") || "None"}
 
+${this.tools.getToolsPrompt()}
+
 Remember:
 - You are participating in a live hackathon simulation
 - Work autonomously but collaborate with other agents
 - Be creative and productive
 - Focus on building a working demo
+- Use external tools when they can help you make better decisions or gather information
     `.trim();
+  }
+
+  /**
+   * Check if the response contains a tool use directive
+   */
+  protected detectToolUse(response: string): boolean {
+    return parseToolUse(response) !== null;
+  }
+
+  /**
+   * Execute a tool based on the agent's response
+   * Returns the tool result formatted for LLM consumption
+   */
+  protected async executeToolFromResponse(
+    response: string
+  ): Promise<string | null> {
+    const toolUse = parseToolUse(response);
+
+    if (!toolUse) {
+      return null;
+    }
+
+    const { toolName, params } = toolUse;
+
+    // Log that we're using a tool
+    await this.logTrace(
+      `Using tool: ${toolName}`,
+      "tool_execution_start",
+      { toolName, params }
+    );
+
+    try {
+      const result = await this.tools.executeTool(toolName, params);
+
+      // Log the result
+      await this.logTrace(
+        `Tool ${toolName} ${result.success ? "succeeded" : "failed"}`,
+        "tool_execution_complete",
+        result
+      );
+
+      return formatToolResultForLLM(toolName, result);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      await this.logTrace(
+        `Tool ${toolName} threw exception`,
+        "tool_execution_error",
+        { error: errorMessage }
+      );
+
+      return `[${toolName} ERROR]\n${errorMessage}`;
+    }
   }
 }
