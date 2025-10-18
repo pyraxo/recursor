@@ -3,7 +3,11 @@
 import { api } from "@recursor/convex/_generated/api";
 import { Id } from "@recursor/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
-import { Pause, Play, Square } from "lucide-react";
+import { Pause, Play, Square, Activity } from "lucide-react";
+import { Button } from "@repo/ui/button";
+import { Badge } from "@repo/ui/badge";
+import { Separator } from "@repo/ui/separator";
+import { Card, CardContent } from "@repo/ui/card";
 
 export function ExecutionControls({
   stackId,
@@ -63,99 +67,115 @@ export function ExecutionControls({
     }
   };
 
+  const getBadgeClassName = () => {
+    if (isRunning) return "bg-green-900/50 text-green-400 border-green-800 hover:bg-green-900/70";
+    if (isPaused) return "bg-yellow-900/50 text-yellow-400 border-yellow-800 hover:bg-yellow-900/70";
+    if (isStopped) return "bg-red-900/50 text-red-400 border-red-800 hover:bg-red-900/70";
+    return "bg-gray-800 text-gray-400 border-gray-700";
+  };
+
   return (
-    <div className="flex items-center gap-4 p-4 bg-gray-900 rounded-lg border border-gray-800">
-      {/* Control Buttons */}
-      <div className="flex gap-2">
-        {!isStopped && (
-          <button
-            onClick={handlePlayPause}
-            className={`p-3 rounded-lg transition-all duration-200 flex items-center gap-2 font-medium ${
-              isRunning
-                ? "bg-yellow-600 hover:bg-yellow-700 text-white"
-                : "bg-green-600 hover:bg-green-700 text-white"
-            }`}
-            title={
-              isRunning
-                ? "Pause execution"
-                : isPaused
-                  ? "Resume execution"
-                  : "Start execution"
-            }
-          >
-            {isRunning ? (
+    <Card className="bg-card/50">
+      <CardContent className="p-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          {/* Control Buttons */}
+          <div className="flex gap-2">
+            {!isStopped && (
+              <Button
+                onClick={handlePlayPause}
+                size="default"
+                className={
+                  isRunning
+                    ? "bg-yellow-600 hover:bg-yellow-700 text-white"
+                    : "bg-green-600 hover:bg-green-700 text-white"
+                }
+                title={
+                  isRunning
+                    ? "Pause execution"
+                    : isPaused
+                      ? "Resume execution"
+                      : "Start execution"
+                }
+              >
+                {isRunning ? (
+                  <>
+                    <Pause className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Pause</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">
+                      {isPaused ? "Resume" : "Start"}
+                    </span>
+                  </>
+                )}
+              </Button>
+            )}
+
+            {isActive && (
+              <Button
+                onClick={handleStop}
+                variant="destructive"
+                size="default"
+                title="Stop execution"
+              >
+                <Square className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Stop</span>
+              </Button>
+            )}
+          </div>
+
+          <Separator orientation="vertical" className="hidden sm:block h-8" />
+
+          {/* Status Display */}
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            {/* State Badge */}
+            <Badge
+              variant="outline"
+              className={`uppercase tracking-wider ${getBadgeClassName()}`}
+            >
+              {executionStatus?.execution_state || "idle"}
+            </Badge>
+
+            {/* Activity Indicator */}
+            {isProcessing && (
               <>
-                <Pause className="w-5 h-5" />
-                <span className="hidden sm:inline">Pause</span>
+                <Separator orientation="vertical" className="hidden md:block h-4" />
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-green-400 animate-pulse" />
+                  <span className="text-muted-foreground text-xs">
+                    Processing...
+                  </span>
+                </div>
               </>
-            ) : (
+            )}
+
+            {/* Time Elapsed */}
+            {executionStatus?.started_at && !isStopped && (
               <>
-                <Play className="w-5 h-5" />
-                <span className="hidden sm:inline">
-                  {isPaused ? "Resume" : "Start"}
+                <Separator orientation="vertical" className="hidden md:block h-4" />
+                <div className="text-muted-foreground text-xs">
+                  <span className="hidden sm:inline">Running: </span>
+                  <span className="font-mono font-medium">
+                    {formatTimeElapsed()}
+                  </span>
+                </div>
+              </>
+            )}
+
+            {/* Pause Message */}
+            {isPaused && (
+              <>
+                <Separator orientation="vertical" className="hidden lg:block h-4" />
+                <span className="text-muted-foreground text-xs italic hidden lg:inline">
+                  Will resume from current state
                 </span>
               </>
             )}
-          </button>
-        )}
-
-        {isActive && (
-          <button
-            onClick={handleStop}
-            className="p-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all duration-200 flex items-center gap-2 font-medium"
-            title="Stop execution"
-          >
-            <Square className="w-5 h-5" />
-            <span className="hidden sm:inline">Stop</span>
-          </button>
-        )}
-      </div>
-
-      {/* Status Display */}
-      <div className="flex items-center gap-4 text-sm">
-        {/* State Badge */}
-        <div className="flex items-center gap-2">
-          <span
-            className={`px-3 py-1.5 rounded-lg font-semibold uppercase text-xs tracking-wider ${
-              isRunning
-                ? "bg-green-900/50 text-green-400 border border-green-800"
-                : isPaused
-                  ? "bg-yellow-900/50 text-yellow-400 border border-yellow-800"
-                  : isStopped
-                    ? "bg-red-900/50 text-red-400 border border-red-800"
-                    : "bg-gray-800 text-gray-400 border border-gray-700"
-            }`}
-          >
-            {executionStatus?.execution_state || "idle"}
-          </span>
-
-          {/* Activity Indicator */}
-          {isProcessing && (
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <div className="absolute inset-0 w-2 h-2 bg-green-400 rounded-full animate-ping" />
-              </div>
-              <span className="text-gray-400 text-xs">Processing...</span>
-            </div>
-          )}
-        </div>
-
-        {/* Time Elapsed */}
-        {executionStatus?.started_at && !isStopped && (
-          <div className="text-gray-500 text-xs">
-            <span className="hidden sm:inline">Running for: </span>
-            <span className="font-mono">{formatTimeElapsed()}</span>
           </div>
-        )}
-
-        {/* Pause Message */}
-        {isPaused && (
-          <span className="text-gray-500 text-xs italic hidden lg:inline">
-            Agents will resume from current state
-          </span>
-        )}
-      </div>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
