@@ -133,6 +133,7 @@ export const getAllMessages = query({
 // ========= INTERNAL FUNCTIONS FOR AGENT ADAPTERS =========
 
 // Internal query: Get unread messages for a stack (both direct and broadcast)
+// IMPORTANT: Filters out messages from the same stack (agents don't respond to their own messages)
 export const getUnreadForStack = internalQuery({
   args: {
     stackId: v.id("agent_stacks"),
@@ -150,10 +151,12 @@ export const getUnreadForStack = internalQuery({
       .withIndex("by_recipient", (q: any) => q.eq("to_stack_id", args.stackId))
       .collect();
 
-    // Combine and filter for unread
+    // Combine and filter for unread AND exclude own messages
     const allMessages = [...broadcasts, ...directMessages];
     return allMessages.filter(
-      (msg: any) => !msg.read_by.includes(args.stackId)
+      (msg: any) =>
+        !msg.read_by.includes(args.stackId) && // Not already read
+        msg.from_stack_id !== args.stackId      // Not from this stack (don't respond to own messages!)
     );
   },
 });
@@ -241,10 +244,12 @@ export const getUnreadMessages = query({
       .withIndex("by_recipient", (q: any) => q.eq("to_stack_id", args.stackId))
       .collect();
 
-    // Combine and filter for unread
+    // Combine and filter for unread AND exclude own messages
     const allMessages = [...broadcasts, ...directMessages];
     return allMessages.filter(
-      (msg: any) => !msg.read_by.includes(args.stackId)
+      (msg: any) =>
+        !msg.read_by.includes(args.stackId) && // Not already read
+        msg.from_stack_id !== args.stackId      // Not from this stack
     );
   },
 });

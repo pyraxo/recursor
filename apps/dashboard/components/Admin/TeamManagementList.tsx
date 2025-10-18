@@ -153,7 +153,7 @@ export function TeamManagementList({
             </p>
           </div>
         ) : (
-          <ScrollArea className="h-[400px] pr-4">
+          <ScrollArea className="h-full pr-4">
             <div className="space-y-3">
               {stacks.map((stack: any) => {
                 const executionState = stack.execution_state || "idle";

@@ -72,7 +72,7 @@ async function fetchWorkDetectionContext(
   ctx: ActionCtx,
   stackId: Id<"agent_stacks">
 ): Promise<WorkDetectionContext> {
-  const [stack, todos, messages, artifacts, projectIdea, agentStates] =
+  const [stack, todos, messages, artifacts, projectIdea, agentStates, userMessages] =
     await Promise.all([
       ctx.runQuery(internal.agentExecution.getStackForExecution, { stackId }),
       ctx.runQuery(internal.agentExecution.getTodos, { stackId }),
@@ -81,6 +81,9 @@ async function fetchWorkDetectionContext(
       ctx.runQuery(internal.agentExecution.getProjectIdea, { stackId }),
       ctx.runQuery(internal.agentExecution.getAgentExecutionStates, {
         stackId,
+      }),
+      ctx.runQuery(internal.userMessages.internalGetUnprocessed, {
+        team_id: stackId,
       }),
     ]);
 
@@ -91,6 +94,7 @@ async function fetchWorkDetectionContext(
     artifacts,
     projectIdea,
     agentStates: agentStates || [],
+    userMessages: userMessages || [],
   };
 }
 
@@ -101,12 +105,13 @@ async function fetchWorkDetectionContext(
  * 1. No project idea exists (highest priority)
  * 2. No pending todos (need new tasks)
  * 3. Reviewer has recommendations
- * 4. Periodic planning time (every 3 minutes)
+ * 4. User messages need strategic planning (e.g., feature requests, project changes)
+ * 5. Periodic planning time (every 5 minutes)
  */
 export function detectPlannerWork(
   context: WorkDetectionContext
 ): AgentWorkStatus {
-  const { todos, projectIdea, agentStates } = context;
+  const { todos, projectIdea, agentStates, userMessages } = context;
 
   // Priority 1: No project idea
   if (!projectIdea) {
@@ -144,11 +149,36 @@ export function detectPlannerWork(
     };
   }
 
-  // Priority 4: Periodic planning check
+  // Priority 4: User messages that might need strategic planning
+  // (e.g., feature requests, major changes - not just simple questions)
+  // Check if messages contain strategic keywords
+  const strategicUserMessages = userMessages.filter((msg: any) => {
+    const content = msg.content.toLowerCase();
+    return (
+      content.includes("feature") ||
+      content.includes("add") ||
+      content.includes("change project") ||
+      content.includes("different") ||
+      content.includes("instead") ||
+      content.includes("modify") ||
+      content.length > 100 // Longer messages might be strategic
+    );
+  });
+  if (strategicUserMessages.length > 0) {
+    return {
+      hasWork: true,
+      priority: 7,
+      reason: `${strategicUserMessages.length} user message(s) need strategic planning`,
+      dependencies: [],
+    };
+  }
+
+  // Priority 5: Periodic planning check (reduced frequency since communicator handles user messages)
   const lastPlanningTime =
     plannerState?.memory?.last_planning_time || context.stack?.created_at || 0;
   const timeSinceLastPlanning = Date.now() - lastPlanningTime;
-  if (timeSinceLastPlanning > PERIODIC_CHECK_INTERVAL) {
+  const PLANNER_PERIODIC_INTERVAL = 300000; // 5 minutes (longer than before)
+  if (timeSinceLastPlanning > PLANNER_PERIODIC_INTERVAL) {
     return {
       hasWork: true,
       priority: 4,
@@ -208,36 +238,48 @@ export function detectBuilderWork(
  * Communicator Work Detection
  *
  * The communicator needs to run when:
- * 1. Unread messages exist
- * 2. Periodic broadcast check (every 3 minutes)
+ * 1. Unprocessed user messages exist (HIGHEST PRIORITY - respond one at a time)
+ * 2. Unread agent messages exist
+ * 3. Planner has requested a broadcast (via todo)
  */
 export function detectCommunicatorWork(
   context: WorkDetectionContext
 ): AgentWorkStatus {
-  const { messages, agentStates } = context;
+  const { messages, agentStates, userMessages, todos } = context;
 
-  // Priority 1: Unread messages
+  // Priority 1: Unprocessed user messages (respond one at a time, like a chatroom)
+  if (userMessages.length > 0) {
+    return {
+      hasWork: true,
+      priority: 10, // Highest priority - users are waiting
+      reason: `${userMessages.length} user message(s) to respond to (processing one at a time)`,
+      dependencies: [],
+    };
+  }
+
+  // Priority 2: Unread agent messages from other teams
   const unreadMessages = messages.filter((m: any) => !m.read_at);
   if (unreadMessages.length > 0) {
     return {
       hasWork: true,
       priority: 7,
-      reason: `${unreadMessages.length} unread messages to process`,
+      reason: `${unreadMessages.length} unread messages from other teams`,
       dependencies: [],
     };
   }
 
-  // Priority 2: Periodic broadcast check
-  const commState = agentStates.find((s: any) => s.agentType === "communicator");
-  const lastBroadcast =
-    commState?.memory?.last_broadcast_time || context.stack?.created_at || 0;
-  const timeSinceBroadcast = Date.now() - lastBroadcast;
-
-  if (timeSinceBroadcast > PERIODIC_CHECK_INTERVAL) {
+  // Priority 3: Planner requested a broadcast (check for broadcast todos)
+  const broadcastTodos = todos.filter(
+    (t: any) =>
+      t.status === "pending" &&
+      (t.content.toLowerCase().includes("broadcast") ||
+        t.content.toLowerCase().includes("announce"))
+  );
+  if (broadcastTodos.length > 0) {
     return {
       hasWork: true,
-      priority: 3,
-      reason: `Periodic communication check (${Math.floor(timeSinceBroadcast / 60000)} min since last broadcast)`,
+      priority: 6,
+      reason: `${broadcastTodos.length} broadcast request(s) from planner`,
       dependencies: [],
     };
   }
@@ -246,7 +288,7 @@ export function detectCommunicatorWork(
   return {
     hasWork: false,
     priority: 0,
-    reason: "No messages to process and recent broadcast",
+    reason: "No messages to process or broadcasts needed",
     dependencies: [],
   };
 }
