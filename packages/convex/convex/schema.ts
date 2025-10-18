@@ -118,6 +118,19 @@ export default defineSchema({
     .index("by_sender", ["from_stack_id"])
     .index("broadcasts", ["message_type"]),
 
+  // User Messages (for user-to-team communication)
+  user_messages: defineTable({
+    team_id: v.id("agent_stacks"),
+    sender_name: v.string(), // User identifier
+    content: v.string(),
+    timestamp: v.number(),
+    processed: v.boolean(), // Has Communicator seen it?
+    response_id: v.optional(v.id("messages")), // Link to response message
+  })
+    .index("by_team", ["team_id"])
+    .index("by_team_processed", ["team_id", "processed"])
+    .index("by_timestamp", ["timestamp"]),
+
   // Build Artifacts
   artifacts: defineTable({
     stack_id: v.id("agent_stacks"),

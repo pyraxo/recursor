@@ -10,7 +10,7 @@ export async function executeCommunicator(
   console.log(`[Communicator] Executing for stack ${stackId}`);
 
   // 1. Load context
-  const [stack, messages, projectIdea, agentState, todos] = await Promise.all([
+  const [stack, messages, projectIdea, agentState, todos, userMessages] = await Promise.all([
     ctx.runQuery(internal.agentExecution.getStackForExecution, { stackId }),
     ctx.runQuery(internal.messages.getUnreadForStack, { stackId }),
     ctx.runQuery(internal.agentExecution.getProjectIdea, { stackId }),
@@ -19,6 +19,9 @@ export async function executeCommunicator(
       agentType: "communicator",
     }),
     ctx.runQuery(internal.agentExecution.getTodos, { stackId }),
+    ctx.runQuery(internal.userMessages.internalGetUnprocessed, {
+      team_id: stackId,
+    }),
   ]);
 
   if (!stack) {
@@ -32,7 +35,16 @@ export async function executeCommunicator(
   const timeSinceLastBroadcast = Date.now() - lastBroadcastTime;
   const needsStatusUpdate = timeSinceLastBroadcast > 120000; // 2 minutes
 
-  if (!hasUnreadMessages && !needsStatusUpdate) {
+  // Check if there are todos for responding to users (contains "respond to user" or similar)
+  const userResponseTodos = todos?.filter((t) =>
+    t.status === "pending" &&
+    (t.content.toLowerCase().includes("respond to user") ||
+     t.content.toLowerCase().includes("answer user") ||
+     t.content.toLowerCase().includes("reply to user"))
+  ) || [];
+  const needsUserResponse = userResponseTodos.length > 0;
+
+  if (!hasUnreadMessages && !needsStatusUpdate && !needsUserResponse) {
     console.log(`[Communicator] No communication needed`);
     return "Communicator idle: No messages to process or status updates needed";
   }
@@ -96,6 +108,21 @@ export async function executeCommunicator(
     }
   }
 
+  // Handle user response todos
+  if (needsUserResponse && userMessages && userMessages.length > 0) {
+    const userMessagesSummary = userMessages
+      .map((msg: any) => {
+        const timeAgo = Math.floor((Date.now() - msg.timestamp) / 60000);
+        return `- From ${msg.sender_name} (${timeAgo}m ago): ${msg.content}`;
+      })
+      .join("\n");
+
+    llmMessages.push({
+      role: "user",
+      content: `User messages to respond to:\n${userMessagesSummary}\n\nBased on the planner's todos (${userResponseTodos.map(t => t.content).join(", ")}), craft an appropriate response to the users.`,
+    });
+  }
+
   // Request status update if needed
   if (needsStatusUpdate) {
     const completedTodos =
@@ -124,15 +151,19 @@ export async function executeCommunicator(
 
   // Send broadcast message
   let messageSent = false;
+  let responseMessageId = null;
   if (
     needsStatusUpdate ||
+    needsUserResponse ||
     parsed.actions.some((a: any) => a.type === "send_message")
   ) {
-    await ctx.runMutation(internal.messages.internalSend, {
+    // Store the message ID so we can link it to user messages
+    const messageId = await ctx.runMutation(internal.messages.internalSend, {
       sender_id: stackId,
       message_type: "broadcast",
       content: response.content,
     });
+    responseMessageId = messageId;
     messageSent = true;
     console.log(`[Communicator] Sent broadcast message`);
 
@@ -146,6 +177,28 @@ export async function executeCommunicator(
       agentType: "communicator",
       memory: updatedMemory,
     });
+  }
+
+  // Mark user messages as processed if we responded to them
+  if (needsUserResponse && userMessages && userMessages.length > 0 && responseMessageId) {
+    for (const userMsg of userMessages) {
+      await ctx.runMutation(internal.userMessages.internalMarkProcessed, {
+        message_id: userMsg._id,
+        response_id: responseMessageId,
+      });
+      console.log(`[Communicator] Marked user message ${userMsg._id} as processed`);
+    }
+  }
+
+  // Mark user response todos as completed
+  if (needsUserResponse) {
+    for (const todo of userResponseTodos) {
+      await ctx.runMutation(internal.todos.internalUpdateStatus, {
+        todoId: todo._id,
+        status: "completed",
+      });
+      console.log(`[Communicator] Completed todo: ${todo.content}`);
+    }
   }
 
   // 6. Update communicator memory
