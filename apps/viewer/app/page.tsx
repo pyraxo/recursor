@@ -10,7 +10,7 @@ export default function WorldScreen() {
   const [selectedTeamId, setSelectedTeamId] = useState<Id<"agent_stacks"> | null>(null);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--background)]">
+    <div className="h-screen flex flex-col bg-[var(--background)]">
       <TopBar />
       
       <div className="flex-1 flex overflow-hidden">
@@ -21,7 +21,7 @@ export default function WorldScreen() {
           />
         </div>
         
-        <div className="w-[480px] border-l-2 border-[var(--panel-border)] bg-[var(--panel-bg)] overflow-auto">
+        <div className="w-[480px] border-l-2 border-[var(--panel-border)] bg-[var(--panel-bg)] flex flex-col overflow-hidden">
           <SidePanel selectedTeamId={selectedTeamId} />
         </div>
       </div>
