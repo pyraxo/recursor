@@ -1,26 +1,27 @@
 "use client";
 import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@recursor/convex/_generated/api";
+import { Button } from "@repo/ui/button";
 
 export function AgentList({ onSelect }: { onSelect: (id: string) => void }) {
   const stacks = useQuery(api.agents.listStacks);
-  if (!stacks) return <div>Loading...</div>;
+  if (!stacks) return <div className="text-muted-foreground">Loading...</div>;
   return (
-    <div style={{ display: "grid", gap: 4 }}>
+    <div className="space-y-2">
       {stacks.map((s: any) => (
-        <button
+        <Button
           key={s._id}
-          style={{
-            textAlign: "left",
-            padding: 8,
-            border: "1px solid #333",
-            borderRadius: 6,
-          }}
+          variant="outline"
+          className="w-full justify-start text-left h-auto py-3"
           onClick={() => onSelect(s._id)}
         >
-          <div style={{ fontWeight: 600 }}>{s.participant_name}</div>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>Phase: {s.phase}</div>
-        </button>
+          <div className="w-full">
+            <div className="font-semibold">{s.participant_name}</div>
+            <div className="text-xs text-muted-foreground">
+              Phase: {s.phase}
+            </div>
+          </div>
+        </Button>
       ))}
     </div>
   );

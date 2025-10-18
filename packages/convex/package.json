@@ -1,0 +1,23 @@
+{
+  "name": "@recursor/convex",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./_generated/api": "./convex/_generated/api.js",
+    "./_generated/server": "./convex/_generated/server.js",
+    "./_generated/dataModel": "./convex/_generated/dataModel.d.ts"
+  },
+  "scripts": {
+    "dev": "convex dev",
+    "deploy": "convex deploy",
+    "clean": "rm -f convex/*.js convex/*.d.ts convex/*.d.ts.map"
+  },
+  "dependencies": {
+    "convex": "^1.28.0"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "typescript": "^5.6.2"
+  }
+}

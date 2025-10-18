@@ -1,6 +1,6 @@
 import { ConvexClient } from "convex/browser";
-import { api } from "../../../../convex/_generated/api";
-import type { Id } from "../../../../convex/_generated/dataModel";
+import { api } from "@recursor/convex/_generated/api";
+import type { Id } from "@recursor/convex/_generated/dataModel";
 
 export interface Message {
   _id: Id<"messages">;

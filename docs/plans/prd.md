@@ -1,4 +1,4 @@
-# PRD: Cursor Hackathon Simulation (“VibeHack”)
+# PRD: Cursor Hackathon Simulation (“Recursor”)
 
 ## 1) Overview and Vision
 

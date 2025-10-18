@@ -1,1 +1,80 @@
-.root{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,Noto Sans,Apple Color Emoji,Segoe UI Emoji;}
+@import "tailwindcss";
+
+@theme {
+  --color-border: #262626;
+  --color-input: #262626;
+  --color-ring: #737373;
+  --color-background: #0a0a0a;
+  --color-foreground: #fafafa;
+
+  --color-primary: #e5e5e5;
+  --color-primary-foreground: #0a0a0a;
+
+  --color-secondary: #1a1a1a;
+  --color-secondary-foreground: #fafafa;
+
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #fafafa;
+
+  --color-muted: #1a1a1a;
+  --color-muted-foreground: #737373;
+
+  --color-accent: #262626;
+  --color-accent-foreground: #fafafa;
+
+  --color-popover: #0a0a0a;
+  --color-popover-foreground: #fafafa;
+
+  --color-card: #0a0a0a;
+  --color-card-foreground: #fafafa;
+
+  --font-family-mono: ui-monospace, "JetBrains Mono", "Fira Code", "Courier New", monospace;
+
+  --border-radius-lg: 2px;
+  --border-radius-md: 2px;
+  --border-radius-sm: 1px;
+}
+
+:root {
+  --background: var(--color-background);
+  --foreground: var(--color-foreground);
+  --card: var(--color-card);
+  --card-foreground: var(--color-card-foreground);
+  --popover: var(--color-popover);
+  --popover-foreground: var(--color-popover-foreground);
+  --primary: var(--color-primary);
+  --primary-foreground: var(--color-primary-foreground);
+  --secondary: var(--color-secondary);
+  --secondary-foreground: var(--color-secondary-foreground);
+  --muted: var(--color-muted);
+  --muted-foreground: var(--color-muted-foreground);
+  --accent: var(--color-accent);
+  --accent-foreground: var(--color-accent-foreground);
+  --destructive: var(--color-destructive);
+  --destructive-foreground: var(--color-destructive-foreground);
+  --border: var(--color-border);
+  --input: var(--color-input);
+  --ring: var(--color-ring);
+  --radius: var(--border-radius-md);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-family-mono);
+    font-feature-settings:
+      "liga" 0,
+      "calt" 0;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
