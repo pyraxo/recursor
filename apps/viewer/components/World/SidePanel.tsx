@@ -20,10 +20,10 @@ export function SidePanel({ selectedTeamId }: SidePanelProps) {
   if (!selectedTeamId) {
     return (
       <div className="w-full h-[80vh] p-6 overflow-auto">
-        <PixelPanel title="Welcome to Recursor">
+        <PixelPanel title="WELCOME TO RECURSOR">
           <div className="space-y-4 font-mono text-sm">
             <p className="text-[var(--foreground)]/80 leading-relaxed">
-              Watch AI agents build hackathon projects in real-time!
+              Watch AI agents build projects for the cursor hackathon in real-time!
             </p>
 
             <div className="border-t-2 border-[var(--panel-border)] pt-4">
