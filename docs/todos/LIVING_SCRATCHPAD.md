@@ -1,7 +1,7 @@
 # Recursor Living Scratchpad
 
-**Last Updated**: 2025-10-18  
-**Current Phase**: Autonomous Execution → Communication Systems → Judging & Leaderboards
+**Last Updated**: 2025-10-18 (Major Update: Autonomous Execution COMPLETE)
+**Current Phase**: Testing & Refinement → Communication Systems → Judging & Leaderboards
 
 ---
 
@@ -10,8 +10,8 @@
 - **Backend Infrastructure**: ✅ Complete
 - **Core Agent System**: ✅ Complete
 - **Deployment & Environment**: ✅ Complete
-- **Observability Dashboard**: ✅ Complete (needs play/pause controls)
-- **Autonomous Execution**: 🚨 CRITICAL - NOT STARTED (blocks everything else)
+- **Observability Dashboard**: ✅ Complete
+- **Autonomous Execution**: ✅ COMPLETE (major milestone!)
 - **Agent Communication System**: 🚨 CRITICAL - NOT STARTED (inter-agent + user chat)
 - **Live Event Frontend**: ❌ Not Started
 - **Judging System**: 🚨 CRITICAL - NOT STARTED (MUST DELIVER)
@@ -27,10 +27,14 @@
 
 ### Backend & Database (Convex)
 
-- ✅ Complete schema with 7 tables (agent_stacks, agent_states, project_ideas, todos, messages, artifacts, agent_traces)
+- ✅ Complete schema with 8 tables (agent_stacks, agent_states, project_ideas, todos, messages, artifacts, agent_traces, **agent_executions**)
 - ✅ All Convex functions (agents.ts, messages.ts, artifacts.ts, todos.ts, project_ideas.ts, traces.ts)
 - ✅ Type-safe API with auto-generated types
 - ✅ Real-time subscriptions built-in
+- ✅ **NEW**: Agent execution logic moved to Convex (`convex/lib/agents/`)
+- ✅ **NEW**: Scheduled execution system (`agentExecution.ts` with 5-second cron)
+- ✅ **NEW**: `agent_executions` table for tracking execution status
+- ✅ **NEW**: Internal actions and queries for agent orchestration
 
 ### Agent Engine Package
 
@@ -45,6 +49,11 @@
 - ✅ Orchestrator (tick-based coordination of 4 agents)
 - ✅ LLM configuration (Groq primary, OpenAI/Gemini fallback)
 - ✅ CLI tool for creating/running/monitoring agents
+- ✅ **NEW**: Autonomous Orchestrator (846 lines, work-based execution)
+- ✅ **NEW**: Execution Controller (multi-stack coordination)
+- ✅ **NEW**: Work detection system (smart agent activation)
+- ✅ **NEW**: All agents refactored to delegate to Convex backend
+- ✅ **NEW**: Priority queue system for agent tasks
 
 ### Documentation
 
@@ -80,29 +89,54 @@
 
 ## 🚧 IN PROGRESS / NEXT UP
 
-### Autonomous Agent Execution System (CRITICAL)
+### Autonomous Agent Execution System ✅ COMPLETE
 
-**Key Architectural Change Needed**:
+**Major Architectural Achievement**: Agents now run autonomously via Convex!
 
-- Currently: Agent-engine orchestrator designed for CLI usage (`pnpm cli run`)
-- Required: Agents run autonomously via Convex scheduled functions
-- When: Starts automatically when `pnpm dev` runs, continues in background
-- Control: Play/Pause/Stop via dashboard UI (updates `execution_state` in DB)
+**What Was Built**:
 
-**Why This Blocks Everything**: Can't properly test, demo, or scale without autonomous execution
+✅ **Convex Backend Agent Execution**:
+- ✅ All agent logic migrated to Convex actions (`packages/convex/convex/lib/agents/`)
+  - `executePlanner()` - Handles planning logic in Convex
+  - `executeBuilder()` - Handles building logic in Convex
+  - `executeCommunicator()` - Handles communication logic in Convex
+  - `executeReviewer()` - Handles review logic in Convex
+- ✅ Agent classes in `agent-engine` are now thin wrappers that delegate to Convex
+- ✅ Single source of truth for agent logic (works in CLI, cron, dashboard)
 
-- [ ] **CRITICAL**: Create Convex scheduled function for agent orchestration
-  - [ ] Runs agent tick loops automatically (every 5-10 seconds)
-  - [ ] Respects execution_state (running, paused, stopped)
-  - [ ] Calls orchestrator logic from `agent-engine` package
-- [ ] **CRITICAL**: Build Play/Pause UI component (IN PROGRESS per user)
-  - [ ] Global play/pause for all agents
-  - [ ] Per-team play/pause controls
-  - [ ] Status indicators (running, paused, stopped)
-- [ ] **CRITICAL**: Connect agent-engine orchestrator to Convex
-  - [ ] Update orchestrator to use Convex mutations/queries
-  - [ ] Remove CLI dependency for agent execution
-  - [ ] Make it callable from Convex scheduled functions
+✅ **Scheduled Execution System** (`packages/convex/convex/agentExecution.ts`):
+- ✅ `scheduledExecutor` runs every 5 seconds via Convex cron
+- ✅ Finds all stacks with `execution_state: 'running'`
+- ✅ Executes agent ticks automatically
+- ✅ Respects execution state (running, paused, stopped)
+- ✅ 30-second timeout protection for stuck executions
+- ✅ New `agent_executions` table tracks execution status
+
+✅ **Client-Side Orchestration** (`packages/agent-engine/src/`):
+- ✅ `AutonomousOrchestrator` (846 lines) - Advanced work-based orchestration:
+  - Work detection interface (`WorkStatus`) for smart agent activation
+  - Priority queue system for agent task scheduling
+  - Configurable concurrency (max concurrent agents)
+  - Pause/resume/stop controls
+  - Real-time Convex subscriptions for state changes
+- ✅ `ExecutionController` - Manages multiple orchestrators
+  - Multi-stack coordination
+  - Graceful shutdown handling
+  - Monitoring and health checks
+- ✅ Enhanced `BaseAgent` with work detection:
+  - `hasWork()` method to detect available work
+  - `processWork()` for custom work handling
+  - `handleNoWork()` for idle state (no unnecessary LLM calls)
+
+✅ **Schema Enhancements**:
+- ✅ `agent_executions` table for execution tracking
+- ✅ `current_agent_index` in `agent_stacks` (cycle through 4 agents)
+- ✅ Execution state fields in `agent_states.memory`
+- ✅ Work tracking metadata
+
+**Status**: Core autonomous execution is COMPLETE. Ready for testing and refinement.
+
+**Next**: Focus shifts to testing, UI polish, and MUST-DELIVER features (Communication, Judging, Leaderboards, Admin)
 
 ### Testing & Validation (Ready after Autonomous Execution)
 
@@ -117,27 +151,29 @@
 
 ## 📋 TODO: MVP (Phase 1)
 
-### 1. IMMEDIATE NEXT STEPS (Autonomous Execution)
+### 1. ✅ AUTONOMOUS EXECUTION (COMPLETED!)
 
 - [x] ~~Run `npx convex dev` to initialize deployment~~ ✅ DONE
 - [x] ~~Create `.env.local` with Convex URL and API keys~~ ✅ DONE
 - [x] ~~Build observability dashboard~~ ✅ DONE
-- [ ] **DO NOW**: Create Convex scheduled function (`orchestration.ts`)
-  - Runs every 5-10 seconds
-  - Finds all agent_stacks with `execution_state: 'running'`
-  - Executes tick for each stack using agent-engine
-  - Updates traces, artifacts, todos, messages in Convex
-- [ ] **DO NOW**: Refactor agent-engine orchestrator to work with Convex
-  - Remove dependency on CLI
-  - Export function that can be called from Convex actions
-  - Accept stackId and run one tick
-- [ ] **DO NOW**: Build Play/Pause controls in dashboard
-  - Add to Admin view
-  - Mutation to update execution_state
-  - Visual indicators for running/paused/stopped states
+- [x] ✅ **DONE**: Create Convex scheduled function (`agentExecution.ts`)
+  - ✅ Runs every 5 seconds via Convex cron
+  - ✅ Finds all agent_stacks with `execution_state: 'running'`
+  - ✅ Executes tick for each stack using Convex actions
+  - ✅ Updates traces, artifacts, todos, messages in Convex
+- [x] ✅ **DONE**: Refactor agent-engine to work with Convex
+  - ✅ All agent logic moved to Convex backend (`convex/lib/agents/`)
+  - ✅ Agent classes delegate to Convex actions
+  - ✅ Single source of truth for agent execution
+- [x] ✅ **DONE**: Build autonomous orchestration system
+  - ✅ `AutonomousOrchestrator` with work detection
+  - ✅ `ExecutionController` for multi-stack management
+  - ✅ Priority queue for agent tasks
+  - ✅ Real-time state monitoring
 - [ ] **TEST**: Create a team and start it running
 - [ ] **TEST**: Verify agents execute autonomously
-- [ ] **TEST**: Verify play/pause works
+- [ ] **TEST**: Monitor execution via dashboard
+- [ ] **TEST**: Verify play/pause controls work
 
 ### 2. AGENT COMMUNICATION SYSTEM (CRITICAL - MUST DELIVER)
 
@@ -475,13 +511,14 @@ Per PRD section 6:
 
 ## 🔑 CRITICAL PATH TO MVP LAUNCH
 
-1. **Autonomous Execution System** (1-2 days) - BLOCKS EVERYTHING
-   - Convex scheduled functions for agent orchestration
-   - Play/pause controls in dashboard
-   - Validate agents run autonomously
-   - Essential for all subsequent testing
+1. ✅ **Autonomous Execution System** (COMPLETED!)
+   - ✅ Convex scheduled functions for agent orchestration
+   - ✅ Advanced work-based orchestration with priority queuing
+   - ✅ All agent logic migrated to Convex backend
+   - ✅ Execution state management and monitoring
+   - 🔄 **Testing in progress**
 
-2. **Agent Communication System** (2-3 days) - MUST DELIVER
+2. **Agent Communication System** (2-3 days) - MUST DELIVER - NEXT PRIORITY
    - Inter-agent messaging (team-to-team collaboration)
    - Agent-to-user chat (real-time Q&A on project pages)
    - Message routing and prioritization
@@ -529,7 +566,7 @@ Per PRD section 6:
    - Cost monitoring
    - End-to-end validation
 
-**Estimated MVP Timeline**: 17-26 days (CRITICAL features cannot be cut)
+**Estimated MVP Timeline**: 14-23 days remaining (autonomous execution complete, saved ~3 days)
 
 ---
 
@@ -555,51 +592,94 @@ Per PRD section 6:
 
 ### Key Technical Implementation Notes
 
-**Convex Scheduled Functions for Autonomous Execution**:
+**✅ IMPLEMENTED: Convex Scheduled Execution System**:
 
 ```typescript
-// packages/convex/convex/orchestration.ts
-export const runAgentTicks = internalMutation({
+// packages/convex/convex/agentExecution.ts
+export const scheduledExecutor = internalMutation({
   handler: async (ctx) => {
     // 1. Find all stacks with execution_state: 'running'
-    const runningStacks = await ctx.db
+    const stacks = await ctx.db
       .query("agent_stacks")
       .filter((q) => q.eq(q.field("execution_state"), "running"))
       .collect();
 
-    // 2. For each stack, run one tick
-    for (const stack of runningStacks) {
-      await runSingleAgentTick(ctx, stack._id);
+    // 2. For each stack, schedule an agent tick
+    for (const stack of stacks) {
+      await ctx.scheduler.runAfter(0, internal.agentExecution.executeAgentTick, {
+        stackId: stack._id,
+      });
     }
   },
 });
 
-// Schedule to run every 10 seconds
-export default {
-  runAgentTicks: {
-    schedule: "0/10 * * * * *", // Every 10 seconds
-    handler: runAgentTicks,
-  },
-};
+// Runs every 5 seconds (configured in Convex cron settings)
 ```
 
-**Agent-Engine Refactor**:
+**✅ IMPLEMENTED: Agent Logic Migration to Convex**:
 
-- Move from CLI-driven to function-based
-- Export `runAgentTick(stackId, convexClient)` from orchestrator
-- Make it callable from Convex actions
-- Use Convex client to read/write state
+All agent execution logic has been moved from `packages/agent-engine/src/agents/` to Convex backend:
+
+```
+packages/convex/convex/lib/agents/
+├── index.ts          # executeAgentByType() dispatcher
+├── planner.ts        # executePlanner() - planning logic
+├── builder.ts        # executeBuilder() - building logic
+├── communicator.ts   # executeCommunicator() - communication logic
+└── reviewer.ts       # executeReviewer() - review logic
+```
+
+**Agent Classes Now Delegate to Convex**:
+
+```typescript
+// packages/agent-engine/src/agents/planner.ts (simplified)
+export class PlannerAgent extends BaseAgent {
+  async think(): Promise<string> {
+    // Call Convex backend to execute planner logic
+    const result = await this.client.action(api.agentExecution.runPlanner, {
+      stackId: this.stackId,
+    });
+    return result;
+  }
+}
+```
+
+**✅ IMPLEMENTED: Advanced Orchestration Features**:
+
+1. **Work Detection System**:
+   - `WorkStatus` interface for detecting available work
+   - `hasWork()` method in BaseAgent
+   - `handleNoWork()` for idle states (no wasted LLM calls)
+
+2. **Priority Queue**:
+   - Agent tasks ordered by priority
+   - Configurable concurrency (max agents running)
+   - Fair scheduling across multiple stacks
+
+3. **Execution Monitoring**:
+   - `agent_executions` table tracks status
+   - 30-second timeout protection
+   - Real-time state updates via Convex subscriptions
 
 **Execution State Management**:
 
-- Dashboard sets `execution_state` via mutations
-- Scheduled function respects state
+- Dashboard updates `execution_state` via mutations
+- Scheduled function respects state changes
 - States: `idle`, `running`, `paused`, `stopped`
-- Track: `last_activity_at`, `started_at`, `paused_at`
+- Tracking: `last_activity_at`, `started_at`, `current_agent_index`
 
-**Schema Extensions Required**:
+**✅ IMPLEMENTED: Schema Extensions**:
 
 ```typescript
+// ✅ agent_executions table (for autonomous execution tracking)
+agent_executions: defineTable({
+  stack_id: v.id("agent_stacks"),
+  status: v.union(v.literal("running"), v.literal("completed"), v.literal("failed")),
+  started_at: v.number(),
+  completed_at: v.optional(v.number()),
+  error: v.optional(v.string()),
+}).index("by_stack", ["stack_id"]);
+
 // New tables needed for MUST-DELIVER features:
 
 // 1. Judges table
@@ -687,44 +767,34 @@ messages: defineTable({
 
 ### Immediate (Today/Tomorrow) - CRITICAL PATH
 
-**Goal**: Complete autonomous execution, then build MUST-DELIVER features
+**Goal**: ✅ Autonomous execution is COMPLETE! Now test and move to MUST-DELIVER features.
 
-1. **Create Convex Orchestration System** (HIGHEST PRIORITY - BLOCKS EVERYTHING)
-   - Create `packages/convex/convex/orchestration.ts`
-   - Use Convex scheduled functions (cron-like)
-   - Query for `execution_state: 'running'` stacks
-   - Execute one tick per stack per interval
-   - Update all state in Convex (traces, todos, artifacts, messages)
-
-2. **Refactor Agent-Engine for Convex Integration**
-   - Make orchestrator callable from Convex actions
-   - Remove CLI-only dependencies
-   - Export `runAgentTick(stackId)` function
-   - Ensure it works with Convex mutations/queries
-
-3. **Build Play/Pause Controls in Dashboard**
-   - Add global "Start All" / "Pause All" buttons to Admin view
-   - Add per-team play/pause/stop buttons
-   - Create Convex mutations to update `execution_state`
-   - Show visual indicators (🟢 running, ⏸️ paused, ⏹️ stopped)
-
-4. **Test End-to-End**
-   - Create team via dashboard
-   - Click "Start" to set execution_state to 'running'
-   - Watch agent traces appear in real-time
-   - Verify todos, artifacts, messages are created
+1. **Test Autonomous Execution End-to-End** (HIGHEST PRIORITY)
+   - Create a test team via dashboard
+   - Set execution_state to 'running'
+   - Monitor agent traces in real-time
+   - Verify todos, artifacts, messages are created correctly
    - Test pause/resume functionality
+   - Identify and fix any bugs
+   - Monitor LLM costs during test runs
+
+2. **Verify Dashboard Integration**
+   - Confirm play/pause controls work
+   - Check real-time updates via Convex subscriptions
+   - Test multi-stack execution (2-3 teams running simultaneously)
+   - Validate execution_state transitions
+   - Check error handling and recovery
 
 ### Next (This Week) - MUST DELIVER FEATURES
 
-5. **Agent Communication System** (CRITICAL)
+3. **Agent Communication System** (CRITICAL)
    - Inter-agent messaging (team-to-team)
    - Agent-to-user chat interface
    - Update Communicator agent to handle user messages
    - Real-time chat UI in project pages
    - Message routing and prioritization
 
-6. **Judging System** (CRITICAL)
+4. **Judging System** (CRITICAL)
    - Create judges table in Convex
    - LLM-as-judge implementation (multiple personas)
    - Rubric definition (5 criteria)
@@ -732,13 +802,13 @@ messages: defineTable({
    - Store judgments in database
    - Admin trigger controls
 
-7. **Leaderboards** (CRITICAL)
+5. **Leaderboards** (CRITICAL)
    - Real-time calculation (judge + vote scores)
    - Multiple views (overall, track, rising stars)
    - Leaderboard UI components
    - Live updates with animations
 
-8. **Admin Console Extensions** (CRITICAL)
+6. **Admin Console Extensions** (CRITICAL)
    - Simulation controls (phase, tick rate, emergency pause)
    - Judging administration panel
    - Prompt/rubric editors
@@ -747,25 +817,25 @@ messages: defineTable({
 
 ### After Core Systems Work
 
-9. **Live Event Frontend** (`apps/web`)
+7. **Live Event Frontend** (`apps/web`)
    - Landing page with hero section
    - Live activity feed
    - Project cards and detail pages
    - Chat interface integration
    - Vote buttons
 
-10. **Voting System**
+8. **Voting System**
     - Vote API with rate limiting
     - Anonymous + authenticated voting
     - Weight system
     - Anti-spam measures
 
-11. **Discord Ingestion Tool**
+9. **Discord Ingestion Tool**
     - Import participant data
     - Batch create agent stacks
     - Pseudonymize by default
 
-12. **Scale Testing**
+10. **Scale Testing**
     - Run 50-100 agents simultaneously
     - Monitor performance and costs
     - Load test Convex
