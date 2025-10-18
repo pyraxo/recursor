@@ -1,16 +1,7 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
 import { Id } from "@recursor/convex/_generated/dataModel";
-import { PixelPanel } from "../shared/PixelPanel";
-import { AGENT_COLORS } from "../../lib/theme";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@repo/ui/components/context-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,8 +12,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@repo/ui/components/alert-dialog";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@repo/ui/components/context-menu";
+import { useMutation, useQuery } from "convex/react";
 import { Pause, Play, Square, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { AGENT_COLORS } from "../../lib/theme";
+import { PixelPanel } from "../shared/PixelPanel";
 
 export function ObservabilityTab() {
   const stacks = useQuery(api.agents.listStacks);
@@ -127,25 +127,37 @@ export function ObservabilityTab() {
                         </div>
                         <div className="grid grid-cols-4 gap-2 text-xs">
                           <div className="text-center">
-                            <div style={{ color: AGENT_COLORS.planner }} className="font-bold">
+                            <div
+                              style={{ color: AGENT_COLORS.planner }}
+                              className="font-bold"
+                            >
                               Planner
                             </div>
                             <div className="text-muted-foreground">Idle</div>
                           </div>
                           <div className="text-center">
-                            <div style={{ color: AGENT_COLORS.builder }} className="font-bold">
+                            <div
+                              style={{ color: AGENT_COLORS.builder }}
+                              className="font-bold"
+                            >
                               Builder
                             </div>
                             <div className="text-muted-foreground">Idle</div>
                           </div>
                           <div className="text-center">
-                            <div style={{ color: AGENT_COLORS.communicator }} className="font-bold">
+                            <div
+                              style={{ color: AGENT_COLORS.communicator }}
+                              className="font-bold"
+                            >
                               Communicator
                             </div>
                             <div className="text-muted-foreground">Idle</div>
                           </div>
                           <div className="text-center">
-                            <div style={{ color: AGENT_COLORS.reviewer }} className="font-bold">
+                            <div
+                              style={{ color: AGENT_COLORS.reviewer }}
+                              className="font-bold"
+                            >
                               Reviewer
                             </div>
                             <div className="text-muted-foreground">Idle</div>
@@ -153,7 +165,7 @@ export function ObservabilityTab() {
                         </div>
                       </div>
                     </ContextMenuTrigger>
-                    <ContextMenuContent className="w-48">
+                    <ContextMenuContent className="w-48 cursor-move">
                       {executionState === "running" ? (
                         <ContextMenuItem
                           onClick={(e) => {
@@ -248,8 +260,10 @@ export function ObservabilityTab() {
             <AlertDialogDescription>
               This will permanently delete{" "}
               <span className="font-medium text-foreground">
-                {stacks?.find((s: any) => s._id === deleteDialogOpen)
-                  ?.participant_name}
+                {
+                  stacks?.find((s: any) => s._id === deleteDialogOpen)
+                    ?.participant_name
+                }
               </span>
               . This action cannot be undone.
             </AlertDialogDescription>
@@ -261,7 +275,9 @@ export function ObservabilityTab() {
             <AlertDialogAction
               onClick={() => {
                 if (deleteDialogOpen) {
-                  deleteStack({ stackId: deleteDialogOpen as Id<"agent_stacks"> });
+                  deleteStack({
+                    stackId: deleteDialogOpen as Id<"agent_stacks">,
+                  });
                   setDeleteDialogOpen(null);
                 }
               }}

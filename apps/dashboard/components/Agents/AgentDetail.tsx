@@ -42,12 +42,10 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
   const todos = useQuery(api.todos.list, { stackId });
   const artifacts = useQuery(api.artifacts.list, { stackId });
   const timeline = useQuery(api.messages.getTimeline, { stackId });
-  const timelineScrollRef = useRef<HTMLDivElement>(null);
+  const timelineBottomRef = useRef<HTMLDivElement>(null);
 
   const scrollToLatestMessage = () => {
-    if (timelineScrollRef.current) {
-      timelineScrollRef.current.scrollTop = timelineScrollRef.current.scrollHeight;
-    }
+    timelineBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   if (!stack) return <div className="text-muted-foreground">Loading...</div>;
@@ -312,7 +310,7 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
                 </div>
               ) : (
                 <ScrollArea className="h-[400px]">
-                  <div ref={timelineScrollRef} className="space-y-3 pr-4">
+                  <div className="space-y-3 pr-4">
                     {timeline.map((m: any) => (
                       <div
                         key={m._id}
@@ -339,6 +337,8 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
                         <div className="text-sm">{m.content}</div>
                       </div>
                     ))}
+                    {/* Invisible anchor point at the bottom for scrolling */}
+                    <div ref={timelineBottomRef} />
                   </div>
                 </ScrollArea>
               )}
