@@ -21,9 +21,15 @@ export function ChatTab({ stackId }: ChatTabProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Auto-scroll to bottom when component mounts
+  useEffect(() => {
+    scrollToBottom();
+  }, []);
 
   const handleSend = async () => {
     if (!message.trim()) return;
@@ -41,7 +47,7 @@ export function ChatTab({ stackId }: ChatTabProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto scrollbar-hide space-y-2 mb-4 min-h-0">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide space-y-2 mb-4 min-h-0 max-h-[500px]">
         {!messages && (
           <div className="text-[var(--foreground)]/60 font-mono text-sm">Loading messages...</div>
         )}
