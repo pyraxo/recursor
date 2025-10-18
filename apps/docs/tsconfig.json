@@ -5,7 +5,10 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "paths": {
+      "@/src/*": ["../../packages/ui/src/*"]
+    }
   },
   "include": [
     "**/*.ts",

@@ -1,23 +1,22 @@
 # Dashboard Play/Pause Implementation Plan
 
 ## Executive Summary
-Replace CLI-based agent execution (`pnpm cli run <task_id>`) with dashboard-controlled Play/Pause functionality, allowing users to start, pause, and resume agent execution directly from the web interface.
+Replace CLI-based agent execution (`pnpm cli run <task_id>`) with dashboard-controlled Play/Pause functionality, allowing users to start, pause, and resume agent execution directly from the web interface. Agents will continue their execution from exactly where they left off when resumed.
 
 ## 1. Feature Requirements
 
 ### 1.1 Functional Requirements
 - **Play Button**: Start or resume agent execution for a specific team
-- **Pause Button**: Temporarily halt agent execution (preserve state)
-- **Stop Button**: Permanently stop execution (optional, phase 2)
+- **Pause Button**: Temporarily halt agent execution (preserve complete state)
+- **Stop Button**: Permanently stop execution and cleanup resources
 - **Execution Status Indicator**: Show current state (running/paused/stopped)
 - **Multi-Team Control**: Independent control for each team
-- **Tick Counter**: Display current tick count and progress
-- **Configuration Controls**: Set interval and max ticks from dashboard
+- **Activity Indicator**: Show when agents are actively processing
 
 ### 1.2 Non-Functional Requirements
 - **Real-time Updates**: Status changes reflect immediately
-- **Graceful Pause**: Complete current tick before pausing
-- **State Persistence**: Maintain state across dashboard refreshes
+- **Graceful Pause**: Complete current agent action before pausing
+- **State Persistence**: Maintain complete execution state across pauses
 - **Error Handling**: Clear feedback on control failures
 - **Performance**: Control actions complete within 500ms
 - **Scalability**: Support multiple teams running simultaneously
@@ -32,7 +31,7 @@ Replace CLI-based agent execution (`pnpm cli run <task_id>`) with dashboard-cont
 │  │   Play/Pause Control Component               │   │
 │  │   - UI Controls (Play/Pause/Stop buttons)    │   │
 │  │   - Status Display (Running/Paused/Stopped)  │   │
-│  │   - Configuration (interval, maxTicks)       │   │
+│  │   - Activity Indicator (agent processing)    │   │
 │  └─────────────────────────────────────────────┘   │
 └──────────────────────┬──────────────────────────────┘
                        │ Convex Mutations
@@ -43,10 +42,10 @@ Replace CLI-based agent execution (`pnpm cli run <task_id>`) with dashboard-cont
 │  │   agent_stacks Table Extensions:            │   │
 │  │   - execution_state: 'idle'|'running'|      │   │
 │  │                     'paused'|'stopped'      │   │
-│  │   - tick_count: number                      │   │
-│  │   - max_ticks: number                       │   │
-│  │   - interval_ms: number                     │   │
-│  │   - last_tick_at: timestamp                 │   │
+│  │   - last_activity_at: timestamp             │   │
+│  │   - started_at: timestamp                   │   │
+│  │   - paused_at: timestamp                    │   │
+│  │   - process_id: string (service identifier) │   │
 │  └─────────────────────────────────────────────┘   │
 └──────────────────────┬──────────────────────────────┘
                        │ Query State
@@ -55,9 +54,10 @@ Replace CLI-based agent execution (`pnpm cli run <task_id>`) with dashboard-cont
 │         Agent Execution Service (Node.js)           │
 │  ┌─────────────────────────────────────────────┐   │
 │  │   Execution Controller:                     │   │
-│  │   - Polls execution_state from Convex       │   │
+│  │   - Monitors execution_state from Convex    │   │
 │  │   - Manages AgentStackOrchestrator          │   │
 │  │   - Handles Play/Pause/Stop signals         │   │
+│  │   - Maintains execution continuity          │   │
 │  └─────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────┘
 ```
@@ -66,11 +66,11 @@ Replace CLI-based agent execution (`pnpm cli run <task_id>`) with dashboard-cont
 
 #### Play Action Flow:
 1. User clicks Play button on dashboard
-2. Dashboard calls Convex mutation `startExecution(stackId, config)`
+2. Dashboard calls Convex mutation `startExecution(stackId)`
 3. Convex updates `execution_state` to 'running'
 4. Execution Service detects state change
-5. Service starts orchestrator tick loop
-6. Each tick updates `tick_count` and `last_tick_at`
+5. Service starts/resumes orchestrator execution loop
+6. Agents continue processing from their last state
 7. Dashboard reflects running state via subscription
 
 #### Pause Action Flow:
@@ -78,9 +78,18 @@ Replace CLI-based agent execution (`pnpm cli run <task_id>`) with dashboard-cont
 2. Dashboard calls Convex mutation `pauseExecution(stackId)`
 3. Convex updates `execution_state` to 'paused'
 4. Execution Service detects state change
-5. Service completes current tick (if any)
-6. Service suspends tick loop
+5. Service completes current agent action (graceful pause)
+6. Service preserves complete execution context
 7. Dashboard reflects paused state
+
+#### Resume Action Flow:
+1. User clicks Play button (when paused)
+2. Dashboard calls Convex mutation `resumeExecution(stackId)`
+3. Convex updates `execution_state` to 'running'
+4. Execution Service detects state change
+5. Service restores execution context
+6. Agents continue exactly where they left off
+7. Execution resumes with preserved state
 
 ## 3. Implementation Phases
 
@@ -91,24 +100,25 @@ Replace CLI-based agent execution (`pnpm cli run <task_id>`) with dashboard-cont
    - Create migration script
 
 2. **Convex API Endpoints**
-   - `startExecution(stackId, config)`
+   - `startExecution(stackId)`
    - `pauseExecution(stackId)`
+   - `resumeExecution(stackId)`
    - `stopExecution(stackId)`
    - `getExecutionStatus(stackId)`
-   - `updateTickCount(stackId, count)`
+   - `updateActivityTimestamp(stackId)`
 
 3. **Execution Service Refactor**
    - Create `ExecutionController` class
-   - Implement state polling mechanism
+   - Implement state monitoring mechanism
    - Refactor orchestrator to support pause/resume
-   - Add graceful shutdown handling
+   - Add graceful pause/resume handling
 
 ### Phase 2: Dashboard UI Components (2-3 days)
 1. **Control Component**
    - Play/Pause toggle button
    - Stop button (confirmation dialog)
-   - Configuration inputs (interval, max ticks)
    - Status indicator (with color coding)
+   - Activity indicator (pulsing when active)
 
 2. **Integration Points**
    - Team detail view integration
@@ -130,7 +140,7 @@ Replace CLI-based agent execution (`pnpm cli run <task_id>`) with dashboard-cont
    ```typescript
    class ExecutionController {
      private orchestrators: Map<string, AgentStackOrchestrator>
-     private intervals: Map<string, NodeJS.Timeout>
+     private controllers: Map<string, AbortController>
 
      async start(stackId: string) {
        const state = await getExecutionState(stackId)
@@ -139,35 +149,60 @@ Replace CLI-based agent execution (`pnpm cli run <task_id>`) with dashboard-cont
        const orchestrator = new AgentStackOrchestrator(stackId)
        await orchestrator.initialize()
 
-       const interval = setInterval(async () => {
-         const currentState = await getExecutionState(stackId)
-
-         if (currentState.execution_state === 'paused') {
-           // Skip tick but keep interval alive
-           return
-         }
-
-         if (currentState.execution_state === 'stopped') {
-           this.cleanup(stackId)
-           return
-         }
-
-         await orchestrator.tick()
-         await updateTickCount(stackId, orchestrator.tickCount)
-
-         if (orchestrator.tickCount >= currentState.max_ticks) {
-           await stopExecution(stackId)
-           this.cleanup(stackId)
-         }
-       }, state.interval_ms)
-
-       this.intervals.set(stackId, interval)
+       const controller = new AbortController()
+       this.controllers.set(stackId, controller)
        this.orchestrators.set(stackId, orchestrator)
+
+       // Continuous execution loop
+       this.runContinuous(stackId, controller.signal)
+     }
+
+     async runContinuous(stackId: string, signal: AbortSignal) {
+       const orchestrator = this.orchestrators.get(stackId)
+
+       while (!signal.aborted) {
+         const state = await getExecutionState(stackId)
+
+         if (state.execution_state === 'paused') {
+           // Wait while paused, checking every second
+           await new Promise(resolve => setTimeout(resolve, 1000))
+           continue
+         }
+
+         if (state.execution_state === 'stopped') {
+           this.cleanup(stackId)
+           return
+         }
+
+         // Execute next agent action
+         await orchestrator.executeNextAction()
+         await updateActivityTimestamp(stackId)
+
+         // Small delay between actions to prevent CPU overload
+         await new Promise(resolve => setTimeout(resolve, 100))
+       }
+     }
+
+     async pause(stackId: string) {
+       // State change handled by Convex
+       // Execution loop will detect and pause gracefully
+     }
+
+     async resume(stackId: string) {
+       const orchestrator = this.orchestrators.get(stackId)
+       if (orchestrator) {
+         // Already running, just update state
+         await resumeExecution(stackId)
+       } else {
+         // Restart from saved state
+         await this.start(stackId)
+       }
      }
 
      cleanup(stackId: string) {
-       clearInterval(this.intervals.get(stackId))
-       this.intervals.delete(stackId)
+       const controller = this.controllers.get(stackId)
+       controller?.abort()
+       this.controllers.delete(stackId)
        this.orchestrators.delete(stackId)
      }
    }
@@ -192,26 +227,92 @@ Replace CLI-based agent execution (`pnpm cli run <task_id>`) with dashboard-cont
 
 ## 4. Technical Implementation Details
 
-### 4.1 Database Schema Changes
+### 4.1 Orchestrator Refactoring
+
+The current orchestrator runs in a tick-based loop. We need to refactor it to support pause/resume:
+
+```typescript
+// packages/agent-engine/src/orchestrator.ts
+
+export class AgentStackOrchestrator {
+  private shouldPause = false
+  private isPaused = false
+  private currentAction: Promise<void> | null = null
+
+  async runContinuous(): Promise<void> {
+    while (true) {
+      // Check execution state from Convex
+      const state = await this.getExecutionState()
+
+      if (state === 'stopped') {
+        break
+      }
+
+      if (state === 'paused') {
+        this.isPaused = true
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        continue
+      }
+
+      this.isPaused = false
+
+      // Execute next action for each agent
+      await this.executeNextAction()
+
+      // Small delay to prevent CPU overload
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+  }
+
+  async executeNextAction(): Promise<void> {
+    // Save current action for graceful pause
+    this.currentAction = this.runAgentCycle()
+    await this.currentAction
+    this.currentAction = null
+  }
+
+  private async runAgentCycle(): Promise<void> {
+    // Run each agent in sequence
+    await this.plannerAgent.think()
+    if (this.shouldPause) return
+
+    await this.builderAgent.think()
+    if (this.shouldPause) return
+
+    await this.communicatorAgent.think()
+    if (this.shouldPause) return
+
+    await this.reviewerAgent.think()
+  }
+
+  async gracefulPause(): Promise<void> {
+    this.shouldPause = true
+    // Wait for current action to complete
+    if (this.currentAction) {
+      await this.currentAction
+    }
+  }
+}
+```
+
+### 4.2 Database Schema Changes
 ```typescript
 // packages/convex/convex/schema.ts
 agent_stacks: defineTable({
   // Existing fields...
 
   // New execution control fields
-  execution_state: v.union(
+  execution_state: v.optional(v.union(
     v.literal('idle'),
     v.literal('running'),
     v.literal('paused'),
     v.literal('stopped')
-  ),
-  tick_count: v.number(),
-  max_ticks: v.number(),
-  interval_ms: v.number(),
-  last_tick_at: v.optional(v.number()),
+  )),
+  last_activity_at: v.optional(v.number()),
   started_at: v.optional(v.number()),
   paused_at: v.optional(v.number()),
   stopped_at: v.optional(v.number()),
+  process_id: v.optional(v.string()), // Track which service instance is running this
 })
 ```
 
@@ -222,20 +323,16 @@ agent_stacks: defineTable({
 export const startExecution = mutation({
   args: {
     stackId: v.id('agent_stacks'),
-    maxTicks: v.optional(v.number()),
-    intervalMs: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { stackId, maxTicks = 100, intervalMs = 5000 } = args
+    const stack = await ctx.db.get(args.stackId)
+    if (!stack) throw new Error('Stack not found')
 
-    await ctx.db.patch(stackId, {
+    await ctx.db.patch(args.stackId, {
       execution_state: 'running',
-      tick_count: 0,
-      max_ticks: maxTicks,
-      interval_ms: intervalMs,
       started_at: Date.now(),
+      last_activity_at: Date.now(),
       paused_at: undefined,
-      stopped_at: undefined,
     })
 
     return { success: true }
@@ -255,38 +352,66 @@ export const pauseExecution = mutation({
     return { success: true }
   },
 })
+
+export const resumeExecution = mutation({
+  args: {
+    stackId: v.id('agent_stacks'),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.stackId, {
+      execution_state: 'running',
+      paused_at: undefined,
+      last_activity_at: Date.now(),
+    })
+
+    return { success: true }
+  },
+})
+
+export const stopExecution = mutation({
+  args: {
+    stackId: v.id('agent_stacks'),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.stackId, {
+      execution_state: 'stopped',
+      stopped_at: Date.now(),
+      process_id: undefined,
+    })
+
+    return { success: true }
+  },
+})
 ```
 
 ### 4.3 Dashboard Component
 ```tsx
 // apps/dashboard/components/Controls/ExecutionControls.tsx
 
-import { useState } from 'react'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
-import { Play, Pause, Square, Settings } from 'lucide-react'
+import { Play, Pause, Square } from 'lucide-react'
+import { Id } from '@/convex/_generated/dataModel'
 
 export function ExecutionControls({ stackId }: { stackId: Id<'agent_stacks'> }) {
   const stack = useQuery(api.agents.getStack, { stackId })
   const start = useMutation(api.agents.startExecution)
   const pause = useMutation(api.agents.pauseExecution)
+  const resume = useMutation(api.agents.resumeExecution)
   const stop = useMutation(api.agents.stopExecution)
 
-  const [config, setConfig] = useState({
-    maxTicks: 100,
-    intervalMs: 5000,
-  })
-
-  const handlePlay = async () => {
-    await start({ stackId, ...config })
-  }
-
-  const handlePause = async () => {
-    await pause({ stackId })
+  const handlePlayPause = async () => {
+    if (stack?.execution_state === 'running') {
+      await pause({ stackId })
+    } else if (stack?.execution_state === 'paused') {
+      await resume({ stackId })
+    } else {
+      await start({ stackId })
+    }
   }
 
   const handleStop = async () => {
-    if (confirm('Stop execution? This cannot be undone.')) {
+    if (confirm('Stop execution? This will permanently halt all agents.')) {
       await stop({ stackId })
     }
   }
@@ -294,40 +419,46 @@ export function ExecutionControls({ stackId }: { stackId: Id<'agent_stacks'> }) 
   const isRunning = stack?.execution_state === 'running'
   const isPaused = stack?.execution_state === 'paused'
   const isStopped = stack?.execution_state === 'stopped'
+  const isActive = isRunning || isPaused
+
+  // Calculate if agents are actively processing (based on last_activity_at)
+  const isProcessing = isRunning && stack?.last_activity_at &&
+    (Date.now() - stack.last_activity_at < 5000)
 
   return (
     <div className="flex items-center gap-4 p-4 bg-gray-900 rounded-lg">
       <div className="flex gap-2">
-        {!isRunning && !isStopped && (
+        {!isStopped && (
           <button
-            onClick={handlePlay}
-            className="p-2 bg-green-600 hover:bg-green-700 rounded"
+            onClick={handlePlayPause}
+            className={`p-2 rounded transition-colors ${
+              isRunning
+                ? 'bg-yellow-600 hover:bg-yellow-700'
+                : 'bg-green-600 hover:bg-green-700'
+            }`}
+            title={isRunning ? 'Pause execution' : isPaused ? 'Resume execution' : 'Start execution'}
           >
-            <Play className="w-5 h-5" />
+            {isRunning ? (
+              <Pause className="w-5 h-5" />
+            ) : (
+              <Play className="w-5 h-5" />
+            )}
           </button>
         )}
 
-        {isRunning && (
-          <button
-            onClick={handlePause}
-            className="p-2 bg-yellow-600 hover:bg-yellow-700 rounded"
-          >
-            <Pause className="w-5 h-5" />
-          </button>
-        )}
-
-        {(isRunning || isPaused) && (
+        {isActive && (
           <button
             onClick={handleStop}
-            className="p-2 bg-red-600 hover:bg-red-700 rounded"
+            className="p-2 bg-red-600 hover:bg-red-700 rounded transition-colors"
+            title="Stop execution"
           >
             <Square className="w-5 h-5" />
           </button>
         )}
       </div>
 
-      <div className="flex items-center gap-2 text-sm">
-        <span className={`px-2 py-1 rounded ${
+      <div className="flex items-center gap-3 text-sm">
+        <span className={`px-3 py-1 rounded font-medium ${
           isRunning ? 'bg-green-900 text-green-300' :
           isPaused ? 'bg-yellow-900 text-yellow-300' :
           isStopped ? 'bg-red-900 text-red-300' :
@@ -336,17 +467,19 @@ export function ExecutionControls({ stackId }: { stackId: Id<'agent_stacks'> }) 
           {stack?.execution_state?.toUpperCase() || 'IDLE'}
         </span>
 
-        <span className="text-gray-400">
-          Tick {stack?.tick_count || 0} / {stack?.max_ticks || 100}
-        </span>
-      </div>
+        {isProcessing && (
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            <span className="text-gray-400">Processing...</span>
+          </div>
+        )}
 
-      {/* Configuration popover/modal */}
-      {!isRunning && !isStopped && (
-        <button className="p-2 text-gray-400 hover:text-gray-300">
-          <Settings className="w-5 h-5" />
-        </button>
-      )}
+        {isPaused && (
+          <span className="text-gray-500">
+            Execution paused - agents will resume from current state
+          </span>
+        )}
+      </div>
     </div>
   )
 }
@@ -363,9 +496,9 @@ export function ExecutionControls({ stackId }: { stackId: Id<'agent_stacks'> }) 
 ### 5.2 User Feedback
 - Toast notifications for state changes
 - Confirmation dialogs for destructive actions
-- Progress bars for tick count
-- Time elapsed display
-- Estimated time remaining
+- Activity indicator for active processing
+- Time elapsed since start
+- Last activity timestamp
 
 ### 5.3 Responsive Design
 - Mobile: Stacked controls with icons only
@@ -408,14 +541,22 @@ describe('Execution Flow', () => {
 ## 7. Migration & Deployment
 
 ### 7.1 Database Migration
-```sql
--- Add default values for existing stacks
-UPDATE agent_stacks SET
-  execution_state = 'idle',
-  tick_count = 0,
-  max_ticks = 100,
-  interval_ms = 5000
-WHERE execution_state IS NULL;
+```typescript
+// Migration script for existing stacks
+await ctx.db.query('agent_stacks')
+  .filter(q => q.eq(q.field('execution_state'), undefined))
+  .collect()
+  .then(stacks => {
+    for (const stack of stacks) {
+      await ctx.db.patch(stack._id, {
+        execution_state: 'idle',
+        last_activity_at: undefined,
+        started_at: undefined,
+        paused_at: undefined,
+        stopped_at: undefined,
+      })
+    }
+  })
 ```
 
 ### 7.2 Deployment Steps
@@ -509,15 +650,30 @@ WHERE execution_state IS NULL;
 - State explanations
 - Troubleshooting guide
 
-## 13. Conclusion
+## 13. Key Changes from Original Plan
 
-This implementation plan provides a comprehensive approach to adding Play/Pause functionality to the dashboard. The phased approach ensures we can deliver value incrementally while maintaining system stability. The architecture leverages existing Convex infrastructure for real-time updates while adding minimal complexity to the system.
+### Simplified Execution Model
+- **No tick counting**: Agents run continuously until paused or stopped
+- **No interval configuration**: Agents execute at their natural pace
+- **State-based control**: Simple running/paused/stopped states
+- **Complete state preservation**: Resume exactly where paused
+
+### Benefits of This Approach
+1. **Simpler implementation**: No tick management complexity
+2. **More natural execution**: Agents work at optimal speed
+3. **Better user experience**: Clear Play/Pause semantics
+4. **Easier debugging**: Execution state is straightforward
+5. **Resource efficient**: No unnecessary delays between actions
+
+## 14. Conclusion
+
+This updated implementation plan provides a streamlined approach to adding Play/Pause functionality to the dashboard. By removing tick-based execution in favor of continuous processing with pause/resume capability, we achieve a more intuitive and efficient system.
 
 Key success factors:
-1. Clean separation of concerns
-2. Graceful state transitions
-3. Real-time synchronization
-4. Intuitive user interface
-5. Robust error handling
+1. Simple state management (idle/running/paused/stopped)
+2. Graceful pause that completes current action
+3. Complete state preservation for seamless resume
+4. Real-time status updates via Convex
+5. Clear visual feedback in the dashboard
 
-By following this plan, we'll transform agent execution from a CLI-driven process to a user-friendly, dashboard-controlled experience that provides better visibility and control over the agent lifecycle.
+By following this plan, we'll transform agent execution from a CLI-driven process to a user-friendly, dashboard-controlled experience where agents can be started, paused, and resumed at will, maintaining their complete execution context throughout.
