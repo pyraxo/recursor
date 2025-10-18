@@ -20,7 +20,7 @@ export function MessagesTab() {
 
   if (!messages) {
     return (
-      <div className="flex items-center justify-center h-full text-center">
+      <div className="flex items-center justify-center h-full text-center w-full">
         <div className="text-muted-foreground text-sm">Loading messages...</div>
       </div>
     );

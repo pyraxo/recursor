@@ -44,6 +44,18 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
   const timeline = useQuery(api.messages.getTimeline, { stackId });
   const timelineScrollRef = useRef<HTMLDivElement>(null);
 
+  // Function to open HTML artifact in new tab
+  const openInNewTab = (htmlContent: string) => {
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const newWindow = window.open(url, '_blank');
+
+    // Clean up the blob URL after a short delay
+    if (newWindow) {
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+  };
+
   const scrollToLatestMessage = () => {
     if (timelineScrollRef.current) {
       timelineScrollRef.current.scrollTop =
@@ -264,22 +276,42 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
               ) : (
                 <ScrollArea className="h-[400px]">
                   <div className="space-y-2 pr-4">
-                    {artifacts.map((a: any) => (
-                      <div
-                        key={a._id}
-                        className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <FileCode className="w-4 h-4 text-primary" />
-                          <div>
-                            <Badge variant="outline" className="font-mono">
-                              v{a.version}
-                            </Badge>
-                            <span className="ml-2 text-sm">{a.type}</span>
+                    {artifacts.map((a: any) => {
+                      const isHtmlArtifact = (a.type === "html" || a.type === "html_js") && a.content;
+                      const isExternalLink = a.type === "external_link" && a.url;
+
+                      return (
+                        <div
+                          key={a._id}
+                          className={`flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors ${
+                            isHtmlArtifact || isExternalLink ? 'cursor-pointer hover:border-primary' : ''
+                          }`}
+                          onClick={() => {
+                            if (isHtmlArtifact) {
+                              openInNewTab(a.content);
+                            } else if (isExternalLink) {
+                              window.open(a.url, '_blank');
+                            }
+                          }}
+                          title={isHtmlArtifact ? 'Click to open in new tab' : isExternalLink ? 'Click to open link' : ''}
+                        >
+                          <div className="flex items-center gap-3">
+                            <FileCode className="w-4 h-4 text-primary" />
+                            <div>
+                              <Badge variant="outline" className="font-mono">
+                                v{a.version}
+                              </Badge>
+                              <span className="ml-2 text-sm">{a.type}</span>
+                            </div>
                           </div>
+                          {(isHtmlArtifact || isExternalLink) && (
+                            <span className="text-xs text-muted-foreground">
+                              Click to open →
+                            </span>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </ScrollArea>
               )}

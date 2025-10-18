@@ -153,12 +153,13 @@ export async function executePlanner(
     );
   }
 
-  // Execute actions (handle special actions first: clear todos and update project)
+  // Execute actions (handle special actions first: clear todos, update project, and update phase)
   let todosCreated = 0;
   let todosUpdated = 0;
   let todosDeleted = 0;
   let todosCleared = 0;
   let projectUpdated = false;
+  let phaseUpdated = false;
 
   // Check if there's a clear_all_todos action - handle it first
   const clearAction = parsed.actions.find((a: any) => a.type === "clear_all_todos");
@@ -182,6 +183,18 @@ export async function executePlanner(
     });
     projectUpdated = true;
     console.log(`[Planner] Updated project${updateProjectAction.title ? ` title: "${updateProjectAction.title}"` : ""}${updateProjectAction.description ? ` with enhanced description (${updateProjectAction.description.length} chars)` : ""}`);
+  }
+
+  // Check if there's an update_phase action
+  const updatePhaseAction = parsed.actions.find((a: any) => a.type === "update_phase");
+  if (updatePhaseAction && updatePhaseAction.phase) {
+    const oldPhase = stack.phase;
+    await ctx.runMutation(internal.agents.internalUpdatePhase, {
+      stackId: stackId,
+      phase: updatePhaseAction.phase,
+    });
+    phaseUpdated = true;
+    console.log(`[Planner] Updated phase: "${oldPhase}" -> "${updatePhaseAction.phase}"`);
   }
 
   // Now execute other actions
@@ -237,7 +250,7 @@ export async function executePlanner(
   }
 
   console.log(
-    `[Planner] Summary: ${projectUpdated ? "Updated project, " : ""}${todosCleared > 0 ? `Cleared ${todosCleared}, ` : ""}Created ${todosCreated}, Updated ${todosUpdated}, Deleted ${todosDeleted} todos from ${parsed.actions.length} total actions`
+    `[Planner] Summary: ${phaseUpdated ? "Updated phase, " : ""}${projectUpdated ? "Updated project, " : ""}${todosCleared > 0 ? `Cleared ${todosCleared}, ` : ""}Created ${todosCreated}, Updated ${todosUpdated}, Deleted ${todosDeleted} todos from ${parsed.actions.length} total actions`
   );
 
   // Update planner memory with the thinking (not the full JSON)
@@ -268,6 +281,7 @@ export async function executePlanner(
       todosDeleted,
       todosCleared,
       projectUpdated,
+      phaseUpdated,
       totalActions: parsed.actions.length,
       hasWork: hasWork.hasWork,
       reason: hasWork.reason,

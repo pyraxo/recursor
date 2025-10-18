@@ -3,12 +3,13 @@
 import { api } from "@recursor/convex/_generated/api";
 import { Button } from "@repo/ui/components/button";
 import { useMutation, useQuery } from "convex/react";
-import { Play, Square } from "lucide-react";
+import { Pause, Play, Square } from "lucide-react";
 import { useState } from "react";
 
 export function GlobalExecutionControls() {
   const stacks = useQuery(api.agents.listStacks);
   const startExecution = useMutation(api.agents.startExecution);
+  const pauseExecution = useMutation(api.agents.pauseExecution);
   const stopExecution = useMutation(api.agents.stopExecution);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -36,6 +37,28 @@ export function GlobalExecutionControls() {
         stoppedStacks.map((stack) =>
           startExecution({ stackId: stack._id }).catch((err) =>
             console.error(`Failed to start ${stack.participant_name}:`, err)
+          )
+        )
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handlePauseAll = async () => {
+    if (runningStacks.length === 0) return;
+
+    const confirmed = confirm(
+      `Pause execution for ${runningStacks.length} running team(s)?`
+    );
+    if (!confirmed) return;
+
+    setIsProcessing(true);
+    try {
+      await Promise.all(
+        runningStacks.map((stack) =>
+          pauseExecution({ stackId: stack._id }).catch((err) =>
+            console.error(`Failed to pause ${stack.participant_name}:`, err)
           )
         )
       );
@@ -84,6 +107,16 @@ export function GlobalExecutionControls() {
         >
           <Play className="mr-1.5 h-3.5 w-3.5" />
           Start All
+        </Button>
+        <Button
+          onClick={handlePauseAll}
+          disabled={runningStacks.length === 0 || isProcessing}
+          size="sm"
+          variant="outline"
+          className="font-mono text-xs border-yellow-500/50 text-yellow-600 hover:bg-yellow-500 hover:text-white bg-transparent pl-2 pr-2"
+        >
+          <Pause className="mr-1.5 h-3.5 w-3.5" />
+          Pause All
         </Button>
         <Button
           onClick={handleStopAll}

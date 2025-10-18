@@ -17,7 +17,7 @@ export interface Message {
 
 // Structured action types for agent responses
 export interface TodoAction {
-  type: "create_todo" | "update_todo" | "delete_todo" | "clear_all_todos" | "update_project";
+  type: "create_todo" | "update_todo" | "delete_todo" | "clear_all_todos" | "update_project" | "update_phase";
   content?: string; // For create and delete
   oldContent?: string; // For update
   newContent?: string; // For update
@@ -26,6 +26,8 @@ export interface TodoAction {
   // For update_project
   title?: string; // New project title (optional)
   description?: string; // New/updated project description
+  // For update_phase
+  phase?: string; // New phase: 'ideation', 'building', 'demo', etc.
 }
 
 export interface PlannerResult {
@@ -270,7 +272,7 @@ Keep it moving - be creative, work autonomously, and focus on building something
     switch (role) {
       case "planner":
         if (useStructuredOutput) {
-          return `Your job is to manage the todo list, evolve the project description, and keep the team on track.
+          return `Your job is to manage the todo list, evolve the project description, manage the team's phase, and keep the team on track.
 
 Respond with JSON in this exact format:
 {
@@ -280,7 +282,8 @@ Respond with JSON in this exact format:
     {"type": "update_todo", "oldContent": "existing todo text", "newContent": "updated text", "priority": 8},
     {"type": "delete_todo", "content": "todo to remove"},
     {"type": "clear_all_todos", "reason": "why you're clearing everything"},
-    {"type": "update_project", "title": "new title (optional)", "description": "updated description with more detail"}
+    {"type": "update_project", "title": "new title (optional)", "description": "updated description with more detail"},
+    {"type": "update_phase", "phase": "ideation|building|demo|complete"}
   ]
 }
 
@@ -292,9 +295,19 @@ In your "actions" array, include any operations you want to perform. You can:
 - delete individual todos that aren't needed
 - clear ALL todos and start fresh (use this if the list is too bloated or doesn't make sense anymore - then add new todos after)
 - update the project idea and description (add more technical detail, refine scope, document decisions made)
+- update the team's phase based on current progress (explained below)
 - create "broadcast" or "announce" todos ONLY for major milestones (the Communicator will handle these)
 
 Priority is 1-10, with 10 being most important.
+
+PHASE MANAGEMENT:
+You control which phase the team is in. Update it as you make progress:
+- "ideation": Brainstorming ideas, defining the project concept. Stay here until you have a solid project description.
+- "building": Actively implementing features, writing code. Move here once you have todos and are building.
+- "demo": Project is feature-complete, polishing for presentation. Move here when core functionality works.
+- "complete": Finished and ready to show off. Move here when everything is polished and demo-ready.
+
+Think of phases as your project's lifecycle. Move forward when you've achieved the goals of the current phase. You can also move backwards if you need to (e.g., from building back to ideation if you decide to pivot).
 
 IMPORTANT ABOUT USER MESSAGES: The Communicator responds directly to user questions and messages - you don't need to create "respond to user" todos. Only get involved if a user message requires strategic changes to the project (like feature requests or major pivots).
 

@@ -184,6 +184,19 @@ export const updatePhase = mutation({
   },
 });
 
+// Internal mutation: Update stack phase (for agent execution)
+export const internalUpdatePhase = internalMutation({
+  args: {
+    stackId: v.id("agent_stacks"),
+    phase: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.stackId, {
+      phase: args.phase,
+    });
+  },
+});
+
 // Delete an agent stack
 export const deleteStack = mutation({
   args: {

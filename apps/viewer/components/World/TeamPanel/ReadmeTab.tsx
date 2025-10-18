@@ -13,6 +13,18 @@ export function ReadmeTab({ stackId }: ReadmeTabProps) {
   const projectIdea = useQuery(api.project_ideas.getByStack, { stackId });
   const artifact = useQuery(api.artifacts.getLatest, { stackId });
 
+  // Function to open HTML artifact in new tab
+  const openInNewTab = (htmlContent: string) => {
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const newWindow = window.open(url, '_blank');
+
+    // Clean up the blob URL after a short delay
+    if (newWindow) {
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+  };
+
   if (!stack) {
     return <div className="text-[var(--foreground)]/60 font-mono text-sm">Loading...</div>;
   }
@@ -64,17 +76,26 @@ export function ReadmeTab({ stackId }: ReadmeTabProps) {
           <div className="bg-white p-1 border-2 border-[var(--panel-border)] rounded">
             <iframe
               srcDoc={artifact.content}
-              className="w-full h-96 border-0 rounded"
+              className="w-full h-96 border-0 rounded cursor-pointer"
               sandbox="allow-scripts allow-same-origin"
               title={`${stack.participant_name} Project`}
+              onClick={() => openInNewTab(artifact.content!)}
             />
-            <div className="mt-2 p-2 bg-[var(--background)] text-xs text-[var(--foreground)]/60">
-              ⚡ Live Preview
-              {artifact.metadata?.tech_stack && (
-                <span className="ml-2">
-                  | Tech: {artifact.metadata.tech_stack.join(", ")}
-                </span>
-              )}
+            <div className="mt-2 p-2 bg-[var(--background)] text-xs text-[var(--foreground)]/60 flex items-center justify-between">
+              <div>
+                ⚡ Live Preview
+                {artifact.metadata?.tech_stack && (
+                  <span className="ml-2">
+                    | Tech: {artifact.metadata.tech_stack.join(", ")}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => openInNewTab(artifact.content!)}
+                className="px-2 py-1 bg-[var(--accent-primary)] text-white rounded hover:bg-[var(--accent-secondary)] transition-colors text-xs font-bold"
+              >
+                🚀 Open in New Tab
+              </button>
             </div>
           </div>
         ) : artifact && artifact.type === "multi_file" && artifact.content ? (
