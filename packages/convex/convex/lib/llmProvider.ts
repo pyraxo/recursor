@@ -241,13 +241,54 @@ Remember:
   private getRoleDescription(role: string): string {
     switch (role) {
       case "planner":
-        return "create strategic plans, define todos, and coordinate the team's efforts";
+        return `create strategic plans, define todos, and coordinate the team's efforts.
+
+You have full control over the todo list and can:
+- CREATE new todos
+- UPDATE existing todos (modify content or priority)
+- DELETE todos that are no longer needed
+
+IMPORTANT: Use these exact formats for todo management:
+
+CREATE a new todo:
+TODO: <description of the task>
+
+UPDATE an existing todo (reference it by content):
+UPDATE_TODO: "<exact current content>" -> "<new content>"
+or
+UPDATE_TODO: "<exact current content>" PRIORITY: <1-10>
+
+DELETE a todo (reference it by content):
+DELETE_TODO: "<exact content of todo to delete>"
+
+Examples:
+TODO: Set up project file structure
+TODO: Create basic HTML layout
+UPDATE_TODO: "Create basic HTML layout" -> "Create responsive HTML layout with mobile support"
+UPDATE_TODO: "Add styling with CSS" PRIORITY: 9
+DELETE_TODO: "Research potential APIs"
+
+Each command should be on its own line. Be strategic - remove todos that are outdated, update todos to be more specific, and create new ones as the project evolves.`;
       case "builder":
         return "execute todos, write code, and build working artifacts";
       case "communicator":
         return "handle team communication, status updates, and external messaging";
       case "reviewer":
-        return "analyze progress, provide feedback, and suggest improvements";
+        return `perform code reviews of the builder's artifacts and provide technical feedback.
+
+Your responsibilities:
+- Review HTML, CSS, and JavaScript code in artifacts
+- Identify bugs, security issues, and code quality problems
+- Suggest specific improvements and best practices
+- Check for accessibility, performance, and maintainability issues
+- Provide actionable recommendations for the planner to address
+
+Focus on the CODE QUALITY, not project management. When you find issues, provide:
+1. Clear description of the problem
+2. Severity (critical/major/minor)
+3. Specific recommendation starting with "RECOMMENDATION:"
+
+Be constructive and specific in your feedback.`;
       default:
         return "contribute to the team's success";
     }
@@ -276,15 +317,90 @@ Remember:
     // Agent-specific parsing
     switch (agentType) {
       case "planner":
-        // Look for todo creation patterns
-        const todoMatches = response.matchAll(/(?:TODO|TASK|Create):\s*(.+)/gi);
-        for (const match of todoMatches) {
-          if (match[1]) {
+        // Look for todo creation patterns - support multiple formats
+        const todoPatterns = [
+          /TODO:\s*(.+)/gi,                           // TODO: <content>
+          /TASK:\s*(.+)/gi,                           // TASK: <content>
+          /Create(?:\s+todo)?:\s*(.+)/gi,             // Create: <content> or Create todo: <content>
+          /^[-*]\s+(.+?)(?:\s*\((?:TODO|TASK)\))?$/gim, // - <content> or - <content> (TODO)
+          /^\d+\.\s+(.+?)(?:\s*\((?:TODO|TASK)\))?$/gim, // 1. <content> or 1. <content> (TODO)
+        ];
+
+        // Look for UPDATE_TODO patterns
+        // UPDATE_TODO: "old content" -> "new content"
+        // UPDATE_TODO: "content" PRIORITY: 9
+        const updatePattern = /UPDATE_TODO:\s*"([^"]+)"(?:\s*->\s*"([^"]+)"|(?:\s+PRIORITY:\s*(\d+)))/gi;
+
+        // Look for DELETE_TODO patterns
+        // DELETE_TODO: "content to delete"
+        const deletePattern = /DELETE_TODO:\s*"([^"]+)"/gi;
+
+        const foundTodos = new Set<string>(); // Avoid duplicates
+
+        // Parse CREATE actions
+        for (const pattern of todoPatterns) {
+          const matches = response.matchAll(pattern);
+          for (const match of matches) {
+            if (match[1]) {
+              const content = match[1].trim();
+              // Filter out very short or non-actionable items, and skip UPDATE/DELETE commands
+              if (
+                content.length > 5 &&
+                !foundTodos.has(content.toLowerCase()) &&
+                !content.startsWith("UPDATE_TODO") &&
+                !content.startsWith("DELETE_TODO")
+              ) {
+                foundTodos.add(content.toLowerCase());
+                actions.actions.push({
+                  type: "create_todo",
+                  content: content,
+                  priority: 5,
+                });
+              }
+            }
+          }
+        }
+
+        // Parse UPDATE actions
+        const updateMatches = response.matchAll(updatePattern);
+        for (const match of updateMatches) {
+          const oldContent = match[1]?.trim();
+          const newContent = match[2]?.trim();
+          const priority = match[3] ? parseInt(match[3]) : undefined;
+
+          if (oldContent) {
             actions.actions.push({
-              type: "create_todo",
-              content: match[1].trim(),
+              type: "update_todo",
+              oldContent,
+              newContent: newContent || undefined,
+              priority: priority,
             });
           }
+        }
+
+        // Parse DELETE actions
+        const deleteMatches = response.matchAll(deletePattern);
+        for (const match of deleteMatches) {
+          const content = match[1]?.trim();
+          if (content) {
+            actions.actions.push({
+              type: "delete_todo",
+              content,
+            });
+          }
+        }
+
+        console.log(`[Parser] Found ${actions.actions.length} todo actions from planner response`);
+        console.log(`[Parser] Breakdown: ${
+          actions.actions.filter((a: any) => a.type === "create_todo").length
+        } creates, ${
+          actions.actions.filter((a: any) => a.type === "update_todo").length
+        } updates, ${
+          actions.actions.filter((a: any) => a.type === "delete_todo").length
+        } deletes`);
+
+        if (actions.actions.length === 0) {
+          console.warn("[Parser] No actions found. Response:", response.substring(0, 200));
         }
         break;
 

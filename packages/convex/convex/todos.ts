@@ -126,6 +126,50 @@ export const internalUpdateStatus = internalMutation({
   },
 });
 
+// Internal: Update todo content and/or priority
+export const internalUpdate = internalMutation({
+  args: {
+    todoId: v.id("todos"),
+    content: v.optional(v.string()),
+    priority: v.optional(v.number()),
+    status: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const updates: Record<string, any> = {};
+
+    if (args.content !== undefined) {
+      updates.content = args.content;
+    }
+
+    if (args.priority !== undefined) {
+      updates.priority = args.priority;
+    }
+
+    if (args.status !== undefined) {
+      updates.status = args.status;
+      if (args.status === "completed") {
+        updates.completed_at = Date.now();
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await ctx.db.patch(args.todoId, updates);
+    }
+
+    return args.todoId;
+  },
+});
+
+// Internal: Delete a todo
+export const internalDelete = internalMutation({
+  args: {
+    todoId: v.id("todos"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.todoId);
+  },
+});
+
 // Query: Get todos by stack ID (for use in agent adapters)
 export const getByStackId = query({
   args: {

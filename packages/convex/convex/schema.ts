@@ -48,8 +48,11 @@ export default defineSchema({
       current_work: v.optional(v.union(v.string(), v.null())),
       last_execution_update: v.optional(v.number()),
       last_review_time: v.optional(v.number()),
+      last_reviewed_version: v.optional(v.number()), // Track which artifact version was last reviewed
+      last_review_issues_count: v.optional(v.number()), // Number of issues found in last review
       last_planning_time: v.optional(v.number()),
       last_broadcast_time: v.optional(v.number()),
+      recommendations_type: v.optional(v.string()), // Type of recommendations (e.g., 'code_review', 'strategic')
     }),
     current_context: v.object({
       // Short-term working memory: current task, recent interactions

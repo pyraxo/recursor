@@ -17,7 +17,7 @@ export function SidePanel({ selectedTeamId }: SidePanelProps) {
 
   if (!selectedTeamId) {
     return (
-      <div className="w-full h-full p-6">
+      <div className="w-full h-full p-6 overflow-auto">
         <PixelPanel title="Welcome to Recursor">
           <div className="space-y-4 font-mono text-sm">
             <p className="text-[var(--foreground)]/80 leading-relaxed">
@@ -78,7 +78,7 @@ export function SidePanel({ selectedTeamId }: SidePanelProps) {
   }
 
   return (
-    <div className="w-full h-full p-6">
+    <div className="w-full h-full p-6 overflow-auto">
       <PixelPanel title="Team Details">
         <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
         

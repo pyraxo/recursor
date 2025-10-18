@@ -95,10 +95,22 @@ export async function executePlanner(
   });
 
   // 5. Parse response and execute actions
+  console.log(`[Planner] LLM Response (first 500 chars):\n${response.content.substring(0, 500)}`);
   const parsed = llmProvider.parseAgentResponse(response.content, "planner");
   console.log(`[Planner] Parsed ${parsed.actions.length} actions`);
 
-  // Execute todo creation actions
+  if (parsed.actions.length === 0) {
+    console.warn(
+      `[Planner] WARNING: No actions parsed from LLM response. This may indicate a formatting issue.`
+    );
+    console.warn(`[Planner] Full LLM response:\n${response.content}`);
+  }
+
+  // Execute todo actions (create, update, delete)
+  let todosCreated = 0;
+  let todosUpdated = 0;
+  let todosDeleted = 0;
+
   for (const action of parsed.actions) {
     if (action.type === "create_todo") {
       await ctx.runMutation(internal.todos.internalCreate, {
@@ -108,9 +120,50 @@ export async function executePlanner(
         assigned_by: "planner",
         priority: action.priority || 5,
       });
-      console.log(`[Planner] Created todo: ${action.content}`);
+      todosCreated++;
+      console.log(`[Planner] Created todo #${todosCreated}: ${action.content}`);
+    } else if (action.type === "update_todo") {
+      // Find the todo by matching content
+      const matchingTodo = todos?.find(
+        (t: any) => t.content === action.oldContent
+      );
+
+      if (matchingTodo) {
+        await ctx.runMutation(internal.todos.internalUpdate, {
+          todoId: matchingTodo._id,
+          content: action.newContent,
+          priority: action.priority,
+        });
+        todosUpdated++;
+        console.log(
+          `[Planner] Updated todo: "${action.oldContent}" -> "${action.newContent || "same"}"`
+        );
+      } else {
+        console.warn(
+          `[Planner] Could not find todo to update: "${action.oldContent}"`
+        );
+      }
+    } else if (action.type === "delete_todo") {
+      // Find the todo by matching content
+      const matchingTodo = todos?.find((t: any) => t.content === action.content);
+
+      if (matchingTodo) {
+        await ctx.runMutation(internal.todos.internalDelete, {
+          todoId: matchingTodo._id,
+        });
+        todosDeleted++;
+        console.log(`[Planner] Deleted todo: "${action.content}"`);
+      } else {
+        console.warn(
+          `[Planner] Could not find todo to delete: "${action.content}"`
+        );
+      }
     }
   }
+
+  console.log(
+    `[Planner] Summary: Created ${todosCreated}, Updated ${todosUpdated}, Deleted ${todosDeleted} todos from ${parsed.actions.length} total actions`
+  );
 
   // Update planner memory
   await ctx.runMutation(internal.agentExecution.updateAgentMemory, {
@@ -132,11 +185,13 @@ export async function executePlanner(
   await ctx.runMutation(internal.traces.internalLog, {
     stack_id: stackId,
     agent_type: "planner",
-    thought: response.content,
+    thought: response.content.substring(0, 1000), // Limit thought length in trace
     action: "planning",
     result: {
-      todosCreated: parsed.actions.filter((a: any) => a.type === "create_todo")
-        .length,
+      todosCreated,
+      todosUpdated,
+      todosDeleted,
+      totalActions: parsed.actions.length,
       hasWork: hasWork.hasWork,
       reason: hasWork.reason,
     },
