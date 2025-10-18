@@ -8,7 +8,7 @@ export function AgentList({ onSelect }: { onSelect: (id: string) => void }) {
   if (!stacks) return <div className="text-muted-foreground">Loading...</div>;
   return (
     <div className="space-y-2">
-      {stacks.map((s) => (
+      {stacks.map((s: any) => (
         <Button
           key={s._id}
           variant="outline"

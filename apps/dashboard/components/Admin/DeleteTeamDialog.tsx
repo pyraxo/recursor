@@ -32,15 +32,15 @@ export function DeleteTeamDialog({
   const [cascadeDelete, setCascadeDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const deleteStack = useMutation(api.agents.deleteStack);
+  // TODO: Implement deleteStack mutation in api.agents
+  // const deleteStack = useMutation(api.agents.deleteStack);
 
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      await deleteStack({
-        stackId,
-        cascadeDelete,
-      });
+      // TODO: Implement backend deleteStack mutation
+      console.log("Delete stack:", stackId, "cascade:", cascadeDelete);
+      alert("Delete functionality not yet implemented in backend");
       onOpenChange(false);
       setCascadeDelete(false);
     } catch (error) {

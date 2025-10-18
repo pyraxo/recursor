@@ -11,10 +11,10 @@ export function AdminDashboard() {
 
   const stats = {
     total: stacks?.length || 0,
-    ideation: stacks?.filter((s) => s.phase === "ideation").length || 0,
-    building: stacks?.filter((s) => s.phase === "building").length || 0,
-    demo: stacks?.filter((s) => s.phase === "demo").length || 0,
-    completed: stacks?.filter((s) => s.phase === "completed").length || 0,
+    ideation: stacks?.filter((s: any) => s.phase === "ideation").length || 0,
+    building: stacks?.filter((s: any) => s.phase === "building").length || 0,
+    demo: stacks?.filter((s: any) => s.phase === "demo").length || 0,
+    completed: stacks?.filter((s: any) => s.phase === "completed").length || 0,
   };
 
   return (

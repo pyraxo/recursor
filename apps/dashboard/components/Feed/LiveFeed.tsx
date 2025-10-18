@@ -42,7 +42,7 @@ export function LiveFeed() {
   }
 
   const getStackName = (stackId: string) => {
-    const stack = stacks.find((s) => s._id === stackId);
+    const stack = stacks.find((s: any) => s._id === stackId);
     return stack?.participant_name || "Unknown";
   };
 
@@ -51,7 +51,7 @@ export function LiveFeed() {
       ref={containerRef}
       className="space-y-2 max-h-[calc(100vh-220px)] overflow-y-auto pr-2"
     >
-      {traces.map((t) => (
+      {traces.map((t: any) => (
         <Card key={t._id} className="hover:bg-accent/30 transition-colors">
           <CardContent className="p-3">
             <div className="space-y-1.5">

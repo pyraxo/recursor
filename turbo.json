@@ -1,5 +1,12 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "CONVEX_URL",
+    "NEXT_PUBLIC_CONVEX_URL",
+    "GROQ_API_KEY",
+    "OPENAI_API_KEY",
+    "GEMINI_API_KEY"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

@@ -1,6 +1,5 @@
-_generated
 *.js
-*.d.ts
+!_generated/**
 *.js.map
 *.d.ts.map
 .env.local

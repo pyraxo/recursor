@@ -45,7 +45,7 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
             <div className="text-sm text-muted-foreground">No todos yet</div>
           ) : (
             <ul className="space-y-1">
-              {todos.map((t) => (
+              {todos.map((t: any) => (
                 <li key={t._id} className="text-sm">
                   <span className="text-muted-foreground">[{t.status}]</span>{" "}
                   {t.content}
@@ -67,7 +67,7 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
             </div>
           ) : (
             <ul className="space-y-1">
-              {artifacts.map((a) => (
+              {artifacts.map((a: any) => (
                 <li key={a._id} className="text-sm">
                   v{a.version} - {a.type}
                 </li>
@@ -88,7 +88,7 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
             </div>
           ) : (
             <ul className="space-y-2">
-              {timeline.map((m) => (
+              {timeline.map((m: any) => (
                 <li key={m._id} className="text-sm border-l-2 pl-2">
                   <div className="text-xs text-muted-foreground">
                     {m.message_type}
