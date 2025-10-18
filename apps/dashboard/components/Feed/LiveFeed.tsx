@@ -6,8 +6,14 @@ import { Card, CardContent } from "@repo/ui/components/card";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { Separator } from "@repo/ui/components/separator";
 import { useQuery } from "convex/react";
-import { Activity, Clock, User, Zap, ArrowUp } from "lucide-react";
-import { useEffect, useRef, forwardRef, useImperativeHandle, useState } from "react";
+import { Activity, ArrowUp, Clock, User, Zap } from "lucide-react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 
 export interface LiveFeedRef {
   scrollToTop: () => void;
@@ -101,66 +107,66 @@ export const LiveFeed = forwardRef<LiveFeedRef>((props, ref) => {
     <div className="relative">
       <ScrollArea className="h-[calc(100vh-220px)]">
         <div ref={containerRef} className="space-y-2 pr-4">
-        {traces.map((t: any) => (
-          <Card key={t._id} className="hover:bg-accent/30 transition-colors">
-            <CardContent className="p-4">
-              <div className="space-y-3">
-                {/* Header */}
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Clock className="w-3 h-3" />
-                    <span>{new Date(t.timestamp).toLocaleTimeString()}</span>
-                    <Separator orientation="vertical" className="h-3" />
-                    <User className="w-3 h-3" />
-                    <span className="font-semibold text-primary">
-                      {getStackName(t.stack_id)}
-                    </span>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={`capitalize ${getAgentBadgeColor(t.agent_type)}`}
-                  >
-                    {t.agent_type}
-                  </Badge>
-                </div>
-
-                <Separator />
-
-                {/* Thought */}
-                <div className="text-sm text-foreground leading-relaxed">
-                  {t.thought}
-                </div>
-
-                {/* Action */}
-                <div className="flex items-start gap-2 text-xs">
-                  <Zap className="w-3 h-3 mt-0.5 text-primary" />
-                  <div className="flex-1">
-                    <span className="text-muted-foreground">Action: </span>
-                    <Badge variant="secondary" className="font-mono text-xs">
-                      {t.action}
+          {traces.map((t: any) => (
+            <Card key={t._id} className="hover:bg-accent/30 transition-colors">
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  {/* Header */}
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Clock className="w-3 h-3" />
+                      <span>{new Date(t.timestamp).toLocaleTimeString()}</span>
+                      <Separator orientation="vertical" className="h-3" />
+                      <User className="w-3 h-3" />
+                      <span className="font-semibold text-primary">
+                        {getStackName(t.stack_id)}
+                      </span>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`capitalize ${getAgentBadgeColor(t.agent_type)}`}
+                    >
+                      {t.agent_type}
                     </Badge>
                   </div>
-                </div>
 
-                {/* Result */}
-                {t.result && (
-                  <details className="text-xs">
-                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
-                      View result
-                    </summary>
-                    <div className="mt-2 p-3 bg-secondary rounded-md">
-                      <pre className="text-xs overflow-x-auto max-w-full whitespace-pre-wrap break-words">
-                        {typeof t.result === "string"
-                          ? t.result
-                          : JSON.stringify(t.result, null, 2)}
-                      </pre>
+                  <Separator />
+
+                  {/* Thought */}
+                  <div className="text-sm text-foreground leading-relaxed">
+                    {t.thought}
+                  </div>
+
+                  {/* Action */}
+                  <div className="flex items-start gap-2 text-xs">
+                    <Zap className="w-3 h-3 mt-0.5 text-primary" />
+                    <div className="flex-1">
+                      <span className="text-muted-foreground">Action: </span>
+                      <Badge variant="secondary" className="font-mono text-xs">
+                        {t.action}
+                      </Badge>
                     </div>
-                  </details>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                  </div>
+
+                  {/* Result */}
+                  {t.result && (
+                    <details className="text-xs">
+                      <summary className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
+                        View result
+                      </summary>
+                      <div className="mt-2 p-3 bg-secondary rounded-md">
+                        <pre className="text-xs overflow-x-auto max-w-full whitespace-pre-wrap break-words">
+                          {typeof t.result === "string"
+                            ? t.result
+                            : JSON.stringify(t.result, null, 2)}
+                        </pre>
+                      </div>
+                    </details>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </ScrollArea>
 

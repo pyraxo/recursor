@@ -38,15 +38,6 @@ export async function executeCommunicator(
   // PRIORITY 2: Unread messages from other agent teams
   const hasUnreadMessages = messages && messages.length > 0;
 
-  // NOTE: Broadcasts are DISABLED to reduce message spam
-  // PRIORITY 3: Broadcast requests from planner (DISABLED)
-  // const broadcastTodos = todos?.filter((t) =>
-  //   t.status === "pending" &&
-  //   (t.content.toLowerCase().includes("broadcast") ||
-  //    t.content.toLowerCase().includes("announce"))
-  // ) || [];
-  // const needsBroadcast = broadcastTodos.length > 0;
-
   if (!hasUnreadMessages) {
     console.log(`[Communicator] No communication needed`);
     return "Communicator idle: No messages to process";
@@ -108,19 +99,6 @@ export async function executeCommunicator(
     }
   }
 
-  // NOTE: Broadcasts are DISABLED
-  // Handle broadcast todos from planner (DISABLED)
-  // if (needsBroadcast) {
-  //   const broadcastSummary = broadcastTodos
-  //     .map((t: any) => `- ${t.content}`)
-  //     .join("\n");
-  //
-  //   llmMessages.push({
-  //     role: "user",
-  //     content: `The planner has requested the following broadcasts:\n${broadcastSummary}\n\nCreate an appropriate broadcast message for the hackathon.`,
-  //   });
-  // }
-
   // 4. Call LLM
   console.log(`[Communicator] Calling LLM`);
   const response = await llmProvider.chat(llmMessages, {
@@ -134,8 +112,6 @@ export async function executeCommunicator(
     "communicator"
   );
 
-  // NOTE: Broadcasts are DISABLED - only respond to agent messages directly
-  // Send broadcast message (only for agent messages, NOT status updates)
   let messageSent = false;
   if (
     hasUnreadMessages ||
@@ -160,18 +136,6 @@ export async function executeCommunicator(
       memory: updatedMemory,
     });
   }
-
-  // NOTE: Broadcasts are DISABLED
-  // Mark broadcast todos as completed (DISABLED)
-  // if (needsBroadcast) {
-  //   for (const todo of broadcastTodos) {
-  //     await ctx.runMutation(internal.todos.internalUpdateStatus, {
-  //       todoId: todo._id,
-  //       status: "completed",
-  //     });
-  //     console.log(`[Communicator] Completed broadcast todo: ${todo.content}`);
-  //   }
-  // }
 
   // 6. Update communicator memory
   await ctx.runMutation(internal.agentExecution.updateAgentMemory, {

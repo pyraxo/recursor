@@ -502,6 +502,7 @@ After completing EACH todo or making significant progress:
 - Uncommitted work is invisible to the system and will disappear
 - Think of git commits as your autosave mechanism
 
+
 ### Technology Choices
 
 - You have full freedom to choose appropriate technologies

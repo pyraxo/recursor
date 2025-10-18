@@ -240,8 +240,6 @@ export function detectBuilderWork(
  * The communicator needs to run when:
  * 1. Unprocessed user messages exist (HIGHEST PRIORITY - respond one at a time)
  * 2. Unread agent messages exist
- *
- * NOTE: Broadcasts are currently DISABLED to reduce message spam
  */
 export function detectCommunicatorWork(
   context: WorkDetectionContext
@@ -268,23 +266,6 @@ export function detectCommunicatorWork(
       dependencies: [],
     };
   }
-
-  // NOTE: Broadcasts are DISABLED - commenting out to reduce spam
-  // Priority 3: Planner requested a broadcast (check for broadcast todos)
-  // const broadcastTodos = todos.filter(
-  //   (t: any) =>
-  //     t.status === "pending" &&
-  //     (t.content.toLowerCase().includes("broadcast") ||
-  //       t.content.toLowerCase().includes("announce"))
-  // );
-  // if (broadcastTodos.length > 0) {
-  //   return {
-  //     hasWork: true,
-  //     priority: 6,
-  //     reason: `${broadcastTodos.length} broadcast request(s) from planner`,
-  //     dependencies: [],
-  //   };
-  // }
 
   // No work needed
   return {
