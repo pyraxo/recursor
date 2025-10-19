@@ -60,7 +60,17 @@ export interface BackgroundAgentRequest {
   prompt: BackgroundAgentPrompt;
   /** Source repository configuration */
   source: BackgroundAgentSource;
-  /** AI model to use (e.g., "claude-sonnet-4-5-20250929") */
+  /**
+   * AI model to use. Available models (as of 2025):
+   * - "claude-4-sonnet-thinking" (recommended)
+   * - "o3"
+   * - "claude-4-opus-thinking"
+   * - "claude-3.5-sonnet"
+   * - "gpt-4o"
+   * - "o3-mini"
+   *
+   * Omit this field to let Cursor auto-select the best model (recommended).
+   */
   model?: string;
   /** Environment configuration */
   environment?: BackgroundAgentEnvironment;

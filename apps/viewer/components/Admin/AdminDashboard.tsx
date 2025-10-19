@@ -45,16 +45,6 @@ export function AdminDashboard({
   return (
     <div className="w-full bg-background">
       <div className="w-full px-6 pt-6 pb-6 md:px-8 md:pt-8 md:pb-8 lg:px-12 lg:pt-12 lg:pb-12">
-        {/* Header */}
-        <header className="mb-12">
-          <h1 className="font-mono text-4xl font-bold tracking-tight text-foreground mb-3">
-            Admin Dashboard
-          </h1>
-          <p className="font-mono text-sm text-muted-foreground">
-            Manage agent teams and monitor hackathon progress
-          </p>
-        </header>
-
         {/* Global Controls */}
         {stacks && stacks.length > 0 && (
           <Card className="mb-8 border-border bg-card p-6">

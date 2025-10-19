@@ -62,7 +62,21 @@ export function ObservabilityTab({
             <AgentList onSelect={setSelected} selectedId={selected} />
           </div>
 
-          {/* Column 2: Live Feed */}
+          {/* Column 2: Team Detail */}
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2 mb-4 h-9">
+              <h2 className="font-mono text-sm font-semibold">Detail</h2>
+            </div>
+            {selected ? (
+              <AgentDetail stackId={selected as Id<"agent_stacks">} />
+            ) : (
+              <div className="font-mono text-sm text-muted-foreground">
+                Select a team
+              </div>
+            )}
+          </div>
+
+          {/* Column 3: Live Feed */}
           <div className="flex flex-col">
             <div className="flex items-center gap-2 mb-4 h-9">
               <h2 className="font-mono text-sm font-semibold">Live Feed</h2>
@@ -111,20 +125,6 @@ export function ObservabilityTab({
               </AlertDialog>
             </div>
             <LiveFeed ref={liveFeedRef} />
-          </div>
-
-          {/* Column 3: Team Detail */}
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2 mb-4 h-9">
-              <h2 className="font-mono text-sm font-semibold">Detail</h2>
-            </div>
-            {selected ? (
-              <AgentDetail stackId={selected as Id<"agent_stacks">} />
-            ) : (
-              <div className="font-mono text-xs text-muted-foreground">
-                Select a team
-              </div>
-            )}
           </div>
         </div>
       </div>

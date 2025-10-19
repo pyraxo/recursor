@@ -402,6 +402,19 @@ export class VirtualWorkspaceManager {
     const git: SimpleGit = simpleGit(workspace.localPath);
 
     try {
+      // Pull latest changes from remote before making any modifications
+      // This prevents "reference already exists" errors when the branch exists remotely
+      console.log(`[Workspace] Pulling latest changes before environment setup`);
+      try {
+        await git.pull("origin", workspace.branch);
+      } catch (pullError) {
+        // If pull fails (e.g., no remote branch yet), that's fine - we'll create it
+        console.log(
+          `[Workspace] Pull failed (branch may not exist on remote yet):`,
+          pullError instanceof Error ? pullError.message : String(pullError)
+        );
+      }
+
       // Create .cursor directory
       const cursorDir = join(workspace.localPath, ".cursor");
       await mkdir(cursorDir, { recursive: true });
@@ -478,15 +491,28 @@ export class ConvexTool {
         "utf-8"
       );
 
-      // Commit configuration
-      await git.add(".cursor/");
-      await git.add(".tools/");
-      await git.commit("Configure Cursor environment and tools");
-      await git.push("origin", workspace.branch);
+      // Check if there are any changes to commit
+      const status = await git.status();
 
-      console.log(
-        `[Workspace] Configured Cursor environment for ${workspace.repoName}`
-      );
+      if (status.files.length > 0) {
+        // Only commit and push if there are changes
+        console.log(`[Workspace] Committing environment configuration changes`);
+        await git.add(".cursor/");
+        await git.add(".tools/");
+        await git.commit("Configure Cursor environment and tools");
+
+        // Push with --force-with-lease to handle remote branch conflicts safely
+        // This will only force push if no one else has pushed changes
+        await git.push("origin", workspace.branch, ["--force-with-lease"]);
+
+        console.log(
+          `[Workspace] Configured Cursor environment for ${workspace.repoName}`
+        );
+      } else {
+        console.log(
+          `[Workspace] Environment configuration already up-to-date for ${workspace.repoName}`
+        );
+      }
     } catch (error) {
       console.error("[Workspace] Failed to set up environment config:", error);
       throw error;
