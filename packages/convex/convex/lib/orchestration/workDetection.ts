@@ -136,7 +136,7 @@ export function detectPlannerWork(
 
   // Priority 3: Reviewer recommendations available
   const plannerState = agentStates.find(
-    (s: any) => s.agentType === "planner"
+    (s) => s.agent_type === "planner"
   );
   const reviewerRecommendations =
     plannerState?.memory?.reviewer_recommendations || [];
@@ -152,7 +152,7 @@ export function detectPlannerWork(
   // Priority 4: User messages that might need strategic planning
   // (e.g., feature requests, major changes - not just simple questions)
   // Check if messages contain strategic keywords
-  const strategicUserMessages = userMessages.filter((msg: any) => {
+  const strategicUserMessages = userMessages.filter((msg) => {
     const content = msg.content.toLowerCase();
     return (
       content.includes("feature") ||
@@ -257,7 +257,7 @@ export function detectCommunicatorWork(
   }
 
   // Priority 2: Unread agent messages from other teams
-  const unreadMessages = messages.filter((m: any) => !m.read_at);
+  const unreadMessages = messages.filter((m) => !m.read_by || m.read_by.length === 0);
   if (unreadMessages.length > 0) {
     return {
       hasWork: true,
@@ -290,7 +290,7 @@ export function detectReviewerWork(
   const { todos, artifacts, agentStates } = context;
 
   const reviewerState = agentStates.find(
-    (s: any) => s.agentType === "reviewer"
+    (s) => s.agent_type === "reviewer"
   );
   const lastReviewTime = reviewerState?.memory?.last_review_time || 0;
 

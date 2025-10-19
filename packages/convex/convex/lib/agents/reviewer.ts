@@ -41,7 +41,7 @@ export async function executeReviewer(
   }
 
   console.log(
-    `[Reviewer] Reviewing artifact version ${artifacts.version} (${artifacts.content.length} chars)`
+    `[Reviewer] Reviewing artifact version ${artifacts.version} (${artifacts.content?.length || 0} chars)`
   );
 
   // 3. Build conversation for code review with structured output

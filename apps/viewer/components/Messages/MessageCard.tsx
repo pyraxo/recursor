@@ -5,8 +5,8 @@ import { AGENT_COLORS } from "../../lib/theme";
 interface MessageCardProps {
   message: {
     _id: string;
-    from_agent_type: string;
-    from_team_name: string;
+    from_agent_type?: string;
+    from_team_name?: string;
     to_team_name?: string | null;
     content: string;
     message_type: string;
@@ -41,7 +41,7 @@ export function MessageCard({ message, onTeamClick }: MessageCardProps) {
         <div className="flex items-center gap-2 flex-wrap">
           {/* Team Badge */}
           <button
-            onClick={() => onTeamClick?.(message.from_team_name)}
+            onClick={() => message.from_team_name && onTeamClick?.(message.from_team_name)}
             className="px-2 py-1 text-xs font-bold uppercase bg-primary/20 border border-primary text-primary hover:bg-primary/30 transition-colors"
             style={{
               cursor: onTeamClick ? "pointer" : "default",

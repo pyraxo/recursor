@@ -72,14 +72,22 @@ export interface OrchestratorDecision {
 
 /**
  * Context data passed to work detection
+ * Note: Using flexible types since Convex queries return database types
  */
 export interface WorkDetectionContext {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   todos: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   messages: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   artifacts: any | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   agentStates: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   projectIdea: any | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   stack: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   userMessages: any[];
 }
 

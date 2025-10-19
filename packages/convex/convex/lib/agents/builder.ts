@@ -71,7 +71,7 @@ export async function executeBuilder(
   }
 
   // Add current artifact if exists - show FULL artifact for proper iteration
-  if (artifacts) {
+  if (artifacts && artifacts.content) {
     const artifactPreview = artifacts.content.length > 50000
       ? `${artifacts.content.substring(0, 50000)}\n... [truncated, total ${artifacts.content.length} chars]`
       : artifacts.content;

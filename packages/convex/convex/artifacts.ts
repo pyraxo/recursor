@@ -5,6 +5,8 @@ import {
   mutation,
   query,
 } from "./_generated/server";
+import type { TypedQueryCtx, TypedMutationCtx, Artifact, IndexQueryBuilder } from "./lib/types";
+import type { Id } from "./_generated/dataModel";
 
 // Create a new artifact
 export const create = mutation({
@@ -20,18 +22,27 @@ export const create = mutation({
       build_time_ms: v.optional(v.number()),
     }),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     // Get the latest version for this stack
     const latestArtifact = await ctx.db
       .query("artifacts")
-      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stack_id))
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stack_id))
       .order("desc")
       .first();
 
     const version = latestArtifact ? latestArtifact.version + 1 : 1;
 
     // Build artifact object with required fields
-    const artifact: any = {
+    const artifact: {
+      stack_id: Id<"agent_stacks">;
+      type: string;
+      version: number;
+      metadata: typeof args.metadata;
+      created_at: number;
+      created_by: string;
+      content?: string;
+      url?: string;
+    } = {
       stack_id: args.stack_id,
       type: args.type,
       version,
@@ -57,10 +68,10 @@ export const getLatest = query({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     return await ctx.db
       .query("artifacts")
-      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
       .order("desc")
       .first();
   },
@@ -71,10 +82,10 @@ export const list = query({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     return await ctx.db
       .query("artifacts")
-      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
       .order("desc")
       .collect();
   },
@@ -86,13 +97,13 @@ export const getByVersion = query({
     stackId: v.id("agent_stacks"),
     version: v.number(),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const artifacts = await ctx.db
       .query("artifacts")
-      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
       .collect();
 
-    return artifacts.find((a: any) => a.version === args.version);
+    return artifacts.find((a) => a.version === args.version);
   },
 });
 
@@ -103,10 +114,10 @@ export const internalGetLatest = internalQuery({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     return await ctx.db
       .query("artifacts")
-      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
       .order("desc")
       .first();
   },
@@ -121,8 +132,19 @@ export const internalCreate = internalMutation({
     version: v.number(),
     created_by: v.string(),
   },
-  handler: async (ctx: any, args: any) => {
-    const artifactData: any = {
+  handler: async (ctx, args) => {
+    const artifactData: {
+      stack_id: Id<"agent_stacks">;
+      type: string;
+      version: number;
+      content: string;
+      created_by: string;
+      created_at: number;
+      metadata: {
+        description: string;
+      };
+      url?: string;
+    } = {
       stack_id: args.stack_id,
       type: args.type,
       version: args.version,
@@ -134,11 +156,6 @@ export const internalCreate = internalMutation({
       },
     };
 
-    // Only add url if it's provided (don't set to null)
-    if (args.url) {
-      artifactData.url = args.url;
-    }
-
     return await ctx.db.insert("artifacts", artifactData);
   },
 });
@@ -148,10 +165,10 @@ export const getByStackId = internalQuery({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     return await ctx.db
       .query("artifacts")
-      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
       .order("desc")
       .collect();
   },

@@ -28,7 +28,7 @@ export function MessagesTab() {
 
   // Apply filters
   const filteredMessages = messages.filter((msg) => {
-    if (filterTeam && msg.from_team_name !== filterTeam) return false;
+    if (filterTeam && (msg as { from_team_name?: string }).from_team_name !== filterTeam) return false;
     if (filterType === "visitor" && msg.message_type !== "visitor")
       return false;
     if (filterType === "agent" && msg.message_type === "visitor") return false;
@@ -39,7 +39,7 @@ export function MessagesTab() {
 
   // Get unique team names for filter
   const uniqueTeams = Array.from(
-    new Set(messages.map((msg) => msg.from_team_name))
+    new Set(messages.map((msg) => (msg as { from_team_name?: string }).from_team_name))
   ).sort();
 
   return (

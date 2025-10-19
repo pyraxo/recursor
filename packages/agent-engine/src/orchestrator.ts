@@ -107,7 +107,7 @@ export class AgentStackOrchestrator implements IOrchestrator {
     };
   }
 
-  private async runAgentCycle(results: any): Promise<void> {
+  private async runAgentCycle(results: Record<string, string>): Promise<void> {
     // 1. Planner thinks and plans
     console.log("1. Planner thinking...");
     results.planner = await this.planner.think();
