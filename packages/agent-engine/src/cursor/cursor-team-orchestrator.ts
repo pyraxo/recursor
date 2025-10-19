@@ -221,22 +221,25 @@ export class CursorTeamOrchestrator implements IOrchestrator {
           throw new Error(`Stack ${this.stackId} not found`);
         }
 
-        const cursorConfig = stack.cursor_config;
+        const existingCursorConfig = stack.cursor_config;
 
         // Check if team already has a persistent repository
-        if (cursorConfig?.repository_url && cursorConfig?.repository_name) {
+        if (
+          existingCursorConfig?.repository_url &&
+          existingCursorConfig?.repository_name
+        ) {
           // Try to reuse existing repository
           console.log(
-            `[CursorOrchestrator] Attempting to clone existing repository: ${cursorConfig.repository_name}`
+            `[CursorOrchestrator] Attempting to clone existing repository: ${existingCursorConfig.repository_name}`
           );
 
           try {
             this.currentWorkspace =
               await this.workspaceManager.cloneExistingWorkspace(
                 this.stackId,
-                cursorConfig.repository_url,
-                cursorConfig.repository_name,
-                cursorConfig.workspace_branch || "agent-workspace"
+                existingCursorConfig.repository_url,
+                existingCursorConfig.repository_name,
+                existingCursorConfig.workspace_branch || "agent-workspace"
               );
 
             console.log(
@@ -324,19 +327,34 @@ export class CursorTeamOrchestrator implements IOrchestrator {
         }
       }
 
-      // 3. Build unified prompt (consolidates all 4 agent roles)
-      const prompt = await this.buildUnifiedPrompt(pendingTodos);
-
-      // 4. Check if agent exists, or create new one
+      // 3. Get cursor config for feature flags and agent ID
       const cursorConfig = await this.getCursorConfig();
+
+      // 4. Build unified prompt (check feature flag for workflow guides)
+      const useWorkflowGuides = cursorConfig?.use_workflow_guides ?? true; // Default to true (new behavior)
+      const prompt = useWorkflowGuides
+        ? await this.buildWorkflowGuidedPrompt(pendingTodos)
+        : await this.buildBaselinePrompt(pendingTodos);
+
+      console.log(
+        `[CursorOrchestrator] Using ${useWorkflowGuides ? "workflow-guided" : "baseline"} prompt`
+      );
+
+      // 5. Check if agent exists, or create new one
       let agentId = cursorConfig?.agent_id;
 
       if (!agentId) {
         // Create new Cursor Background Agent
         console.log(`[CursorOrchestrator] Creating Cursor Background Agent`);
-        console.log(`[CursorOrchestrator] Repository URL: ${this.currentWorkspace.repoUrl}`);
-        console.log(`[CursorOrchestrator] Branch: ${this.currentWorkspace.branch}`);
-        console.log(`[CursorOrchestrator] Repo Name: ${this.currentWorkspace.repoName}`);
+        console.log(
+          `[CursorOrchestrator] Repository URL: ${this.currentWorkspace.repoUrl}`
+        );
+        console.log(
+          `[CursorOrchestrator] Branch: ${this.currentWorkspace.branch}`
+        );
+        console.log(
+          `[CursorOrchestrator] Repo Name: ${this.currentWorkspace.repoName}`
+        );
 
         try {
           const agentResponse = await this.cursorAPI.createAgent({
@@ -351,9 +369,18 @@ export class CursorTeamOrchestrator implements IOrchestrator {
             // Available models: claude-4-sonnet-thinking, o3, claude-4-opus-thinking, etc.
           });
 
-          console.log(`[CursorOrchestrator] Agent creation response:`, JSON.stringify(agentResponse, null, 2));
-          console.log(`[CursorOrchestrator] Response ID field:`, agentResponse.id);
-          console.log(`[CursorOrchestrator] Response keys:`, Object.keys(agentResponse));
+          console.log(
+            `[CursorOrchestrator] Agent creation response:`,
+            JSON.stringify(agentResponse, null, 2)
+          );
+          console.log(
+            `[CursorOrchestrator] Response ID field:`,
+            agentResponse.id
+          );
+          console.log(
+            `[CursorOrchestrator] Response keys:`,
+            Object.keys(agentResponse)
+          );
 
           agentId = agentResponse.id;
 
@@ -364,46 +391,49 @@ export class CursorTeamOrchestrator implements IOrchestrator {
           }
 
           result.agentId = agentId;
-          console.log(`[CursorOrchestrator] Successfully created agent with ID: ${agentId}`);
+          console.log(
+            `[CursorOrchestrator] Successfully created agent with ID: ${agentId}`
+          );
         } catch (error: unknown) {
           // Provide more helpful error message for GitHub authorization issues
-          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
           if (errorMessage?.includes("do not have access to repository")) {
             const enhancedError = new Error(
               `❌ Cursor GitHub App Authorization Required\n\n` +
-              `Repository: ${this.currentWorkspace.repoUrl}\n` +
-              `Branch: ${this.currentWorkspace.branch}\n\n` +
-              `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-              `The repository was created successfully by your GitHub PAT,\n` +
-              `but the Cursor API cannot access it.\n\n` +
-              `DIAGNOSIS: The Cursor GitHub App is not authorized for the\n` +
-              `'recursor-sandbox' organization.\n\n` +
-              `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-              `HOW TO FIX:\n\n` +
-              `METHOD 1 - Use the direct authorization link:\n` +
-              `   Open this URL in your browser:\n` +
-              `   https://cursor.com/api/auth/connect-github?owner=recursor-sandbox&source=BACKGROUND_AGENT_API\n\n` +
-              `METHOD 2 - Through Cursor Settings:\n` +
-              `   1. Open Cursor IDE\n` +
-              `   2. Go to Settings (Cmd/Ctrl + Shift + J)\n` +
-              `   3. Navigate to "Background Agents" or "GitHub" section\n` +
-              `   4. Click "Connect to GitHub"\n` +
-              `   5. When GitHub prompts you:\n` +
-              `      - Select 'recursor-sandbox' organization\n` +
-              `      - Grant access to ALL repositories (or repositories matching 'recursor-*')\n` +
-              `      - Ensure "Read and write" permissions are selected\n\n` +
-              `METHOD 3 - Via GitHub directly:\n` +
-              `   1. Go to: https://github.com/settings/installations\n` +
-              `   2. Find "Cursor" in the installed apps\n` +
-              `   3. Click "Configure"\n` +
-              `   4. Ensure 'recursor-sandbox' is selected\n` +
-              `   5. Grant access to all repos or select 'recursor-*' pattern\n\n` +
-              `VERIFICATION:\n` +
-              `   After authorizing, restart your dev server:\n` +
-              `   > pnpm dev\n\n` +
-              `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-              `Technical details:\n` +
-              `${errorMessage}\n`
+                `Repository: ${this.currentWorkspace.repoUrl}\n` +
+                `Branch: ${this.currentWorkspace.branch}\n\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                `The repository was created successfully by your GitHub PAT,\n` +
+                `but the Cursor API cannot access it.\n\n` +
+                `DIAGNOSIS: The Cursor GitHub App is not authorized for the\n` +
+                `'recursor-sandbox' organization.\n\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                `HOW TO FIX:\n\n` +
+                `METHOD 1 - Use the direct authorization link:\n` +
+                `   Open this URL in your browser:\n` +
+                `   https://cursor.com/api/auth/connect-github?owner=recursor-sandbox&source=BACKGROUND_AGENT_API\n\n` +
+                `METHOD 2 - Through Cursor Settings:\n` +
+                `   1. Open Cursor IDE\n` +
+                `   2. Go to Settings (Cmd/Ctrl + Shift + J)\n` +
+                `   3. Navigate to "Background Agents" or "GitHub" section\n` +
+                `   4. Click "Connect to GitHub"\n` +
+                `   5. When GitHub prompts you:\n` +
+                `      - Select 'recursor-sandbox' organization\n` +
+                `      - Grant access to ALL repositories (or repositories matching 'recursor-*')\n` +
+                `      - Ensure "Read and write" permissions are selected\n\n` +
+                `METHOD 3 - Via GitHub directly:\n` +
+                `   1. Go to: https://github.com/settings/installations\n` +
+                `   2. Find "Cursor" in the installed apps\n` +
+                `   3. Click "Configure"\n` +
+                `   4. Ensure 'recursor-sandbox' is selected\n` +
+                `   5. Grant access to all repos or select 'recursor-*' pattern\n\n` +
+                `VERIFICATION:\n` +
+                `   After authorizing, restart your dev server:\n` +
+                `   > pnpm dev\n\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                `Technical details:\n` +
+                `${errorMessage}\n`
             );
             throw enhancedError;
           }
@@ -633,9 +663,7 @@ export class CursorTeamOrchestrator implements IOrchestrator {
               if (commits.length > 0 && commits[0]) {
                 const latestCommit = commits[0];
                 if (lastCommitSha && latestCommit.sha !== lastCommitSha) {
-                  console.log(
-                    `[CursorOrchestrator] 🆕 New commit detected!`
-                  );
+                  console.log(`[CursorOrchestrator] 🆕 New commit detected!`);
                   console.log(
                     `[CursorOrchestrator]    ${latestCommit.sha}: ${latestCommit.message}`
                   );
@@ -729,18 +757,18 @@ export class CursorTeamOrchestrator implements IOrchestrator {
   }
 
   /**
-   * Build unified prompt that consolidates all 4 agent roles
+   * Build workflow-guided prompt (treatment group)
    *
-   * This prompt includes:
-   * - Planning context (project state, todos)
-   * - Building instructions (implementation details)
-   * - Communication guidelines (documentation)
-   * - Review criteria (quality standards)
+   * This version includes references to workflow guides, decision frameworks,
+   * execution logs, and structured decision-making instructions. This is the
+   * enhanced version that implements the repository-based workflow system.
    *
    * @param pendingTodos - List of pending todos to work on
-   * @returns Unified prompt string
+   * @returns Workflow-guided prompt string
    */
-  private async buildUnifiedPrompt(pendingTodos: Array<{ content: string; priority: number; _id: string }>): Promise<string> {
+  private async buildWorkflowGuidedPrompt(
+    pendingTodos: any[]
+  ): Promise<string> {
     const stack = await this.client.query(api.agents.getStack, {
       stackId: this.stackId,
     });
@@ -761,7 +789,9 @@ export class CursorTeamOrchestrator implements IOrchestrator {
     // Get tick information for time awareness
     const currentTick = (stack?.cursor_config?.total_prompts_sent || 0) + 1; // Next tick
     const estimatedTotalTicks = 12; // Typical hackathon duration
-    const timeElapsedPercent = Math.round((currentTick / estimatedTotalTicks) * 100);
+    const timeElapsedPercent = Math.round(
+      (currentTick / estimatedTotalTicks) * 100
+    );
     const ticksRemaining = Math.max(0, estimatedTotalTicks - currentTick);
 
     // Read previous tick logs for continuity (if they exist in the workspace)
@@ -774,7 +804,7 @@ export class CursorTeamOrchestrator implements IOrchestrator {
 
       for (let i = 1; i <= logsToRead; i++) {
         const tickNumber = currentTick - i;
-        recentTicks.push(`tick-${String(tickNumber).padStart(3, '0')}.md`);
+        recentTicks.push(`tick-${String(tickNumber).padStart(3, "0")}.md`);
       }
 
       if (recentTicks.length > 0) {
@@ -783,7 +813,7 @@ export class CursorTeamOrchestrator implements IOrchestrator {
 
 📖 **Review your recent work**: Read the following tick logs to understand what you've accomplished and learned:
 
-${recentTicks.map(log => `- \`logs/${log}\` - Your most recent ${recentTicks.indexOf(log) === 0 ? 'execution' : 'previous execution'}`).join('\n')}
+${recentTicks.map((log) => `- \`logs/${log}\` - Your most recent ${recentTicks.indexOf(log) === 0 ? "execution" : "previous execution"}`).join("\n")}
 
 **Why this matters**: These logs contain your decisions, learnings, and strategic insights. Read them to:
 - Avoid repeating mistakes
@@ -968,7 +998,7 @@ After completing EACH todo or making significant progress:
 
 1. **Copy the execution template**:
    \`\`\`bash
-   cp docs/cursor-agent/templates/tick-execution-template.md logs/tick-${String(currentTick).padStart(3, '0')}.md
+   cp docs/cursor-agent/templates/tick-execution-template.md logs/tick-${String(currentTick).padStart(3, "0")}.md
    \`\`\`
 
 2. **Fill out the template** as you work through each phase:
@@ -980,7 +1010,7 @@ After completing EACH todo or making significant progress:
 
 3. **Commit your log**:
    \`\`\`bash
-   git add logs/tick-${String(currentTick).padStart(3, '0')}.md
+   git add logs/tick-${String(currentTick).padStart(3, "0")}.md
    git commit -m "docs: add tick ${currentTick} execution log"
    git push origin ${this.currentWorkspace?.branch || "agent-workspace"}
    \`\`\`
@@ -995,6 +1025,170 @@ After completing EACH todo or making significant progress:
 **Pro tip**: Fill out the template incrementally as you work, not all at once at the end. This makes it easier and ensures nothing is forgotten.
 
 ---
+
+**Focus on shipping something impressive and functional!**
+    `.trim();
+  }
+
+  /**
+   * Build baseline prompt (control group)
+   *
+   * This is the original prompt without workflow guide references. Used for
+   * A/B testing to compare against the workflow-guided approach.
+   *
+   * @param pendingTodos - List of pending todos to work on
+   * @returns Baseline prompt string
+   */
+  private async buildBaselinePrompt(pendingTodos: any[]): Promise<string> {
+    const stack = await this.client.query(api.agents.getStack, {
+      stackId: this.stackId,
+    });
+
+    const projectIdea = await this.client.query(api.project_ideas.get, {
+      stackId: this.stackId,
+    });
+
+    const artifacts = await this.client.query(api.artifacts.list, {
+      stackId: this.stackId,
+    });
+
+    const allMessages = await this.client.query(api.messages.getTimeline, {
+      stackId: this.stackId,
+    });
+    const messages = allMessages?.slice(-5) || [];
+
+    // Basic prompt without workflow guides (original version)
+    return `
+You are an AI developer participating in the Recursor hackathon as "${stack?.participant_name || "CursorTeam"}".
+
+## Project Context
+
+**Title**: ${projectIdea?.title || "Hackathon Project"}
+**Description**: ${projectIdea?.description || "Build a creative project"}
+**Phase**: ${stack?.phase || "ideation"}
+**Current Artifacts**: ${artifacts?.length || 0} versions
+
+## Your Responsibilities (Consolidated Multi-Agent Approach)
+
+As a Cursor Background Agent, you handle ALL aspects of development:
+
+### 1. Planning (Planner Role)
+- Analyze the current project state and requirements
+- Break down complex work into logical, achievable steps
+- Prioritize tasks effectively based on dependencies
+- Update the project plan as you learn new information
+- Think strategically about the overall project direction
+
+### 2. Building (Builder Role)
+- Write high-quality, production-ready code
+- Create multi-file projects when appropriate (don't limit yourself to single files!)
+- Use modern best practices and tooling
+- Ensure code is well-structured and maintainable
+- Test your implementations thoroughly
+- Use incremental editing - don't regenerate entire files unnecessarily
+
+### 3. Communication (Communicator Role)
+- Write clear, helpful documentation
+- Add meaningful code comments
+- Create informative commit messages
+- Document architectural decisions
+- Explain complex logic
+
+### 4. Review (Reviewer Role)
+- Self-review your code for quality and correctness
+- Check that requirements are fully met
+- Identify and fix potential issues
+- Refactor code for clarity and efficiency
+- Ensure consistency across the codebase
+
+## Current Todos (Priority Order)
+
+${pendingTodos
+  .sort((a, b) => (b.priority || 0) - (a.priority || 0))
+  .map((t, i) => `${i + 1}. [Priority ${t.priority || 0}] ${t.content}`)
+  .join("\n")}
+
+${
+  messages && messages.length > 0
+    ? `\n## Recent Messages\n\n${messages.map((m: any) => `- ${m.from_agent_type || m.from_user_name || "Unknown"}: ${m.content}`).join("\n")}`
+    : ""
+}
+
+## Instructions
+
+Work on the **highest priority** todos first. For each todo:
+
+1. **Plan**: Break it down into subtasks if complex
+2. **Implement**: Write clean, tested code
+3. **Document**: Add comments and update docs
+4. **Review**: Check quality and correctness
+5. **Commit**: Push your changes to GitHub (see Git Workflow below)
+
+Create a working, demo-ready prototype. This is a hackathon - move fast but maintain high quality.
+
+## Git Workflow (CRITICAL - READ CAREFULLY)
+
+⚠️ **IMPORTANT**: Your work MUST be committed to git. Uncommitted changes will NOT be detected by the orchestration system and will be LOST forever!
+
+After completing EACH todo or making significant progress:
+
+1. **Stage all changes**:
+   \`\`\`bash
+   git add .
+   \`\`\`
+
+2. **Commit with semantic message**:
+   \`\`\`bash
+   git commit -m "type: brief description of changes"
+   \`\`\`
+
+   **Commit message types**:
+   - \`feat:\` - New feature or functionality
+   - \`fix:\` - Bug fix or correction
+   - \`docs:\` - Documentation updates
+   - \`refactor:\` - Code restructuring without feature changes
+   - \`test:\` - Adding or updating tests
+   - \`style:\` - UI/styling changes
+
+   **Examples**:
+   - \`git commit -m "feat: add user authentication component"\`
+   - \`git commit -m "fix: resolve button click handler bug"\`
+   - \`git commit -m "docs: add API usage examples to README"\`
+
+3. **Push to remote**:
+   \`\`\`bash
+   git push origin ${this.currentWorkspace?.branch || "agent-workspace"}
+   \`\`\`
+
+**When to commit**:
+- ✅ After completing a todo
+- ✅ After creating new files or components
+- ✅ After fixing bugs or passing tests
+- ✅ After significant refactoring
+- ✅ At natural stopping points in your work
+- ❌ Do NOT commit broken/incomplete code that won't run
+
+**Why this matters**:
+- Your commits are synced back to our database as "artifacts"
+- These artifacts are used for grading and review by other agents
+- Uncommitted work is invisible to the system and will disappear
+- Think of git commits as your autosave mechanism
+
+### Technology Choices
+
+- You have full freedom to choose appropriate technologies
+- Modern frameworks are encouraged (React, Next.js, Vue, Svelte, etc.)
+- Use package managers (npm, pnpm, yarn) as needed
+- Leverage libraries and tools to move faster
+- Multi-file projects are preferred over single-file solutions
+
+### Quality Standards
+
+- Code should be readable and well-organized
+- Include basic tests where appropriate
+- Error handling should be robust
+- UI should be functional and reasonably polished
+- Documentation should explain key decisions
 
 **Focus on shipping something impressive and functional!**
     `.trim();
@@ -1021,6 +1215,7 @@ After completing EACH todo or making significant progress:
       workspace_branch?: string;
       last_prompt_at?: number;
       total_prompts_sent?: number;
+      use_workflow_guides?: boolean;
     }>
   ) {
     const currentConfig = await this.getCursorConfig();
@@ -1035,6 +1230,10 @@ After completing EACH todo or making significant progress:
       last_prompt_at: config.last_prompt_at ?? currentConfig?.last_prompt_at,
       total_prompts_sent:
         config.total_prompts_sent ?? currentConfig?.total_prompts_sent ?? 0,
+      use_workflow_guides:
+        config.use_workflow_guides ??
+        currentConfig?.use_workflow_guides ??
+        true, // Default to true
     };
 
     console.log(`[CursorOrchestrator] Updating cursor config:`, updatedConfig);

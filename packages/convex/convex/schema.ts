@@ -22,6 +22,7 @@ export default defineSchema({
         workspace_branch: v.optional(v.string()), // Git branch for agent work
         last_prompt_at: v.optional(v.number()), // Last time we sent a prompt
         total_prompts_sent: v.optional(v.number()), // Total prompts sent to this agent
+        use_workflow_guides: v.optional(v.boolean()), // Enable/disable repository-based workflow system (default: true)
       })
     ),
 

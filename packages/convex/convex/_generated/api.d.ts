@@ -24,6 +24,7 @@ import type * as lib_orchestration_index from "../lib/orchestration/index.js";
 import type * as lib_orchestration_orchestrator from "../lib/orchestration/orchestrator.js";
 import type * as lib_orchestration_types from "../lib/orchestration/types.js";
 import type * as lib_orchestration_workDetection from "../lib/orchestration/workDetection.js";
+import type * as lib_types from "../lib/types.js";
 import type * as messages from "../messages.js";
 import type * as orchestration from "../orchestration.js";
 import type * as project_ideas from "../project_ideas.js";
@@ -63,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   "lib/orchestration/orchestrator": typeof lib_orchestration_orchestrator;
   "lib/orchestration/types": typeof lib_orchestration_types;
   "lib/orchestration/workDetection": typeof lib_orchestration_workDetection;
+  "lib/types": typeof lib_types;
   messages: typeof messages;
   orchestration: typeof orchestration;
   project_ideas: typeof project_ideas;
