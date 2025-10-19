@@ -61,7 +61,7 @@ export function CreateTeamForm() {
 
   return (
     <Card className="border-border bg-card h-fit">
-      <CardHeader className="m-4">
+      <CardHeader>
         <CardTitle className="font-mono text-sm font-semibold flex items-center gap-2">
           <UserPlus className="size-4" />
           Create New Team
@@ -72,7 +72,7 @@ export function CreateTeamForm() {
       </CardHeader>
 
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4 m-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Participant Name Input */}
           <div className="space-y-2">
             <Label

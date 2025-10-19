@@ -115,7 +115,7 @@ export function GlobalExecutionControls() {
 
   return (
     <div className="flex items-center gap-3">
-      <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+      <span className="font-mono text-sm uppercase tracking-wider text-muted-foreground">
         Global Controls
       </span>
       <div className="flex gap-2">
@@ -123,7 +123,7 @@ export function GlobalExecutionControls() {
           onClick={handleResumeAll}
           disabled={resumableStacks.length === 0 || isProcessing}
           size="sm"
-          className="font-mono text-xs bg-green-600 hover:bg-green-700 text-white pl-2 pr-2"
+          className="font-mono text-sm bg-green-600 hover:bg-green-700 text-white pl-2 pr-2"
           title={`Resume ${pausedStacks.length} paused and ${stoppedStacks.length} stopped team(s)`}
         >
           <Play className="mr-1.5 h-3.5 w-3.5" />
@@ -139,7 +139,7 @@ export function GlobalExecutionControls() {
           disabled={runningStacks.length === 0 || isProcessing}
           size="sm"
           variant="outline"
-          className="font-mono text-xs border-yellow-500/50 text-yellow-600 hover:bg-yellow-500 hover:text-white bg-transparent pl-2 pr-2"
+          className="font-mono text-sm border-amber-900 text-black hover:bg-amber-600 hover:text-white bg-transparent pl-2 pr-2"
         >
           <Pause className="mr-1.5 h-3.5 w-3.5" />
           Pause All
@@ -154,7 +154,7 @@ export function GlobalExecutionControls() {
           disabled={runningStacks.length === 0 || isProcessing}
           size="sm"
           variant="outline"
-          className="font-mono text-xs border-red-500/50 text-red-500 hover:bg-red-500 hover:text-white bg-transparent pl-2 pr-2"
+          className="font-mono text-sm border-red-900 text-black hover:bg-red-600 hover:text-white bg-transparent pl-2 pr-2"
         >
           <Square className="mr-1.5 h-3.5 w-3.5" />
           Stop All
