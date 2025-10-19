@@ -93,6 +93,10 @@ export class ArtifactSyncService {
 
       // Use the latest artifact (first in the list)
       const latestArtifact = artifacts[0];
+      if (!latestArtifact) {
+        console.log("[ArtifactSync] No artifacts found");
+        return [];
+      }
 
       console.log(
         `[ArtifactSync] Materializing artifact type=${latestArtifact.type} version=${latestArtifact.version}`
@@ -182,7 +186,7 @@ export class ArtifactSyncService {
             build_time_ms: 0,
             cursor_agent_id: metadata.agent_id,
             files_changed: metadata.files_changed,
-          },
+          } as Record<string, unknown>,
         });
 
         console.log(`[ArtifactSync] Synced single HTML file artifact`);
@@ -201,7 +205,7 @@ export class ArtifactSyncService {
             build_time_ms: 0,
             cursor_agent_id: metadata.agent_id,
             files_changed: metadata.files_changed,
-          },
+          } as Record<string, unknown>,
         });
 
         console.log(
@@ -287,7 +291,7 @@ export class ArtifactSyncService {
           if (deps.fastify) stack.add("Fastify");
           if (deps.typescript) stack.add("TypeScript");
           if (deps.tailwindcss) stack.add("Tailwind CSS");
-        } catch (error) {
+        } catch {
           // Ignore parse errors
         }
       } else if (file.filename === "requirements.txt") {

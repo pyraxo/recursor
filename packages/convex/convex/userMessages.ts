@@ -5,6 +5,7 @@ import {
   mutation,
   query,
 } from "./_generated/server";
+import type { UserMessage, Message } from "./lib/types";
 
 // Send a user message to a team
 export const send = mutation({
@@ -13,7 +14,7 @@ export const send = mutation({
     sender_name: v.string(),
     content: v.string(),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const messageId = await ctx.db.insert("user_messages", {
       team_id: args.team_id,
       sender_name: args.sender_name,
@@ -31,15 +32,15 @@ export const getUnprocessed = query({
   args: {
     team_id: v.id("agent_stacks"),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const messages = await ctx.db
       .query("user_messages")
-      .withIndex("by_team_processed", (q: any) =>
+      .withIndex("by_team_processed", (q) =>
         q.eq("team_id", args.team_id).eq("processed", false)
       )
       .collect();
 
-    return messages.sort((a: any, b: any) => a.timestamp - b.timestamp);
+    return messages.sort((a, b) => a.timestamp - b.timestamp);
   },
 });
 
@@ -48,15 +49,15 @@ export const internalGetUnprocessed = internalQuery({
   args: {
     team_id: v.id("agent_stacks"),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const messages = await ctx.db
       .query("user_messages")
-      .withIndex("by_team_processed", (q: any) =>
+      .withIndex("by_team_processed", (q) =>
         q.eq("team_id", args.team_id).eq("processed", false)
       )
       .collect();
 
-    return messages.sort((a: any, b: any) => a.timestamp - b.timestamp);
+    return messages.sort((a, b) => a.timestamp - b.timestamp);
   },
 });
 
@@ -66,7 +67,7 @@ export const markProcessed = mutation({
     message_id: v.id("user_messages"),
     response_id: v.optional(v.id("messages")),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const message = await ctx.db.get(args.message_id);
     if (!message) return;
 
@@ -83,7 +84,7 @@ export const internalMarkProcessed = internalMutation({
     message_id: v.id("user_messages"),
     response_id: v.optional(v.id("messages")),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const message = await ctx.db.get(args.message_id);
     if (!message) return;
 
@@ -100,22 +101,22 @@ export const getChatHistory = query({
     team_id: v.id("agent_stacks"),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const limit = args.limit || 50;
 
     const messages = await ctx.db
       .query("user_messages")
-      .withIndex("by_team", (q: any) => q.eq("team_id", args.team_id))
+      .withIndex("by_team", (q) => q.eq("team_id", args.team_id))
       .collect();
 
     // Sort by timestamp descending and limit
     const sortedMessages = messages
-      .sort((a: any, b: any) => b.timestamp - a.timestamp)
+      .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, limit);
 
     // Fetch response messages if they exist
     const messagesWithResponses = await Promise.all(
-      sortedMessages.map(async (msg: any) => {
+      sortedMessages.map(async (msg) => {
         let response = null;
         if (msg.response_id) {
           response = await ctx.db.get(msg.response_id);
@@ -137,12 +138,12 @@ export const getAllForTeam = query({
   args: {
     team_id: v.id("agent_stacks"),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const messages = await ctx.db
       .query("user_messages")
-      .withIndex("by_team", (q: any) => q.eq("team_id", args.team_id))
+      .withIndex("by_team", (q) => q.eq("team_id", args.team_id))
       .collect();
 
-    return messages.sort((a: any, b: any) => a.timestamp - b.timestamp);
+    return messages.sort((a, b) => a.timestamp - b.timestamp);
   },
 });

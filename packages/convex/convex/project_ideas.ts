@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
+import type { ProjectIdeaUpdate, ProjectIdea } from "./lib/types";
 
 // Create a new project idea
 export const create = mutation({
@@ -9,7 +10,7 @@ export const create = mutation({
     description: v.string(),
     created_by: v.string(),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     return await ctx.db.insert("project_ideas", {
       stack_id: args.stack_id,
       title: args.title,
@@ -26,10 +27,10 @@ export const get = query({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     return await ctx.db
       .query("project_ideas")
-      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
       .order("desc")
       .first();
   },
@@ -43,10 +44,10 @@ export const list = query({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     return await ctx.db
       .query("project_ideas")
-      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stackId))
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stackId))
       .order("desc")
       .collect();
   },
@@ -58,9 +59,9 @@ export const updateStatus = mutation({
     ideaId: v.id("project_ideas"),
     status: v.string(),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await ctx.db.patch(args.ideaId, {
-      status: args.status,
+      status: args.status as ProjectIdea["status"],
     });
   },
 });
@@ -73,11 +74,11 @@ export const update = mutation({
     description: v.optional(v.string()),
     status: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
-    const updates: any = {};
+  handler: async (ctx, args) => {
+    const updates: ProjectIdeaUpdate = {};
     if (args.title) updates.title = args.title;
     if (args.description) updates.description = args.description;
-    if (args.status) updates.status = args.status;
+    if (args.status) updates.status = args.status as ProjectIdea["status"];
 
     await ctx.db.patch(args.ideaId, updates);
   },
@@ -92,11 +93,11 @@ export const internalUpdate = internalMutation({
     description: v.optional(v.string()),
     status: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     // Get the current project idea for this stack
     const projectIdea = await ctx.db
       .query("project_ideas")
-      .withIndex("by_stack", (q: any) => q.eq("stack_id", args.stack_id))
+      .withIndex("by_stack", (q) => q.eq("stack_id", args.stack_id))
       .order("desc")
       .first();
 
@@ -106,17 +107,17 @@ export const internalUpdate = internalMutation({
         stack_id: args.stack_id,
         title: args.title || "Untitled Project",
         description: args.description || "Project description pending",
-        status: args.status || "ideation",
+        status: (args.status as ProjectIdea["status"]) || "ideation",
         created_by: "planner",
         created_at: Date.now(),
       });
       return newIdeaId;
     }
 
-    const updates: any = {};
+    const updates: ProjectIdeaUpdate = {};
     if (args.title) updates.title = args.title;
     if (args.description) updates.description = args.description;
-    if (args.status) updates.status = args.status;
+    if (args.status) updates.status = args.status as ProjectIdea["status"];
 
     if (Object.keys(updates).length > 0) {
       await ctx.db.patch(projectIdea._id, updates);

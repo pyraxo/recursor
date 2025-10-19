@@ -71,11 +71,13 @@ export function SpeechBubbles({ agentPositions }: SpeechBubblesProps) {
 
         if (stackTraces.length > 0) {
           const recentTrace = stackTraces[0];
-          message =
-            recentTrace.thought?.substring(0, 60) ||
-            recentTrace.action?.substring(0, 60) ||
-            "Working...";
-          if (message.length > 57) message = message.substring(0, 57) + "...";
+          if (recentTrace) {
+            message =
+              recentTrace.thought?.substring(0, 60) ||
+              recentTrace.action?.substring(0, 60) ||
+              "Working...";
+            if (message.length > 57) message = message.substring(0, 57) + "...";
+          }
         } else {
           const stackAgentStates = stacks
             .find((s) => String(s._id) === stackId)

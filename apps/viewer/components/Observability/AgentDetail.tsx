@@ -287,9 +287,9 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
                             isHtmlArtifact || isExternalLink ? 'cursor-pointer hover:border-primary' : ''
                           }`}
                           onClick={() => {
-                            if (isHtmlArtifact) {
+                            if (isHtmlArtifact && a.content) {
                               openInNewTab(a.content);
-                            } else if (isExternalLink) {
+                            } else if (isExternalLink && a.url) {
                               window.open(a.url, '_blank');
                             }
                           }}
@@ -363,9 +363,9 @@ export function AgentDetail({ stackId }: { stackId: Id<"agent_stacks"> }) {
                               {m.from_agent_type}
                             </Badge>
                           )}
-                          {m.from_team_name && (
+                          {(m as { from_team_name?: string }).from_team_name && (
                             <span className="text-xs text-muted-foreground">
-                              from {m.from_team_name}
+                              from {(m as { from_team_name?: string }).from_team_name}
                             </span>
                           )}
                         </div>

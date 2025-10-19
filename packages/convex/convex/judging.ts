@@ -181,7 +181,7 @@ async function executeJudgeLogic(ctx: ActionCtx, stackId: Id<"agent_stacks">): P
 
   console.log(`[Judge] Judging ${stack.participant_name} - artifact v${artifacts.version}`);
 
-  const completedTodos = todos?.filter((t: any) => t.status === "completed") || [];
+  const completedTodos = todos?.filter((t) => t.status === "completed") || [];
   const totalTodos = todos?.length || 0;
 
   // Build previous scores context
@@ -412,7 +412,7 @@ export const executeJudgeInternal = internalAction({
   },
 });
 
-async function executeAllJudgesLogic(ctx: ActionCtx): Promise<Array<{ stackId: any; name: string; total_score?: number; message?: string; error?: string }>> {
+async function executeAllJudgesLogic(ctx: ActionCtx): Promise<Array<{ stackId: Id<"agent_stacks">; name: string; total_score?: number; message?: string; error?: string }>> {
   console.log(`[Judge] Executing batch judgment for all teams`);
 
   const stacks = await ctx.runQuery(internal.agents.internalListStacks, {});

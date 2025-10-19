@@ -167,6 +167,7 @@ export function WorldMap({ selectedTeamId, onSelectTeam }: WorldMapProps) {
                         animationDelay: `${agentIndex * 0.1}s`,
                       }}
                     >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={`/assets/sprites/${type}.png`}
                         alt={type}

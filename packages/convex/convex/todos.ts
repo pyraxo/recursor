@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
+import type { TypedQueryCtx, TypedMutationCtx, TodoUpdate, Todo } from "./lib/types";
 
 // Create a new todo
 export const create = mutation({
@@ -62,8 +63,8 @@ export const updateStatus = mutation({
     status: v.string(),
   },
   handler: async (ctx, args) => {
-    const updates: Record<string, any> = {
-      status: args.status,
+    const updates: TodoUpdate = {
+      status: args.status as Todo["status"],
     };
 
     if (args.status === "completed") {
@@ -121,8 +122,8 @@ export const internalUpdateStatus = internalMutation({
       return;
     }
 
-    const updates: Record<string, any> = {
-      status: args.status,
+    const updates: TodoUpdate = {
+      status: args.status as Todo["status"],
     };
 
     if (args.status === "completed") {
@@ -149,7 +150,7 @@ export const internalUpdate = internalMutation({
       return args.todoId;
     }
 
-    const updates: Record<string, any> = {};
+    const updates: TodoUpdate = {};
 
     if (args.content !== undefined) {
       updates.content = args.content;
@@ -160,7 +161,7 @@ export const internalUpdate = internalMutation({
     }
 
     if (args.status !== undefined) {
-      updates.status = args.status;
+      updates.status = args.status as Todo["status"];
       if (args.status === "completed") {
         updates.completed_at = Date.now();
       }

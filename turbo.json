@@ -8,6 +8,7 @@
     "GEMINI_API_KEY",
     "CURSOR_API_KEY",
     "GITHUB_TOKEN",
+    "EXA_API_KEY",
     "NODE_ENV"
   ],
   "tasks": {

@@ -58,7 +58,7 @@ export class OrchestratorFactory {
         );
         return new AgentStackOrchestrator(stackId, llm, convexUrl);
 
-      case "cursor":
+      case "cursor": {
         console.log(
           `[OrchestratorFactory] Creating Cursor Background Agent orchestrator for ${stack.participant_name}`
         );
@@ -84,6 +84,7 @@ export class OrchestratorFactory {
           githubToken,
           convexUrl
         );
+      }
 
       default:
         throw new Error(`Unknown team type: ${teamType}`);

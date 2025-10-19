@@ -20,7 +20,7 @@
 
 import { ActionCtx } from "../../_generated/server";
 import { Id } from "../../_generated/dataModel";
-import type { OrchestratorDecision } from "./types";
+import type { OrchestratorDecision, ExecutionGraph, AgentType, WorkStatus } from "./types";
 import { detectWorkForAgents } from "./workDetection";
 import {
   buildExecutionGraph,
@@ -163,9 +163,9 @@ export async function executeOrchestrator(
  * - Pause longer if no work was available
  */
 function decideNextAction(
-  graph: any,
-  analysis: any,
-  workStatus: any
+  graph: ExecutionGraph,
+  analysis: { agentsRun: AgentType[]; successCount: number; failureCount: number },
+  workStatus: WorkStatus
 ): OrchestratorDecision {
   // Check if any agents failed
   if (analysis.failureCount > 0) {
@@ -216,7 +216,7 @@ function decideNextAction(
  * - Medium pause if no immediate work but periodic checks due soon
  * - Long pause if truly idle
  */
-function calculatePauseDuration(workStatus: any): number {
+function calculatePauseDuration(workStatus: WorkStatus): number {
   // Check if any agent has moderate priority work (might become urgent)
   const maxPriority = Math.max(
     workStatus.planner.priority,

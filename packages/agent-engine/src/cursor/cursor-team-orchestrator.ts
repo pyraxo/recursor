@@ -242,7 +242,7 @@ export class CursorTeamOrchestrator implements IOrchestrator {
             console.log(
               `[CursorOrchestrator] Workspace ready (existing): ${this.currentWorkspace.repoName}`
             );
-          } catch (cloneError) {
+          } catch {
             // Repository doesn't exist anymore, create a new one
             console.log(
               `[CursorOrchestrator] Clone failed (repo may not exist), creating new PUBLIC repository`
@@ -739,7 +739,7 @@ export class CursorTeamOrchestrator implements IOrchestrator {
    * @param pendingTodos - List of pending todos to work on
    * @returns Unified prompt string
    */
-  private async buildUnifiedPrompt(pendingTodos: any[]): Promise<string> {
+  private async buildUnifiedPrompt(pendingTodos: Array<{ content: string; priority: number; _id: string }>): Promise<string> {
     const stack = await this.client.query(api.agents.getStack, {
       stackId: this.stackId,
     });
@@ -810,7 +810,7 @@ ${pendingTodos
 
 ${
   messages && messages.length > 0
-    ? `\n## Recent Messages\n\n${messages.map((m: any) => `- ${m.from_agent_type || m.from_user_name || "Unknown"}: ${m.content}`).join("\n")}`
+    ? `\n## Recent Messages\n\n${messages.map((m) => `- ${m.from_agent_type || m.from_user_name || "Unknown"}: ${m.content}`).join("\n")}`
     : ""
 }
 

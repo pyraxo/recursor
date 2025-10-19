@@ -5,6 +5,8 @@ import {
   mutation,
   query,
 } from "./_generated/server";
+import type { Message, EnrichedMessage } from "./lib/types";
+import type { Id } from "./_generated/dataModel";
 
 // Send a message (broadcast or direct)
 export const send = mutation({
@@ -15,7 +17,7 @@ export const send = mutation({
     content: v.string(),
     message_type: v.string(),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await ctx.db.insert("messages", {
       from_stack_id: args.from_stack_id,
       to_stack_id: args.to_stack_id,
@@ -33,13 +35,13 @@ export const getBroadcasts = query({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const messages = await ctx.db
       .query("messages")
-      .withIndex("broadcasts", (q: any) => q.eq("message_type", "broadcast"))
+      .withIndex("broadcasts", (q) => q.eq("message_type", "broadcast"))
       .collect();
 
-    return messages.filter((msg: any) => !msg.read_by.includes(args.stackId));
+    return messages.filter((msg) => !msg.read_by.includes(args.stackId));
   },
 });
 
@@ -48,13 +50,13 @@ export const getDirectMessages = query({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const messages = await ctx.db
       .query("messages")
-      .withIndex("by_recipient", (q: any) => q.eq("to_stack_id", args.stackId))
+      .withIndex("by_recipient", (q) => q.eq("to_stack_id", args.stackId))
       .collect();
 
-    return messages.filter((msg: any) => !msg.read_by.includes(args.stackId));
+    return messages.filter((msg) => !msg.read_by.includes(args.stackId));
   },
 });
 
@@ -64,7 +66,7 @@ export const markAsRead = mutation({
     messageId: v.id("messages"),
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const message = await ctx.db.get(args.messageId);
     if (!message) return;
 
@@ -81,52 +83,52 @@ export const getTimeline = query({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const sent = await ctx.db
       .query("messages")
-      .withIndex("by_sender", (q: any) => q.eq("from_stack_id", args.stackId))
+      .withIndex("by_sender", (q) => q.eq("from_stack_id", args.stackId))
       .collect();
 
     const received = await ctx.db
       .query("messages")
-      .withIndex("by_recipient", (q: any) => q.eq("to_stack_id", args.stackId))
+      .withIndex("by_recipient", (q) => q.eq("to_stack_id", args.stackId))
       .collect();
 
     const broadcasts = await ctx.db
       .query("messages")
-      .withIndex("broadcasts", (q: any) => q.eq("message_type", "broadcast"))
+      .withIndex("broadcasts", (q) => q.eq("message_type", "broadcast"))
       .collect();
 
     const all = [...sent, ...received, ...broadcasts];
     const unique = Array.from(
-      new Map(all.map((m: any) => [m._id, m])).values()
+      new Map(all.map((m) => [m._id, m])).values()
     );
 
-    return unique.sort((a: any, b: any) => a.created_at - b.created_at);
+    return unique.sort((a, b) => a.created_at - b.created_at);
   },
 });
 
 // Get ALL messages across all teams (for global Messages tab)
 export const getAllMessages = query({
   args: {},
-  handler: async (ctx: any) => {
+  handler: async (ctx) => {
     const messages = await ctx.db.query("messages").collect();
 
     // Enrich messages with team names
-    const enriched = await Promise.all(
-      messages.map(async (msg: any) => {
-        const fromStack = await ctx.db.get(msg.from_stack_id);
+    const enriched: EnrichedMessage[] = await Promise.all(
+      messages.map(async (msg) => {
+        const fromStack = msg.from_stack_id ? await ctx.db.get(msg.from_stack_id) : null;
         const toStack = msg.to_stack_id ? await ctx.db.get(msg.to_stack_id) : null;
 
         return {
           ...msg,
           from_team_name: fromStack?.participant_name || "Unknown",
           to_team_name: toStack?.participant_name || null,
-        };
+        } as EnrichedMessage & { from_team_name: string; to_team_name: string | null };
       })
     );
 
-    return enriched.sort((a: any, b: any) => a.created_at - b.created_at);
+    return enriched.sort((a, b) => a.created_at - b.created_at);
   },
 });
 
@@ -138,23 +140,23 @@ export const getUnreadForStack = internalQuery({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     // Get broadcast messages
     const broadcasts = await ctx.db
       .query("messages")
-      .withIndex("broadcasts", (q: any) => q.eq("message_type", "broadcast"))
+      .withIndex("broadcasts", (q) => q.eq("message_type", "broadcast"))
       .collect();
 
     // Get direct messages to this stack
     const directMessages = await ctx.db
       .query("messages")
-      .withIndex("by_recipient", (q: any) => q.eq("to_stack_id", args.stackId))
+      .withIndex("by_recipient", (q) => q.eq("to_stack_id", args.stackId))
       .collect();
 
     // Combine and filter for unread AND exclude own messages
     const allMessages = [...broadcasts, ...directMessages];
     return allMessages.filter(
-      (msg: any) =>
+      (msg) =>
         !msg.read_by.includes(args.stackId) && // Not already read
         msg.from_stack_id !== args.stackId      // Not from this stack (don't respond to own messages!)
     );
@@ -167,7 +169,7 @@ export const internalMarkAsRead = internalMutation({
     messageId: v.id("messages"),
     stackId: v.id("agent_stacks"), // The stack that is reading the message
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const message = await ctx.db.get(args.messageId);
     if (!message) return;
 
@@ -187,7 +189,7 @@ export const internalMarkAsRead = internalMutation({
 //   args: {
 //     messageId: v.id("messages"),
 //   },
-//   handler: async (ctx: any, args: any) => {
+//   handler: async (ctx, args) => {
 //     const message = await ctx.db.get(args.messageId);
 //     if (!message) return;
 
@@ -205,8 +207,16 @@ export const internalSend = internalMutation({
     content: v.string(),
     to_stack_id: v.optional(v.id("agent_stacks")), // Optional for direct messages
   },
-  handler: async (ctx: any, args: any) => {
-    const messageData: any = {
+  handler: async (ctx, args) => {
+    const messageData: {
+      from_stack_id: Id<"agent_stacks">;
+      from_agent_type: string;
+      content: string;
+      message_type: string;
+      read_by: Id<"agent_stacks">[];
+      created_at: number;
+      to_stack_id?: Id<"agent_stacks">;
+    } = {
       from_stack_id: args.sender_id,
       from_agent_type: "communicator",
       content: args.content,
@@ -231,23 +241,23 @@ export const getUnreadMessages = query({
   args: {
     stackId: v.id("agent_stacks"),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     // Get broadcast messages
     const broadcasts = await ctx.db
       .query("messages")
-      .withIndex("broadcasts", (q: any) => q.eq("message_type", "broadcast"))
+      .withIndex("broadcasts", (q) => q.eq("message_type", "broadcast"))
       .collect();
 
     // Get direct messages to this stack
     const directMessages = await ctx.db
       .query("messages")
-      .withIndex("by_recipient", (q: any) => q.eq("to_stack_id", args.stackId))
+      .withIndex("by_recipient", (q) => q.eq("to_stack_id", args.stackId))
       .collect();
 
     // Combine and filter for unread AND exclude own messages
     const allMessages = [...broadcasts, ...directMessages];
     return allMessages.filter(
-      (msg: any) =>
+      (msg) =>
         !msg.read_by.includes(args.stackId) && // Not already read
         msg.from_stack_id !== args.stackId      // Not from this stack
     );

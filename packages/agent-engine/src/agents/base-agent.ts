@@ -16,7 +16,7 @@ export interface WorkStatus {
   type: string;
   workDescription: string;
   priority: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export abstract class BaseAgent {
@@ -63,7 +63,8 @@ export abstract class BaseAgent {
   }
 
   // Process work when available (override for custom behavior)
-  async processWork(workStatus: WorkStatus): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async processWork(_workStatus: WorkStatus): Promise<string> {
     // Default implementation just calls think()
     return this.think();
   }

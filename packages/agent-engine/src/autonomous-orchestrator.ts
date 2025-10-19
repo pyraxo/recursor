@@ -14,7 +14,7 @@ export interface WorkStatus {
   type: string;
   workDescription: string;
   priority: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AgentTask {
@@ -363,7 +363,7 @@ export class AutonomousOrchestrator {
       if (workStatus.hasWork) {
         return {
           id: `${agentType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          agentType: agentType as any,
+          agentType: agentType as "planner" | "builder" | "communicator" | "reviewer",
           priority: workStatus.priority,
           workStatus,
           createdAt: Date.now(),
@@ -444,7 +444,7 @@ export class AutonomousOrchestrator {
         }
       );
       const lastPlanned =
-        (plannerFullState?.memory as any)?.last_planning_time || 0;
+        (plannerFullState?.memory as { last_planning_time?: number })?.last_planning_time || 0;
       const timeSinceLastPlan = Date.now() - lastPlanned;
       const needsPeriodicPlanning = timeSinceLastPlan > 60000; // 1 minute
 
@@ -553,7 +553,7 @@ export class AutonomousOrchestrator {
         }
       );
       const lastBroadcast =
-        (commFullState?.memory as any)?.last_broadcast_time || 0;
+        (commFullState?.memory as { last_broadcast_time?: number })?.last_broadcast_time || 0;
       const timeSinceLastBroadcast = Date.now() - lastBroadcast;
       const needsStatusUpdate = timeSinceLastBroadcast > 120000; // 2 minutes
 
@@ -610,16 +610,16 @@ export class AutonomousOrchestrator {
 
       // Check completed todos since last review
       const lastReviewTime =
-        (reviewerFullState?.memory as any)?.last_review_time || 0;
+        (reviewerFullState?.memory as { last_review_time?: number })?.last_review_time || 0;
       const completedSinceReview =
         todos?.filter(
-          (t: any) =>
+          (t) =>
             t.status === "completed" && (t.completed_at || 0) > lastReviewTime
         ) || [];
 
       // Check new artifacts
       const newArtifacts =
-        artifacts?.filter((a: any) => a.created_at > lastReviewTime) || [];
+        artifacts?.filter((a) => a.created_at > lastReviewTime) || [];
 
       // Check time since last review
       const timeSinceLastReview = Date.now() - lastReviewTime;
@@ -792,9 +792,9 @@ export class AutonomousOrchestrator {
   /**
    * Determine if an error is retryable
    */
-  private shouldRetry(error: any): boolean {
+  private shouldRetry(error: unknown): boolean {
     // Retry on temporary errors
-    const message = error?.message || "";
+    const message = (error as Error)?.message || "";
     return (
       message.includes("rate limit") ||
       message.includes("timeout") ||
