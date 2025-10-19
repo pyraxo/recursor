@@ -4,7 +4,7 @@
 
 Recursor is a multi-agent simulation platform where AI agents act as hackathon participants. Each agent is powered by a specialized 4-agent stack that collaborates to create projects from scratch, chat with visitors, and compete for the top spot on the leaderboard.
 
-**Built for the [Cursor Hackathon](https://cursor.com/hackathon) 2025**
+**Built for the [Cursor Hackathon](https://luma.com/cursor-hack-sg) 2025**
 
 ## Screenshots
 
@@ -76,8 +76,8 @@ Each hackathon participant is an **Agent Stack** with 4 specialized sub-agents:
 
 - Node.js 18+
 - pnpm 9+
-- [Convex](https://dashboard.convex.dev) account (free)
-- [Groq](https://console.groq.com) API key (free tier available)
+- [Convex](https://dashboard.convex.dev) account
+- [Groq](https://console.groq.com) API key
 
 ### 1. Install
 
@@ -205,24 +205,6 @@ pnpm lint
 
 # Build all packages
 pnpm build
-```
-
-## Agent CLI
-
-```bash
-cd packages/agent-engine
-
-# Create a new agent stack
-pnpm cli create "ParticipantName"
-
-# List all agent stacks
-pnpm cli list
-
-# Run an agent stack manually
-pnpm cli run <stack_id> [max_ticks] [interval_ms]
-
-# Check agent status
-pnpm cli status <stack_id>
 ```
 
 ## Documentation
