@@ -55,11 +55,11 @@ export function ProgressChart() {
       if (!teamJudgments.has(j.team_name)) {
         teamJudgments.set(j.team_name, []);
       }
-      // Convert total_score (out of 40) to percentage (out of 100)
-      const score = Math.round((j.total_score / 40) * 100);
+      // Use total_score directly (out of 40)
+      const score = j.total_score;
       teamJudgments.get(j.team_name)!.push({
         time: j.judged_at,
-        score: Math.min(100, Math.max(0, score)),
+        score: Math.min(40, Math.max(0, score)),
       });
     });
 
@@ -123,7 +123,7 @@ export function ProgressChart() {
   }
 
   const { teamNames } = chartData;
-  const maxScore = 100;
+  const maxScore = 40;
   const chartHeight = 300;
   const chartWidth = 800;
 
@@ -149,7 +149,7 @@ export function ProgressChart() {
                 fill="var(--background)"
               />
 
-              {[0, 25, 50, 75, 100].map((value) => {
+              {[0, 10, 20, 30, 40].map((value) => {
                 const y =
                   chartHeight - (value / maxScore) * (chartHeight - 40) - 20;
                 return (
@@ -182,9 +182,9 @@ export function ProgressChart() {
                   chartData.colors[teamIndex % chartData.colors.length];
                 const points = chartData.data
                   .map((point, i) => {
-                    const x =
-                      40 +
-                      (i / (chartData.data.length - 1)) * (chartWidth - 60);
+                    const x = chartData.data.length === 1
+                      ? 40
+                      : 40 + (i / (chartData.data.length - 1)) * (chartWidth - 60);
                     const score = point.scores[teamName] || 0;
                     const y =
                       chartHeight -
@@ -204,26 +204,14 @@ export function ProgressChart() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
-                    {chartData.data.map((point, i) => {
-                      const x =
-                        40 +
-                        (i / (chartData.data.length - 1)) * (chartWidth - 60);
-                      const score = point.scores[teamName] || 0;
-                      const y =
-                        chartHeight -
-                        20 -
-                        (score / maxScore) * (chartHeight - 40);
-                      return (
-                        <circle key={i} cx={x} cy={y} r={3} fill={color} />
-                      );
-                    })}
                   </g>
                 );
               })}
 
               {chartData.data.map((point, i) => {
-                const x =
-                  40 + (i / (chartData.data.length - 1)) * (chartWidth - 60);
+                const x = chartData.data.length === 1
+                  ? 40
+                  : 40 + (i / (chartData.data.length - 1)) * (chartWidth - 60);
                 return (
                   <text
                     key={i}

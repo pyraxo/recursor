@@ -758,6 +758,44 @@ export class CursorTeamOrchestrator implements IOrchestrator {
     });
     const messages = allMessages?.slice(-5) || [];
 
+    // Get tick information for time awareness
+    const currentTick = (stack?.cursor_config?.total_prompts_sent || 0) + 1; // Next tick
+    const estimatedTotalTicks = 12; // Typical hackathon duration
+    const timeElapsedPercent = Math.round((currentTick / estimatedTotalTicks) * 100);
+    const ticksRemaining = Math.max(0, estimatedTotalTicks - currentTick);
+
+    // Read previous tick logs for continuity (if they exist in the workspace)
+    // This provides meta-learning and continuity across ticks
+    let previousTicksLog = "";
+    if (this.currentWorkspace && currentTick > 1) {
+      // Build a summary of recent ticks by checking for log files
+      const recentTicks: string[] = [];
+      const logsToRead = Math.min(3, currentTick - 1); // Read up to 3 previous ticks
+
+      for (let i = 1; i <= logsToRead; i++) {
+        const tickNumber = currentTick - i;
+        recentTicks.push(`tick-${String(tickNumber).padStart(3, '0')}.md`);
+      }
+
+      if (recentTicks.length > 0) {
+        previousTicksLog = `
+## Previous Execution Logs
+
+📖 **Review your recent work**: Read the following tick logs to understand what you've accomplished and learned:
+
+${recentTicks.map(log => `- \`logs/${log}\` - Your most recent ${recentTicks.indexOf(log) === 0 ? 'execution' : 'previous execution'}`).join('\n')}
+
+**Why this matters**: These logs contain your decisions, learnings, and strategic insights. Read them to:
+- Avoid repeating mistakes
+- Build on successful approaches
+- Maintain consistency with previous decisions
+- Learn from blockers you've overcome
+
+If these logs don't exist yet, you'll create them starting this tick (see Execution Log section below).
+`;
+      }
+    }
+
     // Consolidate all 4 agent roles into one comprehensive prompt
     return `
 You are an AI developer participating in the Recursor hackathon as "${stack?.participant_name || "CursorTeam"}".
@@ -769,38 +807,69 @@ You are an AI developer participating in the Recursor hackathon as "${stack?.par
 **Phase**: ${stack?.phase || "ideation"}
 **Current Artifacts**: ${artifacts?.length || 0} versions
 
-## Your Responsibilities (Consolidated Multi-Agent Approach)
+## Time Tracking
 
-As a Cursor Background Agent, you handle ALL aspects of development:
+**Current Tick**: ${currentTick} of ~${estimatedTotalTicks}
+**Time Elapsed**: ~${timeElapsedPercent}%
+**Ticks Remaining**: ~${ticksRemaining}
 
-### 1. Planning (Planner Role)
-- Analyze the current project state and requirements
-- Break down complex work into logical, achievable steps
-- Prioritize tasks effectively based on dependencies
-- Update the project plan as you learn new information
-- Think strategically about the overall project direction
+⏰ **Time Management**: Use \`docs/cursor-agent/frameworks/scope-management.md\` to assess if you're on track. If you're behind schedule (e.g., >70% time elapsed but <70% complete), apply aggressive scope cutting.
+${previousTicksLog}
+## Decision-Making Framework
 
-### 2. Building (Builder Role)
-- Write high-quality, production-ready code
-- Create multi-file projects when appropriate (don't limit yourself to single files!)
-- Use modern best practices and tooling
-- Ensure code is well-structured and maintainable
-- Test your implementations thoroughly
-- Use incremental editing - don't regenerate entire files unnecessarily
+You have access to comprehensive workflow guides in \`docs/cursor-agent/\` that provide structured decision-making frameworks. **READ THESE GUIDES** before making important decisions:
 
-### 3. Communication (Communicator Role)
-- Write clear, helpful documentation
-- Add meaningful code comments
-- Create informative commit messages
-- Document architectural decisions
-- Explain complex logic
+### Workflow Guides (Role-Specific)
+- \`docs/cursor-agent/workflows/planning.md\` - For planning decisions (todos, priorities, phases)
+- \`docs/cursor-agent/workflows/building.md\` - For implementation approach
+- \`docs/cursor-agent/workflows/review.md\` - For progress assessment and time management
+- \`docs/cursor-agent/workflows/communication.md\` - For user/team communication
 
-### 4. Review (Reviewer Role)
-- Self-review your code for quality and correctness
-- Check that requirements are fully met
-- Identify and fix potential issues
-- Refactor code for clarity and efficiency
-- Ensure consistency across the codebase
+### Decision Frameworks
+- \`docs/cursor-agent/frameworks/phase-management.md\` - When to transition phases (ideation→building→demo→complete)
+- \`docs/cursor-agent/frameworks/priority-scoring.md\` - How to score priorities (1-10 system)
+- \`docs/cursor-agent/frameworks/commit-strategy.md\` - When and how to commit
+- \`docs/cursor-agent/frameworks/scope-management.md\` - When to cut scope under time pressure
+
+### Examples
+- \`docs/cursor-agent/examples/\` - 5 showcase examples of excellent decision-making
+
+### Execution Template
+- \`docs/cursor-agent/templates/tick-execution-template.md\` - Template for structured tick execution
+
+**IMPORTANT**: Use these guides to make systematic, well-reasoned decisions. They contain the accumulated expertise of successful hackathon teams.
+
+## Your Workflow (4-Phase Approach)
+
+Execute these phases **in order**, referencing the guides for each:
+
+### Phase 1: Planning
+Read \`workflows/planning.md\` and execute planning decisions:
+- Evaluate current project state
+- Apply phase transition framework (\`frameworks/phase-management.md\`)
+- Score todo priorities (\`frameworks/priority-scoring.md\`)
+- Create/update/delete todos as needed
+- Update project description if phase changes
+
+### Phase 2: Building
+Read \`workflows/building.md\` and implement the highest priority todo:
+- Build clean, multi-file projects (modern frameworks encouraged)
+- Follow commit strategy (\`frameworks/commit-strategy.md\`)
+- Commit frequently with semantic messages
+- Push to git after each todo completion
+
+### Phase 3: Review
+Read \`workflows/review.md\` and assess progress:
+- Check time vs. completion (apply \`frameworks/scope-management.md\` if needed)
+- Identify blockers
+- Assess demo-readiness
+- Recommend scope cuts if behind schedule
+
+### Phase 4: Communication
+Read \`workflows/communication.md\` and respond to messages (if any):
+- Reply to user questions naturally and conversationally
+- Send team messages if collaboration needed
+- Only broadcast major milestones (don't spam)
 
 ## Current Todos (Priority Order)
 
@@ -815,17 +884,16 @@ ${
     : ""
 }
 
-## Instructions
+## Execution Instructions
 
-Work on the **highest priority** todos first. For each todo:
+1. **Always start with Planning** - Read \`workflows/planning.md\` and make strategic decisions first
+2. **Reference relevant frameworks** - Don't guess, use the decision frameworks provided
+3. **Work on highest priority todo** - Check the priority score and work top-down
+4. **Commit frequently** - Follow \`frameworks/commit-strategy.md\` (every 15-30 min of work)
+5. **Self-review regularly** - Apply \`workflows/review.md\` to assess progress
+6. **Cut scope aggressively if needed** - Use \`frameworks/scope-management.md\` when behind
 
-1. **Plan**: Break it down into subtasks if complex
-2. **Implement**: Write clean, tested code
-3. **Document**: Add comments and update docs
-4. **Review**: Check quality and correctness
-5. **Commit**: Push your changes to GitHub (see Git Workflow below)
-
-Create a working, demo-ready prototype. This is a hackathon - move fast but maintain high quality.
+**Goal**: Create a working, demo-ready prototype. This is a hackathon - move fast but use the guides to make smart decisions.
 
 ## Git Workflow (CRITICAL - READ CAREFULLY)
 
@@ -891,6 +959,42 @@ After completing EACH todo or making significant progress:
 - Error handling should be robust
 - UI should be functional and reasonably polished
 - Documentation should explain key decisions
+
+## Execution Log (CRITICAL FOR CONTINUITY)
+
+📝 **Document this tick**: After completing this execution, create a log file to track your decisions and learnings.
+
+### Instructions
+
+1. **Copy the execution template**:
+   \`\`\`bash
+   cp docs/cursor-agent/templates/tick-execution-template.md logs/tick-${String(currentTick).padStart(3, '0')}.md
+   \`\`\`
+
+2. **Fill out the template** as you work through each phase:
+   - **Planning phase**: Document your strategic decisions (todos created/updated/deleted, priority changes, phase transitions)
+   - **Building phase**: Log what you built, files changed, challenges encountered
+   - **Review phase**: Assess progress, identify blockers, check time management
+   - **Communication phase**: Record messages responded to
+   - **Meta-review**: Capture lessons learned and notes for future ticks
+
+3. **Commit your log**:
+   \`\`\`bash
+   git add logs/tick-${String(currentTick).padStart(3, '0')}.md
+   git commit -m "docs: add tick ${currentTick} execution log"
+   git push origin ${this.currentWorkspace?.branch || "agent-workspace"}
+   \`\`\`
+
+### Why This Matters
+
+- **Memory across ticks**: These logs are your external memory system
+- **Learn from patterns**: Review past logs to identify what works and what doesn't
+- **Maintain consistency**: Stay aligned with previous strategic decisions
+- **Debug issues**: Understand how you got to the current state
+
+**Pro tip**: Fill out the template incrementally as you work, not all at once at the end. This makes it easier and ensures nothing is forgotten.
+
+---
 
 **Focus on shipping something impressive and functional!**
     `.trim();

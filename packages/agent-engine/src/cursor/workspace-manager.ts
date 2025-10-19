@@ -17,9 +17,10 @@
  */
 
 import type { Id } from "@recursor/convex/_generated/dataModel";
-import { mkdir, readFile, writeFile } from "fs/promises";
+import { mkdir, readFile, writeFile, readdir, stat, access } from "fs/promises";
 import { Octokit } from "octokit";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import simpleGit, { SimpleGit } from "simple-git";
 import { dir as createTmpDir } from "tmp-promise";
 
@@ -143,6 +144,16 @@ export class VirtualWorkspaceManager {
         console.log(`[Workspace] Creating new branch: ${branch}`);
         await repoGit.checkoutLocalBranch(branch);
         await repoGit.push("origin", branch, { "--set-upstream": null });
+      }
+
+      // 4.5. Set up agent workflow guides if they don't exist
+      const docsPath = join(localPath, 'docs', 'cursor-agent');
+      try {
+        await access(docsPath);
+        console.log('[Workspace] Workflow guides already exist');
+      } catch {
+        console.log('[Workspace] Workflow guides not found, setting them up...');
+        await this.setupAgentWorkflows(localPath, branch);
       }
 
       // 5. Create cleanup function (only deletes local directory, NOT GitHub repo)
@@ -301,6 +312,9 @@ export class VirtualWorkspaceManager {
         await repoGit.commit("Initialize workspace with existing artifacts");
         await repoGit.push("origin", branch, { "--set-upstream": null });
       }
+
+      // 6. Set up agent workflow guides and documentation
+      await this.setupAgentWorkflows(localPath, branch);
 
       // 7. Create cleanup function (only deletes local directory, preserves GitHub repo)
       const cleanup = async () => {
@@ -597,5 +611,211 @@ export class ConvexTool {
     }
 
     return results;
+  }
+
+  /**
+   * Set up agent workflow documentation in the repository
+   *
+   * This creates the "external brain" for the agent with all decision-making guides.
+   * The guides are copied from the workflow-guides directory and committed to the workspace.
+   *
+   * Directory structure created:
+   * ```
+   * docs/cursor-agent/
+   *   workflows/       - Role-specific guides
+   *   frameworks/      - Decision frameworks
+   *   examples/        - Example showcases
+   *   templates/       - Execution template
+   *   README.md        - Overview
+   * logs/              - Execution logs (with .gitkeep)
+   * ```
+   *
+   * @param localPath - Local path to workspace directory
+   * @param branch - Git branch name to commit to
+   * @returns Promise that resolves when setup is complete
+   */
+  async setupAgentWorkflows(localPath: string, branch: string): Promise<void> {
+    console.log('[WorkspaceManager] Creating agent workflow documentation...');
+
+    try {
+      const repoGit: SimpleGit = simpleGit(localPath);
+
+      // Get the path to the workflow-guides directory
+      // We need to go from workspace-manager.ts location to workflow-guides/
+      const workflowGuidesPath = join(
+        dirname(fileURLToPath(import.meta.url)),
+        'workflow-guides'
+      );
+
+      console.log(`[WorkspaceManager] Reading guides from: ${workflowGuidesPath}`);
+
+      // Create target directories in workspace
+      const docsPath = join(localPath, 'docs', 'cursor-agent');
+      await mkdir(join(docsPath, 'workflows'), { recursive: true });
+      await mkdir(join(docsPath, 'frameworks'), { recursive: true });
+      await mkdir(join(docsPath, 'examples'), { recursive: true });
+      await mkdir(join(docsPath, 'templates'), { recursive: true });
+      await mkdir(join(localPath, 'logs'), { recursive: true });
+
+      // Copy all workflow guides
+      await this.copyDirectoryContents(
+        join(workflowGuidesPath, 'workflows'),
+        join(docsPath, 'workflows')
+      );
+      console.log('[WorkspaceManager] ✓ Copied workflow guides');
+
+      // Copy all frameworks
+      await this.copyDirectoryContents(
+        join(workflowGuidesPath, 'frameworks'),
+        join(docsPath, 'frameworks')
+      );
+      console.log('[WorkspaceManager] ✓ Copied decision frameworks');
+
+      // Copy all examples
+      await this.copyDirectoryContents(
+        join(workflowGuidesPath, 'examples'),
+        join(docsPath, 'examples')
+      );
+      console.log('[WorkspaceManager] ✓ Copied example showcases');
+
+      // Copy execution template
+      await this.copyDirectoryContents(
+        join(workflowGuidesPath, 'templates'),
+        join(docsPath, 'templates')
+      );
+      console.log('[WorkspaceManager] ✓ Copied execution template');
+
+      // Create README.md for docs/cursor-agent
+      await this.createAgentDocsReadme(docsPath);
+      console.log('[WorkspaceManager] ✓ Created documentation README');
+
+      // Create .gitkeep in logs directory
+      await writeFile(join(localPath, 'logs', '.gitkeep'), '', 'utf-8');
+      console.log('[WorkspaceManager] ✓ Initialized logs directory');
+
+      // Commit the documentation
+      await repoGit.add('docs/cursor-agent/');
+      await repoGit.add('logs/.gitkeep');
+      await repoGit.commit('chore: add agent workflow guides and decision frameworks\n\nAdd comprehensive documentation for autonomous agent decision-making:\n- Workflow guides for each role (planning, building, review, communication)\n- Decision frameworks (phase management, priority scoring, commit strategy, scope management)\n- Example showcases demonstrating excellence\n- Execution template for structured thinking\n\nThese guides provide the agent with systematic decision-making frameworks.');
+      await repoGit.push('origin', branch);
+
+      console.log('[WorkspaceManager] ✓ Agent documentation committed and pushed');
+    } catch (error) {
+      console.error('[WorkspaceManager] Failed to set up agent workflows:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Copy all files from a source directory to a destination directory
+   *
+   * @param sourcePath - Source directory path
+   * @param destPath - Destination directory path
+   */
+  private async copyDirectoryContents(
+    sourcePath: string,
+    destPath: string
+  ): Promise<void> {
+    try {
+      const files = await readdir(sourcePath);
+
+      for (const file of files) {
+        const sourceFile = join(sourcePath, file);
+        const destFile = join(destPath, file);
+
+        // Check if it's a directory or file
+        const stats = await stat(sourceFile);
+
+        if (stats.isDirectory()) {
+          // Recursively copy subdirectories
+          await mkdir(destFile, { recursive: true });
+          await this.copyDirectoryContents(sourceFile, destFile);
+        } else if (stats.isFile()) {
+          // Copy file
+          const content = await readFile(sourceFile, 'utf-8');
+          await writeFile(destFile, content, 'utf-8');
+        }
+      }
+    } catch (error) {
+      console.error(`[WorkspaceManager] Error copying from ${sourcePath} to ${destPath}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create README.md explaining the agent documentation system
+   *
+   * @param docsPath - Path to docs/cursor-agent directory
+   */
+  private async createAgentDocsReadme(docsPath: string): Promise<void> {
+    const readme = `# Cursor Agent Documentation
+
+This directory contains your workflow guides, decision frameworks, and execution templates.
+
+## How This Works
+
+You are an autonomous agent simulating a 4-person team (Planner, Builder, Communicator, Reviewer).
+This documentation gives you the expertise of each role.
+
+## Directory Structure
+
+- **workflows/** - Detailed guides for each role (read these when executing that role)
+- **frameworks/** - Decision-making frameworks (reference for specific decisions)
+- **examples/** - Showcases of excellent decisions (learn from these)
+- **templates/** - Execution log template (copy and fill out each tick)
+
+## Execution Process
+
+For each tick:
+
+1. Copy \`templates/tick-execution-template.md\` to \`../../logs/tick-NNN.md\`
+2. Read \`workflows/planning.md\` and execute planning role
+3. Read \`workflows/building.md\` and execute building role
+4. Read \`workflows/review.md\` and execute review role
+5. Read \`workflows/communication.md\` and execute communication role
+6. Fill out the execution log as you go
+7. Commit everything (code changes + execution log)
+
+## Key Principle
+
+**The guides contain hard-won expertise from many iterations.**
+Trust them. Follow the decision frameworks. Reference the examples.
+
+Your job is to execute the workflows, not reinvent them.
+
+## Reference Materials
+
+### Quick Links
+
+- [Planning Guide](workflows/planning.md) - Todo management, phase transitions, priority scoring
+- [Building Guide](workflows/building.md) - Code implementation, git workflow, quality standards
+- [Review Guide](workflows/review.md) - Demo readiness, time management, scope cutting
+- [Communication Guide](workflows/communication.md) - User responses, team messages, broadcasts
+
+### Decision Frameworks
+
+- [Phase Management](frameworks/phase-management.md) - When to transition between phases
+- [Priority Scoring](frameworks/priority-scoring.md) - How to score priorities 1-10
+- [Commit Strategy](frameworks/commit-strategy.md) - When and how to commit
+- [Scope Management](frameworks/scope-management.md) - How to cut scope under time pressure
+
+### Example Showcases
+
+- [Excellent Planning](examples/excellent-planning.md) - Strategic planning and scope cutting
+- [Excellent Building](examples/excellent-building.md) - Multi-file implementation best practices
+- [Scope Cut Success](examples/scope-cut-success.md) - Successful scope management
+- [Phase Transitions](examples/phase-transition.md) - Well-timed phase transitions
+- [Excellent Communication](examples/excellent-communication.md) - Natural user/team communication
+
+## Remember
+
+- **Follow the workflows** - They contain proven expertise
+- **Document your decisions** - Fill out execution logs completely
+- **Commit frequently** - Uncommitted work disappears
+- **Move fast** - This is a hackathon, not production
+- **Be specific** - Vague decisions lead to vague results
+`;
+
+    await writeFile(join(docsPath, 'README.md'), readme, 'utf-8');
   }
 }
