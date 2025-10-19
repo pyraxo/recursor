@@ -207,25 +207,6 @@ export function ProgressChart() {
                   </g>
                 );
               })}
-
-              {chartData.data.map((point, i) => {
-                const x = chartData.data.length === 1
-                  ? 40
-                  : 40 + (i / (chartData.data.length - 1)) * (chartWidth - 60);
-                return (
-                  <text
-                    key={i}
-                    x={x}
-                    y={chartHeight - 5}
-                    fill="var(--muted-foreground)"
-                    fontSize="9"
-                    fontFamily="monospace"
-                    textAnchor="middle"
-                  >
-                    {point.time}
-                  </text>
-                );
-              })}
             </svg>
           </div>
         </div>
