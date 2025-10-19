@@ -43,8 +43,8 @@ export function AdminDashboard({
   };
 
   return (
-    <div className="h-full w-full bg-background overflow-auto">
-      <div className="w-full px-6 pt-6 pb-0 md:px-8 md:pt-8 lg:px-12 lg:pt-12">
+    <div className="w-full bg-background">
+      <div className="w-full px-6 pt-6 pb-6 md:px-8 md:pt-8 md:pb-8 lg:px-12 lg:pt-12 lg:pb-12">
         {/* Header */}
         <header className="mb-12">
           <h1 className="font-mono text-4xl font-bold tracking-tight text-foreground mb-3">

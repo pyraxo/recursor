@@ -1,10 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useMutation, useQuery } from "convex/react";
 import { api } from "@recursor/convex/_generated/api";
 import { Id } from "@recursor/convex/_generated/dataModel";
-import { Button } from "@repo/ui/components/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,17 +13,22 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@repo/ui/components/alert-dialog";
+import { Button } from "@repo/ui/components/button";
+import { useMutation, useQuery } from "convex/react";
 import { ArrowUp, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AgentDetail } from "./AgentDetail";
 import { AgentList } from "./AgentList";
 import { LiveFeed, LiveFeedRef } from "./LiveFeed";
-import { AgentDetail } from "./AgentDetail";
 
 export function ObservabilityTab({
   selectedTeamId,
 }: {
   selectedTeamId?: Id<"agent_stacks"> | null;
 }) {
-  const [selected, setSelected] = useState<string | null>(selectedTeamId || null);
+  const [selected, setSelected] = useState<string | null>(
+    selectedTeamId || null
+  );
   const [isDeleting, setIsDeleting] = useState(false);
   const liveFeedRef = useRef<LiveFeedRef>(null);
   const traces = useQuery(api.traces.getRecentAll, { limit: 100 });
@@ -49,7 +51,7 @@ export function ObservabilityTab({
   };
 
   return (
-    <div className="h-full w-full overflow-auto p-6">
+    <div className="h-full w-full overflow-clip p-6">
       <div className="w-full space-y-6">
         <div className="grid grid-cols-[280px_1fr_1fr] gap-4 items-start">
           {/* Column 1: Team List */}
@@ -90,7 +92,8 @@ export function ObservabilityTab({
                     <AlertDialogDescription>
                       This will permanently delete{" "}
                       <span className="font-medium text-foreground">
-                        {traces?.length || 0} event{traces?.length !== 1 ? 's' : ''}
+                        {traces?.length || 0} event
+                        {traces?.length !== 1 ? "s" : ""}
                       </span>{" "}
                       from the live feed. This action cannot be undone.
                     </AlertDialogDescription>

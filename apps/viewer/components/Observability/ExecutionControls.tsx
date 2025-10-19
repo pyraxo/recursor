@@ -99,7 +99,7 @@ export function ExecutionControls({
   return (
     <Card className="bg-card/50">
       <CardContent className="p-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
           {/* Control Buttons */}
           <div className="flex gap-2">
             {!isActive && (
@@ -162,11 +162,11 @@ export function ExecutionControls({
           <Separator orientation="vertical" className="hidden sm:block h-8" />
 
           {/* Status Display */}
-          <div className="flex flex-wrap items-center gap-3 text-sm">
+          <div className="flex flex-wrap items-center gap-3 text-sm ">
             {/* State Badge */}
             <Badge
               variant="outline"
-              className={`uppercase tracking-wider ${getBadgeClassName()}`}
+              className={`uppercase tracking-wider ${getBadgeClassName()} p-2`}
             >
               {executionStatus?.execution_state || "idle"}
             </Badge>

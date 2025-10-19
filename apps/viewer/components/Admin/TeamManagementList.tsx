@@ -339,7 +339,7 @@ export function TeamManagementList({
                                 handleStop(stack._id, stack.participant_name);
                               }}
                               disabled={processingStacks.has(stack._id)}
-                              className="text-orange-500 hover:text-orange-600 hover:bg-orange-500/10"
+                              className="text-orange-500 hover:text-orange-600 hover:bg-orange-500/30"
                               title="Stop execution"
                             >
                               <Square className="h-4 w-4" />
@@ -356,7 +356,7 @@ export function TeamManagementList({
                                 handleStart(stack._id, stack.participant_name);
                               }}
                               disabled={processingStacks.has(stack._id)}
-                              className="text-green-500 hover:text-green-600 hover:bg-green-500/10"
+                              className="text-green-500 hover:text-green-600 hover:bg-green-500/30"
                               title="Start execution"
                             >
                               <Play className="h-4 w-4" />
@@ -377,7 +377,7 @@ export function TeamManagementList({
                                   variant="ghost"
                                   size="icon"
                                   disabled={executionState === "running"}
-                                  className="text-red-500 hover:text-red-600 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className="text-red-500 hover:text-red-600 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                                   title={
                                     executionState === "running"
                                       ? "Stop execution before deleting"

@@ -97,9 +97,9 @@ export const LiveFeed = forwardRef<LiveFeedRef>((props, ref) => {
     <div className="relative">
       <ScrollArea ref={scrollAreaRef} className="h-[calc(100vh-220px)]">
         <div className="space-y-1.5 pr-4">
-          {traces.map((t: typeof traces[number]) => (
+          {traces.map((t: (typeof traces)[number]) => (
             <Card key={t._id} className="hover:bg-accent/30 transition-colors">
-              <CardContent className="p-2.5">
+              <CardContent>
                 <div className="space-y-2">
                   {/* Header */}
                   <div className="flex items-center justify-between flex-wrap gap-2">
@@ -114,7 +114,7 @@ export const LiveFeed = forwardRef<LiveFeedRef>((props, ref) => {
                     </div>
                     <Badge
                       variant="outline"
-                      className={`capitalize ${getAgentBadgeColor(t.agent_type)}`}
+                      className={`capitalize ${getAgentBadgeColor(t.agent_type)} pl-1 pr-1`}
                     >
                       {t.agent_type}
                     </Badge>
